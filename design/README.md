@@ -59,11 +59,7 @@ let s1: Person; // null
 
 let s2 = Person{ name: "Hera" } // { name: "Hera", age: 0 }
 
-let s3: Person = { 
-    name: "Hera",
-    age: 18
-} 
-// { name: "Hera", age: 18 }
+let s3: Person = { name: "Hera" } // { name: "Hera", age: 0 }
 
 // 修改 `age` 属性值
 s3.age = 22
@@ -108,10 +104,10 @@ arr4[2].age = 18
 ## 可变长数组
 
 ```hera
-let arr: [..]num
+let arr: [..]num = [1]
 
-arr.push(1)
-arr.unshift(2)
+arr.push(2) // arr == [1, 2]
+arr.unshift(3) // arr == [3, 1, 2]
 ```
 
 ## 函数
