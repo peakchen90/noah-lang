@@ -1,5 +1,10 @@
 package ast
 
+type Expression struct {
+	Data E
+	Position
+}
+
 // E expression
 type E interface{ isExpr() }
 
@@ -12,11 +17,6 @@ func (*Identifier) isExpr()           {}
 func (*NumberLiteral) isExpr()        {}
 func (*BooleanLiteral) isExpr()       {}
 func (*StringLiteral) isExpr()        {}
-
-type Expression struct {
-	Data E
-	Position
-}
 
 type ImportSpecifier struct {
 	Imported string
@@ -46,8 +46,8 @@ type AssignmentExpression struct {
 }
 
 type Identifier struct {
-	Name string
-	Kind
+	Name  string
+	Kind  KindMeta
 	Refer bool
 }
 
@@ -61,5 +61,5 @@ type BooleanLiteral struct {
 
 type StringLiteral struct {
 	Value string
-	Raw   bool // 多行字符串
+	Raw   bool // 原始字符串（多行）
 }

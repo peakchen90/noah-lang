@@ -1,5 +1,10 @@
 package ast
 
+type Statement struct {
+	Data S
+	Position
+}
+
 // S statements
 type S interface{ isStmt() }
 
@@ -16,11 +21,6 @@ func (*ForOfStatement) isStmt()      {}
 func (*BreakStatement) isStmt()      {}
 func (*ContinueStatement) isStmt()   {}
 
-type Statement struct {
-	Data S
-	Position
-}
-
 type Program struct {
 	Body []Statement
 }
@@ -34,7 +34,7 @@ type FunctionDeclaration struct {
 	Id        string
 	Arguments []Expression
 	Body      []Statement
-	Kind      Kind
+	Kind      KindMeta
 	Pubic     bool
 }
 
@@ -46,7 +46,7 @@ type VariableDeclaration struct {
 
 type TypeDeclaration struct {
 	Name  Expression
-	Kind  Kind
+	Kind  KindMeta
 	Pubic bool
 }
 
@@ -76,9 +76,10 @@ type ForStatement struct {
 }
 
 type ForOfStatement struct {
-	Label string
-	Left  Expression
-	Right Expression
+	Label     string
+	IterIndex string
+	IterName  string
+	Target    Expression
 }
 
 type BreakStatement struct {

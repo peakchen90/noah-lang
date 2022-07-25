@@ -10,7 +10,7 @@ func (p *Parser) parseStatement() *Statement {
 		case "pub":
 			p.readNextToken()
 			if !p.isToken(TTKeyword) {
-				// TODO unexpected
+				p.unexpected()
 			}
 
 			switch p.currentToken.Value {
@@ -23,7 +23,7 @@ func (p *Parser) parseStatement() *Statement {
 			case "interface":
 				// TODO parse pub vars & kinds
 			default:
-				// TODO unexpected
+				p.unexpected()
 			}
 		case "import":
 		case "fn":
@@ -43,7 +43,7 @@ func (p *Parser) parseStatement() *Statement {
 	case TTBraceL:
 
 	default:
-		// TODO unexpected
+		p.unexpected()
 	}
 
 	tailSemiCount := 0
@@ -52,7 +52,6 @@ func (p *Parser) parseStatement() *Statement {
 		if p.isToken(TTEof) {
 			break
 		}
-
 	}
 
 	if !omitTailingSemi && tailSemiCount == 0 && !p.isSeenNewline && !p.isToken(TTEof) && !p.isToken(TTBraceR) {
