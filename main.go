@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/peakchen90/hera-lang/compiler/ast"
+	"github.com/peakchen90/hera-lang/internal/parser"
 )
 
 func main() {
-	node := *ast.NewParser(`
+	node := *parser.NewParser(`
 import "axe.aa/fwa" as ab
 `)
 

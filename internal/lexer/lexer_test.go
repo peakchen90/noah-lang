@@ -1,6 +1,7 @@
-package ast
+package lexer
 
 import (
+	"github.com/peakchen90/hera-lang/internal/ast"
 	"testing"
 )
 
@@ -34,11 +35,11 @@ func TestLexer(t *testing.T) {
 
 	for _, fixture := range tokenFixtures {
 		lexer := NewLexer([]rune(fixture))
-		lexer.readNext()
+		lexer.Next()
 	}
 
-	for _, fixture := range Keywords {
+	for _, fixture := range ast.Keywords {
 		lexer := NewLexer([]rune(fixture))
-		lexer.readNext()
+		lexer.Next()
 	}
 }

@@ -1,130 +1,12 @@
-package ast
+package lexer
 
 import (
 	"fmt"
+	"github.com/peakchen90/hera-lang/internal/ast"
+	"github.com/peakchen90/hera-lang/internal/helper"
 	"strconv"
 	"strings"
 )
-
-type TokenType = uint8
-
-type TokenMeta struct {
-	Type       TokenType
-	Text       string
-	Precedence int8
-	AllowExpr  bool
-}
-
-// 更新 token 类型同时要更新 tokenMetaMap
-const (
-	TTEof        TokenType = iota + 1 // 结束 Token
-	TTComment                         // 注释
-	TTKeyword                         // 关键字
-	TTConst                           // 内置常量（关键字）
-	TTIdentifier                      // 标识符
-	TTNumber                          // 数字字面量
-	TTString                          // 字符串字面量
-	TTReturnSym                       // ->
-	TTParenL                          // (
-	TTParenR                          // )
-	TTBracketL                        // [
-	TTBracketR                        // ]
-	TTBraceL                          // {
-	TTBraceR                          // }
-	TTRest                            // ..
-	TTSemi                            // ;
-	TTColon                           // :
-	TTComma                           // ,
-
-	// operator
-
-	TTAssign   // =
-	TTPlus     // +
-	TTSub      // -
-	TTMul      // *
-	TTDiv      // /
-	TTRem      // %
-	TTLt       // <
-	TTLe       // <=
-	TTGt       // >
-	TTGe       // >=
-	TTEq       // ==
-	TTNe       // !=
-	TTLogicAnd // &&
-	TTLogicOr  // ||
-	TTLogicNot // !
-	TTBitAnd   // &
-	TTBitOr    // |
-	TTBitNot   // ~
-	TTBitXor   // ^
-	TTDot      // .
-	TTRef      // &
-	TTUnref    // *
-)
-
-var tokenMetaMap = map[TokenType]TokenMeta{
-	TTEof:        {TTEof, "EOF", -1, false},
-	TTComment:    {TTComment, "Comment", -1, false},
-	TTKeyword:    {TTKeyword, "Keywords", -1, false},
-	TTIdentifier: {TTIdentifier, "Identifier", -1, false},
-	TTNumber:     {TTNumber, "Number", -1, false},
-	TTString:     {TTString, "String", -1, false},
-	TTConst:      {TTConst, "Const", -1, false},
-	TTReturnSym:  {TTReturnSym, "->", -1, false},
-	TTParenL:     {TTParenL, "(", -1, true},
-	TTParenR:     {TTParenR, ")", -1, false},
-	TTBracketL:   {TTBracketL, "[", -1, true},
-	TTBracketR:   {TTBracketR, "]", -1, true},
-	TTBraceL:     {TTBraceL, "{", -1, true},
-	TTBraceR:     {TTBraceR, "}", -1, true},
-	TTRest:       {TTRest, "..", -1, true},
-	TTSemi:       {TTSemi, ";", -1, true},
-	TTColon:      {TTColon, ":", -1, true},
-	TTComma:      {TTComma, ",", -1, true},
-
-	// operator
-	// precedence see: https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
-
-	TTAssign:   {TTAssign, "=", 2, true},
-	TTPlus:     {TTPlus, "+", 12, true},
-	TTSub:      {TTSub, "-", 12, true},
-	TTMul:      {TTMul, "*", 13, true},
-	TTDiv:      {TTDiv, "/", 13, true},
-	TTRem:      {TTRem, "%", 13, true},
-	TTLt:       {TTLt, "<", 10, true},
-	TTLe:       {TTLe, "<=", 10, true},
-	TTGt:       {TTGt, ">", 10, true},
-	TTGe:       {TTGe, ">=", 10, true},
-	TTEq:       {TTEq, "==", 9, true},
-	TTNe:       {TTNe, "!=", 9, true},
-	TTLogicAnd: {TTLogicAnd, "&&", 5, true},
-	TTLogicOr:  {TTLogicOr, "||", 4, true},
-	TTLogicNot: {TTLogicNot, "!", 15, true},
-	TTBitAnd:   {TTBitAnd, "&", 8, true},
-	TTBitOr:    {TTBitOr, "|", 6, true},
-	TTBitNot:   {TTBitNot, "~", 15, true},
-	TTBitXor:   {TTBitXor, "^", 7, true},
-	TTDot:      {TTDot, ".", 18, true},
-	TTRef:      {TTRef, "&", 17, true},
-	TTUnref:    {TTUnref, "*", 17, true},
-}
-
-type Token struct {
-	*TokenMeta
-	Position
-	Value string
-	Ext   interface{}
-}
-
-func (t *Token) String() string {
-	if t.Type == TTString {
-		return fmt.Sprintf(`"%s"`, t.Value)
-	}
-	if len(t.Value) > 0 {
-		return t.Value
-	}
-	return t.Text
-}
 
 type Lexer struct {
 	source        []rune // utf-8 字符
@@ -141,25 +23,12 @@ func NewLexer(source []rune) *Lexer {
 	return &lexer
 }
 
-func (l *Lexer) createToken(tokenType TokenType, start int, end int) *Token {
-	tokenMeta := tokenMetaMap[tokenType]
-	token := Token{TokenMeta: &tokenMeta}
-	token.Start = start
-	token.End = end
-
-	if tokenType != TTComment {
-		l.allowExpr = tokenMeta.AllowExpr
-	}
-
-	return &token
-}
-
-func (l *Lexer) readNext() *Token {
+func (l *Lexer) Next() *Token {
 	l.skipSpace()
 	l.skipComment()
 
 	var token *Token
-	ch := l.look(0)
+	ch := l.Look(0)
 
 	if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '_' || ch == '$' {
 		token = l.readAsIdentifier()
@@ -172,7 +41,7 @@ func (l *Lexer) readNext() *Token {
 		case '"':
 			token = l.readAsString()
 		case '=':
-			if l.look(1) == '=' {
+			if l.Look(1) == '=' {
 				l.index += 2
 				token = l.createToken(TTEq, l.index-2, l.index)
 			} else {
@@ -183,7 +52,7 @@ func (l *Lexer) readNext() *Token {
 			l.index++
 			token = l.createToken(TTPlus, l.index-1, l.index)
 		case '-':
-			if l.look(1) == '>' {
+			if l.Look(1) == '>' {
 				l.index += 2
 				token = l.createToken(TTReturnSym, l.index-2, l.index)
 			} else if l.allowExpr {
@@ -206,7 +75,7 @@ func (l *Lexer) readNext() *Token {
 			l.index++
 			token = l.createToken(TTRem, l.index-1, l.index)
 		case '<':
-			if l.look(1) == '=' {
+			if l.Look(1) == '=' {
 				l.index += 2
 				token = l.createToken(TTLe, l.index-2, l.index)
 			} else {
@@ -214,7 +83,7 @@ func (l *Lexer) readNext() *Token {
 				token = l.createToken(TTLt, l.index-1, l.index)
 			}
 		case '>':
-			if l.look(1) == '=' {
+			if l.Look(1) == '=' {
 				l.index += 2
 				token = l.createToken(TTGe, l.index-2, l.index)
 			} else {
@@ -222,7 +91,7 @@ func (l *Lexer) readNext() *Token {
 				token = l.createToken(TTGt, l.index-1, l.index)
 			}
 		case '&':
-			if l.look(1) == '&' {
+			if l.Look(1) == '&' {
 				l.index += 2
 				token = l.createToken(TTLogicAnd, l.index-2, l.index)
 			} else if l.allowExpr {
@@ -233,7 +102,7 @@ func (l *Lexer) readNext() *Token {
 				token = l.createToken(TTBitAnd, l.index-1, l.index)
 			}
 		case '|':
-			if l.look(1) == '|' {
+			if l.Look(1) == '|' {
 				l.index += 2
 				token = l.createToken(TTLogicOr, l.index-2, l.index)
 			} else {
@@ -241,7 +110,7 @@ func (l *Lexer) readNext() *Token {
 				token = l.createToken(TTBitOr, l.index-1, l.index)
 			}
 		case '!':
-			if l.look(1) == '=' {
+			if l.Look(1) == '=' {
 				l.index += 2
 				token = l.createToken(TTNe, l.index-2, l.index)
 			} else {
@@ -276,7 +145,7 @@ func (l *Lexer) readNext() *Token {
 			l.index++
 			token = l.createToken(TTComma, l.index-1, l.index)
 		case '.':
-			if l.look(1) == '.' {
+			if l.Look(1) == '.' {
 				l.index += 2
 				token = l.createToken(TTRest, l.index-2, l.index)
 			} else {
@@ -290,18 +159,14 @@ func (l *Lexer) readNext() *Token {
 			l.index++
 			token = l.createToken(TTColon, l.index-1, l.index)
 		default:
-			l.unexpected(l.index, "")
+			l.Unexpected(l.index, "")
 		}
 	}
 
 	return token
 }
 
-func (l *Lexer) checkIndex() bool {
-	return l.index < len(l.source)
-}
-
-func (l *Lexer) look(n int) rune {
+func (l *Lexer) Look(n int) rune {
 	next := l.index + n
 	if next < len(l.source) {
 		return l.source[next]
@@ -309,7 +174,7 @@ func (l *Lexer) look(n int) rune {
 	return 0
 }
 
-func (l *Lexer) lookNext() rune {
+func (l *Lexer) LookNext() rune {
 	l.skipSpace()
 	l.skipComment()
 	if l.checkIndex() {
@@ -318,9 +183,26 @@ func (l *Lexer) lookNext() rune {
 	return 0
 }
 
+func (l *Lexer) createToken(tokenType TokenType, start int, end int) *Token {
+	tokenMeta := tokenMetaMap[tokenType]
+	token := Token{TokenMeta: &tokenMeta}
+	token.Start = start
+	token.End = end
+
+	if tokenType != TTComment {
+		l.allowExpr = tokenMeta.AllowExpr
+	}
+
+	return &token
+}
+
+func (l *Lexer) checkIndex() bool {
+	return l.index < len(l.source)
+}
+
 func (l *Lexer) skipSpace() {
 	for l.checkIndex() {
-		ch := l.look(0)
+		ch := l.Look(0)
 		if ch == '\r' || ch == '\n' || ch == '\t' || ch == ' ' {
 			if ch == '\r' || ch == '\n' {
 				l.isSeenNewline = true
@@ -333,17 +215,17 @@ func (l *Lexer) skipSpace() {
 }
 
 func (l *Lexer) skipComment() {
-	if l.look(0) == '/' && l.look(1) == '/' {
+	if l.Look(0) == '/' && l.Look(1) == '/' {
 		l.index += 2
-		for l.checkIndex() && l.look(0) != '\n' {
+		for l.checkIndex() && l.Look(0) != '\n' {
 			l.index++
 		}
 		l.index++
 		l.skipSpace()
 		l.skipComment()
-	} else if l.look(0) == '/' && l.look(1) == '*' {
+	} else if l.Look(0) == '/' && l.Look(1) == '*' {
 		l.index += 2
-		for l.checkIndex() && !(l.look(0) == '*' && l.look(1) == '/') {
+		for l.checkIndex() && !(l.Look(0) == '*' && l.Look(1) == '/') {
 			l.index++
 		}
 		l.index += 2
@@ -358,7 +240,7 @@ func (l *Lexer) readAsString() *Token {
 	valid := false
 	value := strings.Builder{}
 
-	if l.look(1) == '"' && l.look(2) == '"' {
+	if l.Look(1) == '"' && l.Look(2) == '"' {
 		l.index += 3
 		raw = true
 	} else {
@@ -366,18 +248,18 @@ func (l *Lexer) readAsString() *Token {
 	}
 
 	for l.checkIndex() {
-		ch := l.look(0)
+		ch := l.Look(0)
 		if ch == '"' {
-			if !raw || (l.look(1) == '"' && l.look(2) == '"') {
+			if !raw || (l.Look(1) == '"' && l.Look(2) == '"') {
 				valid = true
 				break
 			}
 		}
 		// 换行
 		if ch == '\n' && !raw {
-			l.unexpected(
+			l.Unexpected(
 				l.index,
-				"String literals cannot wrap. Tip: You can use the raw string `\"\"\"...\"\"\"`",
+				"TTString literals cannot wrap. Tip: You can use the raw string `\"\"\"...\"\"\"`",
 			)
 		}
 
@@ -385,7 +267,7 @@ func (l *Lexer) readAsString() *Token {
 		// see: https://baike.baidu.com/item/%E8%BD%AC%E4%B9%89%E5%AD%97%E7%AC%A6/86397
 		if ch == '\\' {
 			l.index++
-			switch l.look(0) {
+			switch l.Look(0) {
 			case 'a':
 				value.WriteByte('\a')
 			case 'b':
@@ -410,21 +292,21 @@ func (l *Lexer) readAsString() *Token {
 				value.WriteByte(63)
 			case 'x': // \xhh 2位十六进制字符
 				l.index++
-				ch1 := l.look(0)
-				ch2 := l.look(1)
+				ch1 := l.Look(0)
+				ch2 := l.Look(1)
 				if ((ch1 >= '0' && ch1 <= '9') || (ch1 >= 'a' && ch1 <= 'f') || (ch1 >= 'A' && ch1 <= 'F')) &&
 					(ch2 >= '0' && ch2 <= '9') || (ch2 >= 'a' && ch2 <= 'f') || (ch2 >= 'A' && ch2 <= 'F') {
 					l.index++
 					code, _ := strconv.ParseUint(string([]rune{ch1, ch2}), 16, 8)
 					value.WriteByte(byte(code))
 				} else {
-					l.unexpected(l.index, "Invalid hexadecimal escape sequence")
+					l.Unexpected(l.index, "Invalid hexadecimal escape sequence")
 				}
 			default:
 				// \ddd 1~3位八进制字符
 				str := strings.Builder{}
 				for i := 0; i < 3; i++ {
-					ch := l.look(i)
+					ch := l.Look(i)
 					if ch >= '0' && ch <= '7' {
 						str.WriteRune(ch)
 					} else {
@@ -436,7 +318,7 @@ func (l *Lexer) readAsString() *Token {
 					code, _ := strconv.ParseUint(str.String(), 8, 8)
 					value.WriteByte(byte(code))
 				} else {
-					value.WriteRune(l.look(0))
+					value.WriteRune(l.Look(0))
 				}
 			}
 
@@ -444,15 +326,15 @@ func (l *Lexer) readAsString() *Token {
 			continue
 		}
 
-		value.WriteRune(l.look(0))
+		value.WriteRune(l.Look(0))
 		l.index++
 	}
 
 	if !valid {
 		if raw {
-			l.unexpected(l.index, "The string literal is missing the terminator `\"\"\"`")
+			l.Unexpected(l.index, "The string literal is missing the terminator `\"\"\"`")
 		} else {
-			l.unexpected(l.index, "The string literal is missing the terminator `\"`")
+			l.Unexpected(l.index, "The string literal is missing the terminator `\"`")
 		}
 	}
 
@@ -475,13 +357,13 @@ func (l *Lexer) readAsNumber() *Token {
 	consumeNum := true
 	value := strings.Builder{}
 
-	if l.look(0) == '-' {
+	if l.Look(0) == '-' {
 		value.WriteByte('-')
 		l.index++
 	}
 
 	for l.checkIndex() {
-		ch := l.look(0)
+		ch := l.Look(0)
 		if ch >= '0' && ch <= '9' {
 			value.WriteRune(ch)
 			consumeNum = false
@@ -504,7 +386,7 @@ func (l *Lexer) readAsNumber() *Token {
 	}
 
 	if !valid || consumeNum {
-		l.unexpected(l.index, "Unexpected number")
+		l.Unexpected(l.index, "Unexpected number")
 	}
 
 	token := l.createToken(TTNumber, start, l.index)
@@ -517,7 +399,7 @@ func (l *Lexer) readAsIdentifier() *Token {
 	value := strings.Builder{}
 
 	for l.checkIndex() {
-		ch := l.look(0)
+		ch := l.Look(0)
 		if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '_' || ch == '$' || (ch >= '0' && ch <= '9') {
 			value.WriteRune(ch)
 			l.index++
@@ -529,7 +411,7 @@ func (l *Lexer) readAsIdentifier() *Token {
 	valueStr := value.String()
 	var token *Token
 
-	if IsKeyword(valueStr) {
+	if ast.IsKeyword(valueStr) {
 		switch valueStr {
 		case "true", "false", "null", "self":
 			token = l.createToken(TTConst, start, l.index)
@@ -546,7 +428,7 @@ func (l *Lexer) readAsIdentifier() *Token {
 	return token
 }
 
-func (l *Lexer) unexpected(index int, msg string) {
+func (l *Lexer) Unexpected(index int, msg string) {
 	var message string
 	if len(msg) > 0 {
 		message = msg
@@ -555,6 +437,6 @@ func (l *Lexer) unexpected(index int, msg string) {
 	} else {
 		message = "Unexpected end of file"
 	}
-	line, column := PrintErrorFrame(l.source, index, message)
+	line, column := helper.PrintErrorFrame(l.source, index, message)
 	panic(fmt.Sprintf("%s (%d:%d)", msg, line, column))
 }

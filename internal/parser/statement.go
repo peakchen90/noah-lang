@@ -1,15 +1,20 @@
-package ast
+package parser
 
-func (p *Parser) parseStatement() *Statement {
-	var stmt *Statement
+import (
+	"github.com/peakchen90/hera-lang/internal/ast"
+	"github.com/peakchen90/hera-lang/internal/lexer"
+)
+
+func (p *Parser) parseStatement() *ast.Statement {
+	var stmt *ast.Statement
 
 	omitTailingSemi := false
 	switch p.current.Type {
-	case TTKeyword:
+	case lexer.TTKeyword:
 		switch p.current.Value {
 		case "pub":
 			p.nextToken()
-			p.expect(TTKeyword)
+			p.expect(lexer.TTKeyword)
 
 			switch p.current.Value {
 			case "fn":
@@ -54,12 +59,12 @@ func (p *Parser) parseStatement() *Statement {
 		default:
 			p.unexpected()
 		}
-	case TTIdentifier:
+	case lexer.TTIdentifier:
 		maybeLabel := p.current.Value
-		if p.lexer.lookNext() == ':' {
+		if p.lexer.LookNext() == ':' {
 			p.nextToken()
-			p.consume(TTColon)
-			p.expect(TTKeyword)
+			p.consume(lexer.TTColon)
+			p.expect(lexer.TTKeyword)
 
 			switch p.current.Value {
 			case "for":
@@ -72,7 +77,7 @@ func (p *Parser) parseStatement() *Statement {
 		} else {
 			stmt = p.parseExpressionStatement()
 		}
-	case TTBraceL:
+	case lexer.TTBraceL:
 		omitTailingSemi = true
 		stmt = p.parseBlockStatement()
 	default:
@@ -80,41 +85,41 @@ func (p *Parser) parseStatement() *Statement {
 	}
 
 	tailSemiCount := 0
-	for p.consume(TTSemi) {
+	for p.consume(lexer.TTSemi) {
 		tailSemiCount++
-		if p.isToken(TTEof) {
+		if p.isToken(lexer.TTEof) {
 			break
 		}
 	}
 
-	if !omitTailingSemi && tailSemiCount == 0 && !p.isSeenNewline && !p.isToken(TTEof) && !p.isToken(TTBraceR) {
+	if !omitTailingSemi && tailSemiCount == 0 && !p.isSeenNewline && !p.isToken(lexer.TTEof) && !p.isToken(lexer.TTBraceR) {
 		p.unexpected()
 	}
 
 	return stmt
 }
 
-func (p *Parser) parseImportStatement() *Statement {
-	stmt := Statement{}
+func (p *Parser) parseImportStatement() *ast.Statement {
+	stmt := ast.Statement{}
 	stmt.Start = p.current.Start
 
 	// source
 	p.nextToken()
-	p.expect(TTString)
+	p.expect(lexer.TTString)
 	Source := p.current.Value
 
 	// as
 	p.nextToken()
-	if !(p.isToken(TTKeyword) && p.current.Value == "as") {
+	if !(p.isToken(lexer.TTKeyword) && p.current.Value == "as") {
 		p.unexpected()
 	}
 
 	// localName
 	p.nextToken()
-	p.expect(TTIdentifier)
+	p.expect(lexer.TTIdentifier)
 	LocalName := p.current.Value
 
-	stmt.Node = &ImportDeclaration{
+	stmt.Node = &ast.ImportDeclaration{
 		Source,
 		LocalName,
 	}
@@ -125,61 +130,61 @@ func (p *Parser) parseImportStatement() *Statement {
 	return &stmt
 }
 
-func (p *Parser) parseFunctionDeclaration(pub bool) *Statement {
-	stmt := Statement{}
+func (p *Parser) parseFunctionDeclaration(pub bool) *ast.Statement {
+	stmt := ast.Statement{}
 
 	return &stmt
 }
 
-func (p *Parser) parseVariableDeclaration(pub bool) *Statement {
-	stmt := Statement{}
+func (p *Parser) parseVariableDeclaration(pub bool) *ast.Statement {
+	stmt := ast.Statement{}
 
 	return &stmt
 }
 
-func (p *Parser) parseTypeDeclaration(pub bool) *Statement {
-	stmt := Statement{}
+func (p *Parser) parseTypeDeclaration(pub bool) *ast.Statement {
+	stmt := ast.Statement{}
 
 	return &stmt
 }
-func (p *Parser) parseIfStatement() *Statement {
-	stmt := Statement{}
-
-	return &stmt
-}
-
-func (p *Parser) parseForStatement(label string) *Statement {
-	stmt := Statement{}
+func (p *Parser) parseIfStatement() *ast.Statement {
+	stmt := ast.Statement{}
 
 	return &stmt
 }
 
-func (p *Parser) parseReturnStatement() *Statement {
-	stmt := Statement{}
+func (p *Parser) parseForStatement(label string) *ast.Statement {
+	stmt := ast.Statement{}
 
 	return &stmt
 }
 
-func (p *Parser) parseBreakStatement() *Statement {
-	stmt := Statement{}
+func (p *Parser) parseReturnStatement() *ast.Statement {
+	stmt := ast.Statement{}
 
 	return &stmt
 }
 
-func (p *Parser) parseContinueStatement() *Statement {
-	stmt := Statement{}
+func (p *Parser) parseBreakStatement() *ast.Statement {
+	stmt := ast.Statement{}
 
 	return &stmt
 }
 
-func (p *Parser) parseExpressionStatement() *Statement {
-	stmt := Statement{}
+func (p *Parser) parseContinueStatement() *ast.Statement {
+	stmt := ast.Statement{}
 
 	return &stmt
 }
 
-func (p *Parser) parseBlockStatement() *Statement {
-	stmt := Statement{}
+func (p *Parser) parseExpressionStatement() *ast.Statement {
+	stmt := ast.Statement{}
+
+	return &stmt
+}
+
+func (p *Parser) parseBlockStatement() *ast.Statement {
+	stmt := ast.Statement{}
 
 	return &stmt
 }
