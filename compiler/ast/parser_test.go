@@ -2,7 +2,7 @@ package ast
 
 import "testing"
 
-var fixtures = [...]string{
+var parserFixtures = [...]string{
 	`
 let a = 1
 const b: str = "a"
@@ -89,8 +89,8 @@ for {
 	`,
 }
 
-func TestAST(t *testing.T) {
-	for _, fixture := range fixtures {
+func TestParser(t *testing.T) {
+	for _, fixture := range parserFixtures {
 		NewParser(fixture)
 	}
 }

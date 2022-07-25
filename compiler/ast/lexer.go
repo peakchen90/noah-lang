@@ -65,7 +65,7 @@ const (
 var tokenMetaMap = map[TokenType]TokenMeta{
 	TTEof:        {TTEof, "EOF", -1, false},
 	TTComment:    {TTComment, "Comment", -1, false},
-	TTKeyword:    {TTKeyword, "Keyword", -1, false},
+	TTKeyword:    {TTKeyword, "Keywords", -1, false},
 	TTIdentifier: {TTIdentifier, "Identifier", -1, false},
 	TTNumber:     {TTNumber, "Number", -1, false},
 	TTString:     {TTString, "String", -1, false},
@@ -126,230 +126,257 @@ func (t *Token) String() string {
 	return t.Text
 }
 
-func (p *Parser) newToken(tokenType TokenType, start int, end int) *Token {
+type Lexer struct {
+	source        []rune // utf-8 字符
+	index         int    // 光标位置
+	isSeenNewline bool   // 读取下一个 token 时是否遇到过换行
+	allowExpr     bool   // 当前上下文是否允许表达式
+}
+
+func NewLexer(source []rune) *Lexer {
+	lexer := Lexer{
+		source:    source,
+		allowExpr: true,
+	}
+	return &lexer
+}
+
+func (l *Lexer) createToken(tokenType TokenType, start int, end int) *Token {
 	tokenMeta := tokenMetaMap[tokenType]
 	token := Token{TokenMeta: &tokenMeta}
 	token.Start = start
 	token.End = end
 
 	if tokenType != TTComment {
-		p.allowExpr = tokenMeta.AllowExpr
+		l.allowExpr = tokenMeta.AllowExpr
 	}
 
 	return &token
 }
 
-func (p *Parser) readNextToken() *Token {
-	p.skipSpace()
-	p.skipComment()
+func (l *Lexer) readNext() *Token {
+	l.skipSpace()
+	l.skipComment()
 
 	var token *Token
-	ch := p.look(0)
+	ch := l.look(0)
 
 	if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '_' || ch == '$' {
-		token = p.readAsIdentifier()
+		token = l.readAsIdentifier()
 	} else if ch >= '0' && ch <= '9' {
-		token = p.readAsNumber()
-	} else if p.index == len(p.source) {
-		token = p.newToken(TTEof, p.index, p.index)
+		token = l.readAsNumber()
+	} else if l.index == len(l.source) {
+		token = l.createToken(TTEof, l.index, l.index)
 	} else {
 		switch ch {
 		case '"':
-			token = p.readAsString()
+			token = l.readAsString()
 		case '=':
-			if p.look(1) == '=' {
-				p.index += 2
-				token = p.newToken(TTEq, p.index-2, p.index)
+			if l.look(1) == '=' {
+				l.index += 2
+				token = l.createToken(TTEq, l.index-2, l.index)
 			} else {
-				p.index++
-				token = p.newToken(TTAssign, p.index-1, p.index)
+				l.index++
+				token = l.createToken(TTAssign, l.index-1, l.index)
 			}
 		case '+':
-			p.index++
-			token = p.newToken(TTPlus, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTPlus, l.index-1, l.index)
 		case '-':
-			if p.look(1) == '>' {
-				p.index += 2
-				token = p.newToken(TTReturnSym, p.index-2, p.index)
-			} else if p.allowExpr {
-				token = p.readAsNumber()
+			if l.look(1) == '>' {
+				l.index += 2
+				token = l.createToken(TTReturnSym, l.index-2, l.index)
+			} else if l.allowExpr {
+				token = l.readAsNumber()
 			} else {
-				p.index++
-				token = p.newToken(TTSub, p.index-1, p.index)
+				l.index++
+				token = l.createToken(TTSub, l.index-1, l.index)
 			}
 		case '*':
-			p.index++
-			if p.allowExpr {
-				token = p.newToken(TTUnref, p.index-1, p.index)
+			l.index++
+			if l.allowExpr {
+				token = l.createToken(TTUnref, l.index-1, l.index)
 			} else {
-				token = p.newToken(TTMul, p.index-1, p.index)
+				token = l.createToken(TTMul, l.index-1, l.index)
 			}
 		case '/':
-			p.index++
-			token = p.newToken(TTDiv, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTDiv, l.index-1, l.index)
 		case '%':
-			p.index++
-			token = p.newToken(TTRem, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTRem, l.index-1, l.index)
 		case '<':
-			if p.look(1) == '=' {
-				p.index += 2
-				token = p.newToken(TTLe, p.index-2, p.index)
+			if l.look(1) == '=' {
+				l.index += 2
+				token = l.createToken(TTLe, l.index-2, l.index)
 			} else {
-				p.index++
-				token = p.newToken(TTLt, p.index-1, p.index)
+				l.index++
+				token = l.createToken(TTLt, l.index-1, l.index)
 			}
 		case '>':
-			if p.look(1) == '=' {
-				p.index += 2
-				token = p.newToken(TTGe, p.index-2, p.index)
+			if l.look(1) == '=' {
+				l.index += 2
+				token = l.createToken(TTGe, l.index-2, l.index)
 			} else {
-				p.index++
-				token = p.newToken(TTGt, p.index-1, p.index)
+				l.index++
+				token = l.createToken(TTGt, l.index-1, l.index)
 			}
 		case '&':
-			if p.look(1) == '&' {
-				p.index += 2
-				token = p.newToken(TTLogicAnd, p.index-2, p.index)
-			} else if p.allowExpr {
-				p.index++
-				token = p.newToken(TTRef, p.index-1, p.index)
+			if l.look(1) == '&' {
+				l.index += 2
+				token = l.createToken(TTLogicAnd, l.index-2, l.index)
+			} else if l.allowExpr {
+				l.index++
+				token = l.createToken(TTRef, l.index-1, l.index)
 			} else {
-				p.index++
-				token = p.newToken(TTBitAnd, p.index-1, p.index)
+				l.index++
+				token = l.createToken(TTBitAnd, l.index-1, l.index)
 			}
 		case '|':
-			if p.look(1) == '|' {
-				p.index += 2
-				token = p.newToken(TTLogicOr, p.index-2, p.index)
+			if l.look(1) == '|' {
+				l.index += 2
+				token = l.createToken(TTLogicOr, l.index-2, l.index)
 			} else {
-				p.index++
-				token = p.newToken(TTBitOr, p.index-1, p.index)
+				l.index++
+				token = l.createToken(TTBitOr, l.index-1, l.index)
 			}
 		case '!':
-			if p.look(1) == '=' {
-				p.index += 2
-				token = p.newToken(TTNe, p.index-2, p.index)
+			if l.look(1) == '=' {
+				l.index += 2
+				token = l.createToken(TTNe, l.index-2, l.index)
 			} else {
-				p.index++
-				token = p.newToken(TTLogicNot, p.index-1, p.index)
+				l.index++
+				token = l.createToken(TTLogicNot, l.index-1, l.index)
 			}
 		case '~':
-			p.index++
-			token = p.newToken(TTBitNot, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTBitNot, l.index-1, l.index)
 		case '^':
-			p.index++
-			token = p.newToken(TTBitXor, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTBitXor, l.index-1, l.index)
 		case '(':
-			p.index++
-			token = p.newToken(TTParenL, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTParenL, l.index-1, l.index)
 		case ')':
-			p.index++
-			token = p.newToken(TTParenR, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTParenR, l.index-1, l.index)
 		case '[':
-			p.index++
-			token = p.newToken(TTBracketL, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTBracketL, l.index-1, l.index)
 		case ']':
-			p.index++
-			token = p.newToken(TTBracketR, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTBracketR, l.index-1, l.index)
 		case '{':
-			p.index++
-			token = p.newToken(TTBraceL, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTBraceL, l.index-1, l.index)
 		case '}':
-			p.index++
-			token = p.newToken(TTBraceR, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTBraceR, l.index-1, l.index)
 		case ',':
-			p.index++
-			token = p.newToken(TTComma, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTComma, l.index-1, l.index)
 		case '.':
-			if p.look(1) == '.' {
-				p.index += 2
-				token = p.newToken(TTRest, p.index-2, p.index)
+			if l.look(1) == '.' {
+				l.index += 2
+				token = l.createToken(TTRest, l.index-2, l.index)
 			} else {
-				p.index++
-				token = p.newToken(TTDot, p.index-1, p.index)
+				l.index++
+				token = l.createToken(TTDot, l.index-1, l.index)
 			}
 		case ';':
-			p.index++
-			token = p.newToken(TTSemi, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTSemi, l.index-1, l.index)
 		case ':':
-			p.index++
-			token = p.newToken(TTColon, p.index-1, p.index)
+			l.index++
+			token = l.createToken(TTColon, l.index-1, l.index)
 		default:
-			p.unexpectedPos(p.index)
+			l.unexpected(l.index, "")
 		}
 	}
 
-	p.currentToken = token
 	return token
 }
 
-func (p *Parser) look(n int) rune {
-	next := p.index + n
-	if next < len(p.source) {
-		return p.source[next]
+func (l *Lexer) checkIndex() bool {
+	return l.index < len(l.source)
+}
+
+func (l *Lexer) look(n int) rune {
+	next := l.index + n
+	if next < len(l.source) {
+		return l.source[next]
 	}
 	return 0
 }
 
-func (p *Parser) skipSpace() {
-	for p.checkIndex() {
-		ch := p.look(0)
+func (l *Lexer) lookNext() rune {
+	l.skipSpace()
+	l.skipComment()
+	if l.checkIndex() {
+		return l.source[l.index]
+	}
+	return 0
+}
+
+func (l *Lexer) skipSpace() {
+	for l.checkIndex() {
+		ch := l.look(0)
 		if ch == '\r' || ch == '\n' || ch == '\t' || ch == ' ' {
 			if ch == '\r' || ch == '\n' {
-				p.isSeenNewline = true
+				l.isSeenNewline = true
 			}
-			p.index++
+			l.index++
 		} else {
 			break
 		}
 	}
 }
 
-func (p *Parser) skipComment() {
-	if p.look(0) == '/' && p.look(1) == '/' {
-		p.index += 2
-		for p.checkIndex() && p.look(0) != '\n' {
-			p.index++
+func (l *Lexer) skipComment() {
+	if l.look(0) == '/' && l.look(1) == '/' {
+		l.index += 2
+		for l.checkIndex() && l.look(0) != '\n' {
+			l.index++
 		}
-		p.index++
-		p.skipSpace()
-		p.skipComment()
-	} else if p.look(0) == '/' && p.look(1) == '*' {
-		p.index += 2
-		for p.checkIndex() && !(p.look(0) == '*' && p.look(1) == '/') {
-			p.index++
+		l.index++
+		l.skipSpace()
+		l.skipComment()
+	} else if l.look(0) == '/' && l.look(1) == '*' {
+		l.index += 2
+		for l.checkIndex() && !(l.look(0) == '*' && l.look(1) == '/') {
+			l.index++
 		}
-		p.index += 2
-		p.skipSpace()
-		p.skipComment()
+		l.index += 2
+		l.skipSpace()
+		l.skipComment()
 	}
 }
 
-func (p *Parser) readAsString() *Token {
-	start := p.index
+func (l *Lexer) readAsString() *Token {
+	start := l.index
 	raw := false
 	valid := false
 	value := strings.Builder{}
 
-	if p.look(1) == '"' && p.look(2) == '"' {
-		p.index += 3
+	if l.look(1) == '"' && l.look(2) == '"' {
+		l.index += 3
 		raw = true
 	} else {
-		p.index++
+		l.index++
 	}
 
-	for p.checkIndex() {
-		ch := p.look(0)
+	for l.checkIndex() {
+		ch := l.look(0)
 		if ch == '"' {
-			if !raw || (p.look(1) == '"' && p.look(2) == '"') {
+			if !raw || (l.look(1) == '"' && l.look(2) == '"') {
 				valid = true
 				break
 			}
 		}
 		// 换行
 		if ch == '\n' && !raw {
-			p.panicWithError(
-				p.index,
+			l.unexpected(
+				l.index,
 				"String literals cannot wrap. Tip: You can use the raw string `\"\"\"...\"\"\"`",
 			)
 		}
@@ -357,8 +384,8 @@ func (p *Parser) readAsString() *Token {
 		// escape char
 		// see: https://baike.baidu.com/item/%E8%BD%AC%E4%B9%89%E5%AD%97%E7%AC%A6/86397
 		if ch == '\\' {
-			p.index++
-			switch p.look(0) {
+			l.index++
+			switch l.look(0) {
 			case 'a':
 				value.WriteByte('\a')
 			case 'b':
@@ -382,22 +409,22 @@ func (p *Parser) readAsString() *Token {
 			case '?':
 				value.WriteByte(63)
 			case 'x': // \xhh 2位十六进制字符
-				p.index++
-				ch1 := p.look(0)
-				ch2 := p.look(1)
+				l.index++
+				ch1 := l.look(0)
+				ch2 := l.look(1)
 				if ((ch1 >= '0' && ch1 <= '9') || (ch1 >= 'a' && ch1 <= 'f') || (ch1 >= 'A' && ch1 <= 'F')) &&
 					(ch2 >= '0' && ch2 <= '9') || (ch2 >= 'a' && ch2 <= 'f') || (ch2 >= 'A' && ch2 <= 'F') {
-					p.index++
+					l.index++
 					code, _ := strconv.ParseUint(string([]rune{ch1, ch2}), 16, 8)
 					value.WriteByte(byte(code))
 				} else {
-					p.panicWithError(p.index, "Invalid hexadecimal escape sequence")
+					l.unexpected(l.index, "Invalid hexadecimal escape sequence")
 				}
 			default:
 				// \ddd 1~3位八进制字符
 				str := strings.Builder{}
 				for i := 0; i < 3; i++ {
-					ch := p.look(i)
+					ch := l.look(i)
 					if ch >= '0' && ch <= '7' {
 						str.WriteRune(ch)
 					} else {
@@ -405,60 +432,60 @@ func (p *Parser) readAsString() *Token {
 					}
 				}
 				if str.Len() > 0 {
-					p.index += str.Len() - 1
+					l.index += str.Len() - 1
 					code, _ := strconv.ParseUint(str.String(), 8, 8)
 					value.WriteByte(byte(code))
 				} else {
-					value.WriteRune(p.look(0))
+					value.WriteRune(l.look(0))
 				}
 			}
 
-			p.index++
+			l.index++
 			continue
 		}
 
-		value.WriteRune(p.look(0))
-		p.index++
+		value.WriteRune(l.look(0))
+		l.index++
 	}
 
 	if !valid {
 		if raw {
-			p.panicWithError(p.index, "The string literal is missing the terminator `\"\"\"`")
+			l.unexpected(l.index, "The string literal is missing the terminator `\"\"\"`")
 		} else {
-			p.panicWithError(p.index, "The string literal is missing the terminator `\"`")
+			l.unexpected(l.index, "The string literal is missing the terminator `\"`")
 		}
 	}
 
 	if raw {
-		p.index += 3
+		l.index += 3
 	} else {
-		p.index++
+		l.index++
 	}
 
-	token := p.newToken(TTString, start, p.index)
+	token := l.createToken(TTString, start, l.index)
 	token.Value = value.String()
 	token.Ext = raw
 	return token
 }
 
-func (p *Parser) readAsNumber() *Token {
-	start := p.index
+func (l *Lexer) readAsNumber() *Token {
+	start := l.index
 	valid := true
 	seenDot := false
 	consumeNum := true
 	value := strings.Builder{}
 
-	if p.look(0) == '-' {
+	if l.look(0) == '-' {
 		value.WriteByte('-')
-		p.index++
+		l.index++
 	}
 
-	for p.checkIndex() {
-		ch := p.look(0)
+	for l.checkIndex() {
+		ch := l.look(0)
 		if ch >= '0' && ch <= '9' {
 			value.WriteRune(ch)
 			consumeNum = false
-			p.index++
+			l.index++
 		} else if !consumeNum && ch == '.' {
 			if seenDot {
 				valid = false
@@ -467,7 +494,7 @@ func (p *Parser) readAsNumber() *Token {
 			seenDot = true
 			consumeNum = true
 			value.WriteRune(ch)
-			p.index++
+			l.index++
 		} else if consumeNum { // 再次检查是否是消费掉一个数字
 			valid = false
 			break
@@ -477,23 +504,25 @@ func (p *Parser) readAsNumber() *Token {
 	}
 
 	if !valid || consumeNum {
-		p.panicWithError(p.index, "Unexpected number")
+		l.unexpected(l.index, "Unexpected number")
 	}
 
-	token := p.newToken(TTNumber, start, p.index)
+	token := l.createToken(TTNumber, start, l.index)
 	token.Value = value.String()
 	return token
 }
 
-func (p *Parser) readAsIdentifier() *Token {
-	start := p.index
+func (l *Lexer) readAsIdentifier() *Token {
+	start := l.index
 	value := strings.Builder{}
 
-	for p.checkIndex() {
-		ch := p.look(0)
+	for l.checkIndex() {
+		ch := l.look(0)
 		if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '_' || ch == '$' || (ch >= '0' && ch <= '9') {
 			value.WriteRune(ch)
-			p.index++
+			l.index++
+		} else {
+			break
 		}
 	}
 
@@ -503,13 +532,13 @@ func (p *Parser) readAsIdentifier() *Token {
 	if IsKeyword(valueStr) {
 		switch valueStr {
 		case "true", "false", "null", "self":
-			token = p.newToken(TTConst, start, p.index)
+			token = l.createToken(TTConst, start, l.index)
 		default:
-			token = p.newToken(TTKeyword, start, p.index)
+			token = l.createToken(TTKeyword, start, l.index)
 		}
 
 	} else {
-		token = p.newToken(TTIdentifier, start, p.index)
+		token = l.createToken(TTIdentifier, start, l.index)
 	}
 
 	token.Value = valueStr
@@ -517,15 +546,15 @@ func (p *Parser) readAsIdentifier() *Token {
 	return token
 }
 
-func (p *Parser) isToken(tokenType TokenType) bool {
-	return p.currentToken.Type == tokenType
-}
-
-// 消费一个 token 类型，如果消费成功，返回 true 并读取下一个 token，否则返回 false
-func (p *Parser) consume(tokenType TokenType) bool {
-	if p.isToken(tokenType) {
-		p.readNextToken()
-		return true
+func (l *Lexer) unexpected(index int, msg string) {
+	var message string
+	if len(msg) > 0 {
+		message = msg
+	} else if index < len(l.source) {
+		message = "Unexpected token " + string(l.source[index])
+	} else {
+		message = "Unexpected end of file"
 	}
-	return false
+	line, column := PrintErrorFrame(l.source, index, message)
+	panic(fmt.Sprintf("%s (%d:%d)", msg, line, column))
 }

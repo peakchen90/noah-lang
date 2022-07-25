@@ -75,13 +75,14 @@ func getSourcePosition(source *string, index int) (line int, column int) {
 }
 
 // 打印代码帧信息，返回目标位置的行列信息
-func printCodeFrame(source *string, pos int, message string, level codeFrameLevel) (targetLine int, targetColumn int) {
+func printCodeFrame(source []rune, pos int, message string, level codeFrameLevel) (targetLine int, targetColumn int) {
+	input := string(source)
 	beforeLines := make([]string, 0, 3)
 	afterLines := make([]string, 0, 2)
 
 	// 分割提示信息的前后代码片段（打印目标位置，上面3行，下面2行）
-	lines := strings.Split(*source, "\n")
-	targetLine, targetColumn = getSourcePosition(source, pos)
+	lines := strings.Split(input, "\n")
+	targetLine, targetColumn = getSourcePosition(&input, pos)
 
 	min := targetLine - 3
 	max := targetLine + 2
@@ -134,11 +135,11 @@ func printCodeFrame(source *string, pos int, message string, level codeFrameLeve
 }
 
 // PrintWarnFrame 打印警告代码帧信息
-func PrintWarnFrame(source *string, pos int, message string) (int, int) {
+func PrintWarnFrame(source []rune, pos int, message string) (int, int) {
 	return printCodeFrame(source, pos, message, codeFrameWarn)
 }
 
 // PrintErrorFrame 打印错误代码帧信息
-func PrintErrorFrame(source *string, pos int, message string) (int, int) {
+func PrintErrorFrame(source []rune, pos int, message string) (int, int) {
 	return printCodeFrame(source, pos, message, codeFrameError)
 }

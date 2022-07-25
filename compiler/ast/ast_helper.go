@@ -30,3 +30,8 @@ type Position struct {
 	Start int
 	End   int
 }
+
+//type Node interface{ isNode() }
+
+//func (*Statement) isNode()  {}
+//func (*Expression) isNode() {}

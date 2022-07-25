@@ -5,19 +5,19 @@ import (
 )
 
 type Parser struct {
-	source            []rune // utf-8 字符
-	index             int    // 光标位置
-	isSeenNewline     bool   // 读取下一个 token 时是否遇到过换行
-	currentToken      *Token // 当前 token
-	allowExpr         bool   // 当前上下文是否允许表达式
-	currentBlockLevel int    // 当前进入到第几层块级作用域
-	currentLoopLevel  int    // 当前进入到第几层循环块
+	source        []rune // utf-8 字符
+	lexer         *Lexer // 词法分析器
+	current       *Token // 当前 token
+	isSeenNewline bool   // 读取下一个 token 时是否遇到过换行
+	blockLevel    int    // 当前进入到第几层块级作用域
+	loopLevel     int    // 当前进入到第几层循环块
 }
 
 func NewParser(input string) *Statement {
+	source := []rune(input)
 	parser := Parser{
-		source:    []rune(input),
-		allowExpr: true,
+		source: source,
+		lexer:  NewLexer(source),
 	}
 	return parser.parse()
 }
@@ -25,15 +25,15 @@ func NewParser(input string) *Statement {
 func (p *Parser) parse() *Statement {
 	body := make([]Statement, 0, 5)
 
-	p.readNextToken()
+	p.nextToken()
 
-	for p.checkIndex() {
+	for !p.isToken(TTEof) {
 		stmt := p.parseStatement()
 		body = append(body, *stmt)
 	}
 
 	node := Statement{
-		Data: &Program{
+		Node: &Program{
 			Body: body,
 		},
 	}
@@ -46,13 +46,12 @@ func (p *Parser) parse() *Statement {
 	return &node
 }
 
-func (p *Parser) checkIndex() bool {
-	return p.index < len(p.source)
+func (p *Parser) nextToken() {
+	p.current = p.lexer.readNext()
 }
 
 func (p *Parser) panicWithError(pos int, msg string) {
-	source := string(p.source)
-	line, column := PrintErrorFrame(&source, pos, msg)
+	line, column := PrintErrorFrame(p.source, pos, msg)
 	panic(fmt.Sprintf("%s (%d:%d)", msg, line, column))
 }
 
@@ -70,14 +69,39 @@ func (p *Parser) unexpectedToken(token *Token, msg string) {
 	var message string
 	if len(msg) > 0 {
 		message = msg
-	} else if token.Type == TTEof {
-		message = "Unexpected end of file"
 	} else {
-		message = "Unexpected token " + token.String()
+		switch token.Type {
+		case TTEof:
+			message = "Unexpected end of file"
+		case TTString, TTNumber, TTConst:
+			message = "Unexpected literal: " + token.String()
+		default:
+			message = "Unexpected token " + token.String()
+		}
 	}
 	p.panicWithError(token.Start, message)
 }
 
 func (p *Parser) unexpected() {
-	p.unexpectedToken(p.currentToken, "")
+	p.unexpectedToken(p.current, "")
+}
+
+func (p *Parser) isToken(tokenType TokenType) bool {
+	return p.current.Type == tokenType
+}
+
+// 消费一个 token 类型，如果消费成功，返回 true 并读取下一个 token，否则返回 false
+func (p *Parser) consume(tokenType TokenType) bool {
+	if p.isToken(tokenType) {
+		p.nextToken()
+		return true
+	}
+	return false
+}
+
+// 期待当前 token 为指定类型，否则抛错
+func (p *Parser) expect(tokenType TokenType) {
+	if !p.isToken(tokenType) {
+		p.unexpected()
+	}
 }

@@ -12,6 +12,7 @@
 - `type T {A, B}` : 枚举类型（默认值: `null`）
 - `[n]T` : 数组类型，如：`[3]str`、`[]num` 等
 - `[..]T` : 可变长数组类型，如：`[..]str`、`[..]num` 等
+- `any`: 动态类型 `interface any {}`
 
 **自定义类型**:
 
@@ -147,6 +148,7 @@ fn main() {
 ```
 
 ## 内存引用
+
 在函数参数传递及赋值语句中，除**字符串、数组、可变长数组、结构体**是传递内存地址引用外，其他类型都是传递值的拷贝
 
 ## 逻辑控制
@@ -261,6 +263,18 @@ man = Person{}
 man = Woman{}
 ```
 
+**动态类型**
+
+```hera
+fn hello(value: any) {
+    if type(value) == str {
+    
+    } else if type(value) == num {
+    
+    } 
+}
+```
+
 ## 模块
 
 ### 定义模块
@@ -295,7 +309,7 @@ pub say() -> str {
 `main.hera`
 
 ```hera
-import "sub" // alias `import "./sub" as sub`
+import "sub" as sub
 
 let n = abc // 123 (from `foo.hera`)
 
@@ -308,7 +322,7 @@ fn main() {
 
 ```hera
 // 导入标准库模块
-import "mod:std/numbers"
+import "mod:std/numbers" as numbers
 numbers.toNum("1.2") // 1.2
 
 // 引用第三方模块

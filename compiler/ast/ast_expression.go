@@ -1,7 +1,7 @@
 package ast
 
 type Expression struct {
-	Data E
+	Node E
 	Position
 }
 
@@ -18,48 +18,50 @@ func (*NumberLiteral) isExpr()        {}
 func (*BooleanLiteral) isExpr()       {}
 func (*StringLiteral) isExpr()        {}
 
-type ImportSpecifier struct {
-	Imported string
-	Local    string
-}
+type (
+	ImportSpecifier struct {
+		Imported string
+		Local    string
+	}
 
-type CallExpression struct {
-	Callee    Expression
-	Arguments []Expression
-}
+	CallExpression struct {
+		Callee    Expression
+		Arguments []Expression
+	}
 
-type BinaryExpression struct {
-	Left     Expression
-	Right    Expression
-	Operator string
-}
+	BinaryExpression struct {
+		Left     Expression
+		Right    Expression
+		Operator string
+	}
 
-type UnaryExpression struct {
-	Argument Expression
-	Operator string
-}
+	UnaryExpression struct {
+		Argument Expression
+		Operator string
+	}
 
-type AssignmentExpression struct {
-	Left     Expression
-	Right    Expression
-	Operator string
-}
+	AssignmentExpression struct {
+		Left     Expression
+		Right    Expression
+		Operator string
+	}
 
-type Identifier struct {
-	Name  string
-	Kind  KindMeta
-	Refer bool
-}
+	Identifier struct {
+		Name  string
+		Kind  Kind
+		Refer bool
+	}
 
-type NumberLiteral struct {
-	Value float64
-}
+	NumberLiteral struct {
+		Value float64
+	}
 
-type BooleanLiteral struct {
-	Value bool
-}
+	BooleanLiteral struct {
+		Value bool
+	}
 
-type StringLiteral struct {
-	Value string
-	Raw   bool // 原始字符串（多行）
-}
+	StringLiteral struct {
+		Value string
+		Raw   bool // 原始字符串（多行）
+	}
+)

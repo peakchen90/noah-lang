@@ -1,0 +1,44 @@
+package ast
+
+import (
+	"testing"
+)
+
+var tokenFixtures = [...]string{
+	`"abc"`,
+	`"\n\t\v\?\""`,
+	`"\1a"`,
+	`"\7777"`,
+	`"\8"`,
+	`"\xff"`,
+	`"\x00"`,
+	`"""a
+b""\"
+"""`,
+	`0`,
+	`1.2`,
+	`-12`,
+	`-12.34`,
+}
+
+func validTokenMap() {
+	for i := TTEof; i < TTUnref; i++ {
+		if tokenMetaMap[i].Type != i {
+			panic("")
+		}
+	}
+}
+
+func TestLexer(t *testing.T) {
+	validTokenMap()
+
+	for _, fixture := range tokenFixtures {
+		lexer := NewLexer([]rune(fixture))
+		lexer.readNext()
+	}
+
+	for _, fixture := range Keywords {
+		lexer := NewLexer([]rune(fixture))
+		lexer.readNext()
+	}
+}

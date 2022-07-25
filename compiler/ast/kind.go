@@ -1,72 +1,66 @@
 package ast
 
-type Kind uint8
+type Kind struct {
+	Type T
+}
 
-const (
-	KVoid      Kind = iota + 1 // `void`
-	KNumber                    // `num`
-	KString                    // `str`
-	KBool                      // `bool`
-	KChar                      // `char`
-	KArray                     // `[]str`、`[5]num`
-	KStruct                    // `type T {a: str, b: num}`
-	KEnum                      // `type T {A, B}`
-	KInterface                 // `interface I {}`
-	KCustom                    // `type foo = num`
+type T interface{ isKind() }
+
+func (*TypeNumber) isKind()    {}
+func (*TypeString) isKind()    {}
+func (*TypeBool) isKind()      {}
+func (*TypeChar) isKind()      {}
+func (*TypeArray) isKind()     {}
+func (*TypeStruct) isKind()    {}
+func (*TypeEnum) isKind()      {}
+func (*TypeInterface) isKind() {}
+func (*TypeAlias) isKind()     {}
+
+type (
+	TypeNumber struct{}
+
+	TypeString struct{}
+
+	TypeBool struct{}
+
+	TypeChar struct{}
+
+	TypeArray struct {
+		T      Kind
+		Len    int
+		Cap    int
+		Vector bool
+	}
+
+	TypeStruct struct {
+		Properties []KindProperty
+		Extends    Kind
+		Interface  Kind
+	}
+
+	TypeEnum struct {
+		Items []string
+	}
+
+	TypeInterface struct {
+		Properties []KindProperty
+		Extends    Kind
+	}
+
+	TypeAlias struct {
+		T Kind
+	}
 )
-
-type KindMeta struct {
-	Kind
-	Data K
-}
-
-type K interface{ isKind() }
-
-func (*KindString) isKind()    {}
-func (*KindArray) isKind()     {}
-func (*KindStruct) isKind()    {}
-func (*KindEnum) isKind()      {}
-func (*KindInterface) isKind() {}
-func (*KindCustom) isKind()    {}
-func (*KindFunction) isKind()  {}
-
-type KindString struct {
-	Len int
-	Cap int
-}
-
-type KindArray struct {
-	T      KindMeta
-	Len    int
-	Cap    int
-	Vector bool
-}
-
-type KindStruct struct {
-	Properties []KindProperty
-}
-
-type KindEnum struct {
-	Items []string
-}
-
-type KindInterface struct {
-	Properties []KindProperty
-}
-
-type KindCustom struct {
-	T KindMeta
-}
 
 // helper kind
 
 type KindProperty struct {
 	Name string
-	T    KindMeta
+	T    Kind
 }
 
 type KindFunction struct {
 	Name      string
 	Arguments []KindProperty
-	T         KindMeta
+	T         Kind
 }
