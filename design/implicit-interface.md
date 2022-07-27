@@ -2,7 +2,7 @@
 
 ## [Number]
 
-```hera
+```noah
 interface [Number] {
     toStr()
     clone()
@@ -11,7 +11,7 @@ interface [Number] {
 
 ## [Bool]
 
-```hera
+```noah
 interface [Bool] {
     toStr()
     clone()
@@ -20,7 +20,7 @@ interface [Bool] {
 
 ## [Array]
 
-```hera
+```noah
 interface [Array] {
     toStr()
     len() -> num
@@ -30,7 +30,7 @@ interface [Array] {
 
 ## [VectorArray]
 
-```hera
+```noah
 interface [VectorArray] extends [Array] {
     push(..item: [..]T)
     pop() -> T
@@ -43,7 +43,7 @@ interface [VectorArray] extends [Array] {
 
 ## [String]
 
-```hera
+```noah
 interface [String] {
     len() -> num
     clone() -> []T

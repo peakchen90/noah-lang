@@ -2,7 +2,7 @@ package lexer
 
 import (
 	"fmt"
-	"github.com/peakchen90/hera-lang/internal/ast"
+	"github.com/peakchen90/noah-lang/internal/ast"
 )
 
 type TokenType = uint8

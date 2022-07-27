@@ -18,7 +18,7 @@
 - `type T {a: str, b: num}` : 结构体类型（默认值: `null`）
 - `type T {A, B}` : 枚举类型（默认值: `null`）
 
-```hera
+```noah
 // 定义数字类型的别名
 type TypeNum num
 
@@ -44,7 +44,7 @@ type Student extends Person {
 
 **基础类型**：
 
-```hera
+```noah
 // 声明一个字符串类型的变量
 let hello: str = "hello world"
 
@@ -57,12 +57,12 @@ let flag = true
 
 **结构体**：
 
-```hera
+```noah
 let s1: Person; // null
 
-let s2 = Person{ name: "Hera" } // { name: "Hera", age: 0 }
+let s2 = Person{ name: "noah" } // { name: "noah", age: 0 }
 
-let s3: Person = { name: "Hera" } // { name: "Hera", age: 0 }
+let s3: Person = { name: "noah" } // { name: "noah", age: 0 }
 
 // 修改 `age` 属性值
 s3.age = 22
@@ -70,7 +70,7 @@ s3.age = 22
 
 **枚举类型**：
 
-```hera
+```noah
 let e1: Color; // null
 
 let e2 = Color.Red // Color.Red
@@ -78,7 +78,7 @@ let e2 = Color.Red // Color.Red
 
 **数组类型**：
 
-```hera
+```noah
 let arr1: [3]num; // [0, 0, 0]
 
 // 有初始值时数组长度可省略
@@ -98,7 +98,7 @@ let arr4: [3]Person = [
 //  ]
 
 // 修改第 3 个元素的值
-arr4[2] = { name: "Hera", age: 28 }
+arr4[2] = { name: "noah", age: 28 }
 
 // 修改第 3 个元素的值的 `age` 属性
 arr4[2].age = 18
@@ -106,7 +106,7 @@ arr4[2].age = 18
 
 ## 可变长数组
 
-```hera
+```noah
 let arr: [..]num = [1]
 
 arr.push(2) // arr == [1, 2]
@@ -115,7 +115,7 @@ arr.unshift(3) // arr == [3, 1, 2]
 
 ## 函数
 
-```hera
+```noah
 // 声明一个名为 `foo` 的函数，入参 `name` 的类型是字符串，返回值是布尔类型
 fn foo(name: str) -> bool {
     return true
@@ -134,7 +134,7 @@ fn main() {
 
 **剩余参数**：
 
-```hera
+```noah
 fn add(..nums: [..]num) -> num {
     let sum = 0
     for n: nums {
@@ -157,14 +157,14 @@ fn main() {
 
 **函数返回**：
 
-```hera
+```noah
 return // 空返回
 return "abc" // 返回字符串
 ```
 
 **条件控制**：
 
-```hera
+```noah
 if expr1 {
     // do something
 } else if expr2 {
@@ -176,7 +176,7 @@ if expr1 {
 
 **循环**：
 
-```hera
+```noah
 let arr: []num = [1, 2, 3]
 
 // 遍历数组的元素及索引
@@ -204,7 +204,7 @@ for {
 
 ## 多态
 
-```hera
+```noah
 interface Man {
     name: str
     say() -> str
@@ -228,7 +228,7 @@ fn Student say() -> str {
 
 **`interface` 继承**
 
-```hera
+```noah
 interface Woman extend Man {
     eat(n: num)
 }
@@ -250,7 +250,7 @@ fn Alice eat(n: num) {
 
 **使用多态**：
 
-```hera
+```noah
 // 作为函数参数
 fn hello(m: Man) {
     m.say()
@@ -267,7 +267,7 @@ man = Woman{}
 
 **动态类型**
 
-```hera
+```noah
 fn hello(value: any) {
     if type(value) == str {
     
@@ -283,9 +283,9 @@ fn hello(value: any) {
 
 同一个文件夹的所有变量、类型都同属一个模块。模块内的变量、类型可以互相访问，但是对外部模块来说这些变量及类型默认都是私有的，可通过 `pub` 向外部暴露
 
-`foo.hera`
+`foo.noah`
 
-```hera
+```noah
 var abc = 123 // private
 
 pub const PI = 3.14159 // public
@@ -296,24 +296,24 @@ pub type Person {
 }
 ```
 
-`sub/foo.hera`
+`sub/foo.noah`
 
-```hera
+```noah
 import ".." as entry
 
-let n = entry.abc // 123 (from `foo.hera`)
+let n = entry.abc // 123 (from `foo.noah`)
 
 pub say() -> str {
     return "Hello World"
 }
 ```
 
-`main.hera`
+`main.noah`
 
-```hera
+```noah
 import "sub" as sub
 
-let n = abc // 123 (from `foo.hera`)
+let n = abc // 123 (from `foo.noah`)
 
 fn main() {
     let s = sub.say()
@@ -322,7 +322,7 @@ fn main() {
 
 **全局模块(模块名以 `mod:` 开始)**:
 
-```hera
+```noah
 // 导入标准库模块
 import "mod:std/numbers" as numbers
 numbers.toNum("1.2") // 1.2

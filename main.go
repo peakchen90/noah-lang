@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/peakchen90/hera-lang/internal/parser"
+	"github.com/peakchen90/noah-lang/internal/parser"
 )
 
 func main() {

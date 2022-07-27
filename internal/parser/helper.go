@@ -1,8 +1,8 @@
 package parser
 
 import (
-	"github.com/peakchen90/hera-lang/internal/ast"
-	"github.com/peakchen90/hera-lang/internal/lexer"
+	"github.com/peakchen90/noah-lang/internal/ast"
+	"github.com/peakchen90/noah-lang/internal/lexer"
 )
 
 func NewIdentifier(token *lexer.Token, kind *ast.KindExpr) *ast.Identifier {

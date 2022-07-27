@@ -2,7 +2,7 @@ package lexer
 
 import (
 	"fmt"
-	"github.com/peakchen90/hera-lang/internal/helper"
+	"github.com/peakchen90/noah-lang/internal/helper"
 	"strconv"
 	"strings"
 )

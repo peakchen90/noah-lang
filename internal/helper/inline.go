@@ -1,6 +1,6 @@
 package helper
 
-import "github.com/peakchen90/hera-lang/internal/ast"
+import "github.com/peakchen90/noah-lang/internal/ast"
 
 func InlineExpr() any {
 	return 0
