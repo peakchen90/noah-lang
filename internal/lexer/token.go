@@ -14,26 +14,26 @@ type TokenMeta struct {
 	AllowExpr  bool
 }
 
-// 更新 token 类型同时要更新 tokenMetaMap
+// 更新 token 类型同时要更新 tokenMetaTable
 const (
-	TTEof        TokenType = iota + 1 // 结束 Token
-	TTComment                         // 注释
-	TTKeyword                         // 关键字
-	TTConst                           // 内置常量（关键字）
-	TTIdentifier                      // 标识符
-	TTNumber                          // 数字字面量
-	TTString                          // 字符串字面量
-	TTReturnSym                       // ->
-	TTParenL                          // (
-	TTParenR                          // )
-	TTBracketL                        // [
-	TTBracketR                        // ]
-	TTBraceL                          // {
-	TTBraceR                          // }
-	TTRest                            // ..
-	TTSemi                            // ;
-	TTColon                           // :
-	TTComma                           // ,
+	TTEof        TokenType = iota // 结束 Token
+	TTComment                     // 注释
+	TTKeyword                     // 关键字
+	TTConst                       // 内置常量（关键字）
+	TTIdentifier                  // 标识符
+	TTNumber                      // 数字字面量
+	TTString                      // 字符串字面量
+	TTReturnSym                   // ->
+	TTParenL                      // (
+	TTParenR                      // )
+	TTBracketL                    // [
+	TTBracketR                    // ]
+	TTBraceL                      // {
+	TTBraceR                      // }
+	TTRest                        // ..
+	TTSemi                        // ;
+	TTColon                       // :
+	TTComma                       // ,
 
 	// operator
 
@@ -61,7 +61,7 @@ const (
 	TTUnref    // *
 )
 
-var tokenMetaMap = map[TokenType]TokenMeta{
+var tokenMetaTable = [...]TokenMeta{
 	TTEof:        {TTEof, "TTEof", -1, false},
 	TTComment:    {TTComment, "TTComment", -1, false},
 	TTKeyword:    {TTKeyword, "Keywords", -1, false},

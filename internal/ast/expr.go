@@ -1,32 +1,29 @@
 package ast
 
-type Expression struct {
-	Node E
-	Position
-}
-
 // E expression
 type E interface{ isExpr() }
 
-func (*ImportSpecifier) isExpr()      {}
 func (*CallExpression) isExpr()       {}
+func (*MemberExpression) isExpr()     {}
 func (*BinaryExpression) isExpr()     {}
 func (*UnaryExpression) isExpr()      {}
 func (*AssignmentExpression) isExpr() {}
-func (*Identifier) isExpr()           {}
+func (*IdentifierLiteral) isExpr()    {}
 func (*NumberLiteral) isExpr()        {}
 func (*BooleanLiteral) isExpr()       {}
+func (*NullLiteral) isExpr()          {}
 func (*StringLiteral) isExpr()        {}
 
 type (
-	ImportSpecifier struct {
-		Imported string
-		Local    string
-	}
-
 	CallExpression struct {
 		Callee    Expression
 		Arguments []Expression
+	}
+
+	MemberExpression struct {
+		Object   Expression
+		Property Expression
+		Computed bool
 	}
 
 	BinaryExpression struct {
@@ -38,6 +35,7 @@ type (
 	UnaryExpression struct {
 		Argument Expression
 		Operator string
+		Prefix   bool
 	}
 
 	AssignmentExpression struct {
@@ -46,10 +44,8 @@ type (
 		Operator string
 	}
 
-	Identifier struct {
-		Name  string
-		Kind  Kind
-		Refer bool
+	IdentifierLiteral struct {
+		Name string
 	}
 
 	NumberLiteral struct {
@@ -58,6 +54,9 @@ type (
 
 	BooleanLiteral struct {
 		Value bool
+	}
+
+	NullLiteral struct {
 	}
 
 	StringLiteral struct {

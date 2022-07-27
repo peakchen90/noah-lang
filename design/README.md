@@ -8,13 +8,15 @@
 - `char`: 字符类型，1 字节（默认值: `0`）
 - `str`: 字符串类型（默认值: `""`）
 - `bool`: 布尔类型（默认值: `false`）
-- `type T {a: str, b: num}` : 结构体类型（默认值: `null`）
-- `type T {A, B}` : 枚举类型（默认值: `null`）
-- `[n]T` : 数组类型，如：`[3]str`、`[]num` 等
-- `[..]T` : 可变长数组类型，如：`[..]str`、`[..]num` 等
-- `any`: 动态类型 `interface any {}`
+- `[n]T` : 数组类型，如：`[3]str`、`[]num` 等（默认值: `null`）
+- `[..]T` : 可变长数组类型，如：`[..]str`、`[..]num` 等（默认值: `null`）
+- `any`: 动态类型 `interface any {}`（默认值: `null`）
 
 **自定义类型**:
+- `interface T {}`: 接口
+- `type T num` : 类型别名
+- `type T {a: str, b: num}` : 结构体类型（默认值: `null`）
+- `type T {A, B}` : 枚举类型（默认值: `null`）
 
 ```hera
 // 定义数字类型的别名
@@ -130,7 +132,7 @@ fn main() {
 }
 ```
 
-**多个参数**：
+**剩余参数**：
 
 ```hera
 fn add(..nums: [..]num) -> num {

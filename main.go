@@ -8,7 +8,10 @@ import (
 
 func main() {
 	node := *parser.NewParser(`
-import "axe.aa/fwa" as ab
+interface abc  extends A{
+a: num
+}
+//import "axe.aa/fwa" as ab
 `)
 
 	jsonStr, _ := json.MarshalIndent(node, "", "  ")

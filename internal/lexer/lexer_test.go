@@ -1,7 +1,6 @@
 package lexer
 
 import (
-	"github.com/peakchen90/hera-lang/internal/ast"
 	"testing"
 )
 
@@ -24,7 +23,7 @@ b""\"
 
 func validTokenMap() {
 	for i := TTEof; i < TTUnref; i++ {
-		if tokenMetaMap[i].Type != i {
+		if tokenMetaTable[i].Type != i {
 			panic("")
 		}
 	}
@@ -38,7 +37,7 @@ func TestLexer(t *testing.T) {
 		lexer.Next()
 	}
 
-	for _, fixture := range ast.Keywords {
+	for _, fixture := range Keywords {
 		lexer := NewLexer([]rune(fixture))
 		lexer.Next()
 	}

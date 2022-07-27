@@ -14,7 +14,7 @@ type Parser struct {
 	loopLevel     int          // 当前进入到第几层循环块
 }
 
-func NewParser(input string) *ast.Statement {
+func NewParser(input string) *ast.File {
 	source := []rune(input)
 	parser := Parser{
 		source: source,
@@ -23,21 +23,16 @@ func NewParser(input string) *ast.Statement {
 	return parser.parse()
 }
 
-func (p *Parser) parse() *ast.Statement {
-	body := make([]ast.Statement, 0, 5)
-
+func (p *Parser) parse() *ast.File {
+	body := make([]ast.Statement, 0, 3)
 	p.nextToken()
 
-	for !p.isToken(lexer.TTEof) {
+	for !p.isEnd() {
 		stmt := p.parseStatement()
 		body = append(body, *stmt)
 	}
 
-	node := ast.Statement{
-		Node: &ast.Program{
-			Body: body,
-		},
-	}
+	node := ast.File{Body: body}
 
 	if len(body) > 0 {
 		node.Start = body[0].Start
@@ -76,11 +71,30 @@ func (p *Parser) isToken(tokenType lexer.TokenType) bool {
 	return p.current.Type == tokenType
 }
 
+func (p *Parser) isEnd() bool {
+	return p.isToken(lexer.TTEof)
+}
+
 // 消费一个 token 类型，如果消费成功，返回 true 并读取下一个 token，否则返回 false
-func (p *Parser) consume(tokenType lexer.TokenType) bool {
+func (p *Parser) consume(tokenType lexer.TokenType, isPanic bool) bool {
 	if p.isToken(tokenType) {
 		p.nextToken()
 		return true
+	}
+	if isPanic {
+		p.unexpected()
+	}
+	return false
+}
+
+// 消费一个 keyword token 类型，如果消费成功，返回 true 并读取下一个 token，否则返回 false
+func (p *Parser) consumeKeyword(name string, isPanic bool) bool {
+	if p.isToken(lexer.TTKeyword) && p.current.Value == name {
+		p.nextToken()
+		return true
+	}
+	if isPanic {
+		p.unexpected()
 	}
 	return false
 }

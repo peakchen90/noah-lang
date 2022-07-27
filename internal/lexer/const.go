@@ -1,4 +1,4 @@
-package ast
+package lexer
 
 var Keywords = [...]string{
 	// 变量、类型声明

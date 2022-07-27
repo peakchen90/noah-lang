@@ -1,19 +1,14 @@
 package ast
 
-type Statement struct {
-	Node S
-	Position
-}
-
 func (*Statement) isNode() {}
 
 // S statements
 type S interface{ isStmt() }
 
-func (*Program) isStmt()             {}
 func (*ImportDeclaration) isStmt()   {}
 func (*FunctionDeclaration) isStmt() {}
 func (*VariableDeclaration) isStmt() {}
+func (*TypeDeclaration) isStmt()     {}
 func (*BlockStatement) isStmt()      {}
 func (*ReturnStatement) isStmt()     {}
 func (*ExpressionStatement) isStmt() {}
@@ -24,32 +19,27 @@ func (*BreakStatement) isStmt()      {}
 func (*ContinueStatement) isStmt()   {}
 
 type (
-	Program struct {
-		Body []Statement
-	}
-
 	ImportDeclaration struct {
-		Source    string
-		LocalName string
+		Source string
+		Local  Identifier
 	}
 
 	FunctionDeclaration struct {
-		Id        string
-		Arguments []Expression
-		Body      []Statement
-		Kind      Kind
-		Pubic     bool
+		TypeFunction
+		Impl  KindIdentifier
+		Body  []Statement
+		Pubic bool
 	}
 
 	VariableDeclaration struct {
-		Id    Expression
+		Id    Identifier
 		Init  Expression
+		Const bool
 		Pubic bool
 	}
 
 	TypeDeclaration struct {
-		Name  Expression
-		Value Kind
+		Decl  KindDecl
 		Pubic bool
 	}
 
@@ -72,24 +62,24 @@ type (
 	}
 
 	ForStatement struct {
-		Label     string
+		Label     Label
 		Init      Statement
 		Condition Expression
 		Update    Statement
 	}
 
 	ForOfStatement struct {
-		Label     string
-		IterIndex string
-		IterName  string
+		Label     Label
+		IterIndex Identifier
+		IterName  Identifier
 		Target    Expression
 	}
 
 	BreakStatement struct {
-		Label string
+		Label Label
 	}
 
 	ContinueStatement struct {
-		Label string
+		Label Label
 	}
 )

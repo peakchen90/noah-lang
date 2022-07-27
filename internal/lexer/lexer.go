@@ -2,17 +2,16 @@ package lexer
 
 import (
 	"fmt"
-	"github.com/peakchen90/hera-lang/internal/ast"
 	"github.com/peakchen90/hera-lang/internal/helper"
 	"strconv"
 	"strings"
 )
 
 type Lexer struct {
-	source        []rune // utf-8 字符
-	index         int    // 光标位置
-	isSeenNewline bool   // 读取下一个 token 时是否遇到过换行
-	allowExpr     bool   // 当前上下文是否允许表达式
+	source      []rune // utf-8 字符
+	index       int    // 光标位置
+	SeenNewline bool   // 读取下一个 token 时前面是否遇到过换行符
+	allowExpr   bool   // 当前上下文是否允许表达式
 }
 
 func NewLexer(source []rune) *Lexer {
@@ -24,6 +23,7 @@ func NewLexer(source []rune) *Lexer {
 }
 
 func (l *Lexer) Next() *Token {
+	l.SeenNewline = false
 	l.skipSpace()
 	l.skipComment()
 
@@ -184,8 +184,8 @@ func (l *Lexer) LookNext() rune {
 }
 
 func (l *Lexer) createToken(tokenType TokenType, start int, end int) *Token {
-	tokenMeta := tokenMetaMap[tokenType]
-	token := Token{TokenMeta: &tokenMeta}
+	tokenMeta := &tokenMetaTable[tokenType]
+	token := Token{TokenMeta: tokenMeta}
 	token.Start = start
 	token.End = end
 
@@ -205,7 +205,7 @@ func (l *Lexer) skipSpace() {
 		ch := l.Look(0)
 		if ch == '\r' || ch == '\n' || ch == '\t' || ch == ' ' {
 			if ch == '\r' || ch == '\n' {
-				l.isSeenNewline = true
+				l.SeenNewline = true
 			}
 			l.index++
 		} else {
@@ -411,7 +411,7 @@ func (l *Lexer) readAsIdentifier() *Token {
 	valueStr := value.String()
 	var token *Token
 
-	if ast.IsKeyword(valueStr) {
+	if IsKeyword(valueStr) {
 		switch valueStr {
 		case "true", "false", "null", "self":
 			token = l.createToken(TTConst, start, l.index)
