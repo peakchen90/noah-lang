@@ -3,7 +3,7 @@
 ## [Number]
 
 ```noah
-interface [Number] {
+type :[Number] {
     toStr()
     clone()
 }
@@ -12,7 +12,7 @@ interface [Number] {
 ## [Bool]
 
 ```noah
-interface [Bool] {
+type :[Bool] {
     toStr()
     clone()
 }
@@ -21,7 +21,7 @@ interface [Bool] {
 ## [Array]
 
 ```noah
-interface [Array] {
+type :[Array] {
     toStr()
     len() -> num
     clone() -> []T
@@ -31,7 +31,7 @@ interface [Array] {
 ## [VectorArray]
 
 ```noah
-interface [VectorArray] extends [Array] {
+type :[VectorArray] extends [Array] {
     push(..item: [..]T)
     pop() -> T
     unshift(..item: [..]T)
@@ -44,7 +44,7 @@ interface [VectorArray] extends [Array] {
 ## [String]
 
 ```noah
-interface [String] {
+type :[String] {
     len() -> num
     clone() -> []T
     split(str) -> [..]str

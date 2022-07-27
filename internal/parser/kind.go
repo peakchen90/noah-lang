@@ -34,6 +34,7 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 
 		switch p.current.Type {
 		case lexer.TTRest: // [..]T
+			p.nextToken()
 			p.consume(lexer.TTBracketR, true)
 			kind := p.parseKindExpr()
 			kindExpr.Node = &ast.TypeVectorArray{

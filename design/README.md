@@ -11,11 +11,11 @@
 - `bool`: 布尔类型（默认值: `false`）
 - `[n]T` : 数组类型，如：`[3]str`、`[]num` 等（默认值: `null`）
 - `[..]T` : 可变长数组类型，如：`[..]str`、`[..]num` 等（默认值: `null`）
-- `any`: 动态类型 `interface any {}`（默认值: `null`）
+- `any`: 动态类型 `type :any {}`（默认值: `null`）
 
 **自定义类型**:
 
-- `interface T {}`: 接口
+- `type :T {}`: 接口
 - `type T num` : 类型别名
 - `type T {a: str, b: num}` : 结构体类型（默认值: `null`）
 - `type T {A, B}` : 枚举类型（默认值: `null`）
@@ -207,7 +207,7 @@ for {
 ## 多态
 
 ```noah
-interface Man {
+type :Man {
     name: str
     say() -> str
 }
@@ -231,7 +231,7 @@ fn Student say() -> str {
 **`interface` 继承**
 
 ```noah
-interface Woman extend Man {
+type :Woman extend Man {
     eat(n: num)
 }
 

@@ -1,19 +1,30 @@
-type D  {
+type Num [..]num
+type :abc {
+    a: astr
+    //b()
+}
+
+pub type : B  extends C {
+    a: [1000]str,
+    a: [1]str
+    a: [1]str,
+    a: [0][a][][]str,
+}
+
+pub type D  {
 	E,
 	F
 }
 
+pub type Str a
 type Num [2]num
 
 import "a" as a
 
-interface abc extends x {
-    a: str
+pub type :abc extends x {
+    a: astr
     //b()
 }
-
-
-
 
 
 type D  {
