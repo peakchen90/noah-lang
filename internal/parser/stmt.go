@@ -193,7 +193,6 @@ func (p *Parser) parseTypeDeclaration(pub bool) *ast.Statement {
 	var stmt ast.Statement
 	kindDecl := ast.KindDecl{}
 	kindDecl.Start = p.current.Start
-	shouldBeStruct := false
 
 	defer func() {
 		stmt = ast.Statement{
@@ -223,17 +222,25 @@ func (p *Parser) parseTypeDeclaration(pub bool) *ast.Statement {
 
 	// maybe has an interface
 	var Interface *ast.KindIdentifier
+	var interfaceToken *lexer.Token
 	if p.consume(lexer.TTColon, false) != nil {
-		shouldBeStruct = true
-		token := p.consume(lexer.TTIdentifier, true)
+		interfaceToken = p.lexer.LastToken
+		token := p.consume(lexer.TTIdentifier, false)
+		if token == nil {
+			p.unexpectedToken("interface name", p.current)
+		}
 		Interface = NewKindIdentifier(token)
 	}
 
 	// maybe has an extends
+	var extendsToken *lexer.Token
 	var Extends *ast.KindIdentifier
 	if p.consumeKeyword("extends", false) != nil {
-		shouldBeStruct = true
-		token := p.consume(lexer.TTIdentifier, true)
+		extendsToken = p.lexer.LastToken
+		token := p.consume(lexer.TTIdentifier, false)
+		if token == nil {
+			p.unexpectedToken("struct type identifier", p.current)
+		}
 		Extends = NewKindIdentifier(token)
 	}
 
@@ -244,8 +251,10 @@ func (p *Parser) parseTypeDeclaration(pub bool) *ast.Statement {
 	if !p.isToken(lexer.TTBraceR) {
 		p.consume(lexer.TTIdentifier, true)
 		if p.isToken(lexer.TTBraceR) || p.isToken(lexer.TTComma) { // 枚举类型
-			if shouldBeStruct {
-				p.unexpected()
+			if interfaceToken != nil {
+				p.unexpectedPos(interfaceToken.Start, "Enumeration type does not support interface")
+			} else if extendsToken != nil {
+				p.unexpectedPos(extendsToken.Start, "Enumeration type does not support extends")
 			}
 
 			p.revertLastToken()
@@ -265,14 +274,13 @@ func (p *Parser) parseTypeDeclaration(pub bool) *ast.Statement {
 		}
 	}
 
+	p.consume(lexer.TTBraceR, true)
 	kindDecl.Node = &ast.TypeStruct{
 		Name:       *Name,
 		Interface:  *Interface,
 		Extends:    *Extends,
 		Properties: Properties,
 	}
-	p.nextToken()
-	p.expect(lexer.TTBraceR)
 	kindDecl.End = p.current.End
 
 	return &stmt

@@ -77,7 +77,6 @@ func (p *Parser) parseKindProperties(allowFunc bool) []ast.KindProperty {
 		}
 
 		if p.consume(lexer.TTComma, false) == nil && !p.isToken(lexer.TTBraceR) {
-			p.nextToken()
 			if !p.lexer.SeenNewline {
 				break
 			}

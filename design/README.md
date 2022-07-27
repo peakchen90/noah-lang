@@ -13,6 +13,7 @@
 - `any`: 动态类型 `interface any {}`（默认值: `null`）
 
 **自定义类型**:
+
 - `interface T {}`: 接口
 - `type T num` : 类型别名
 - `type T {a: str, b: num}` : 结构体类型（默认值: `null`）

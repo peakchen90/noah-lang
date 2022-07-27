@@ -69,7 +69,7 @@ func (p *Parser) unexpectedPos(index int, msg string) {
 func (p *Parser) unexpectedToken(expectHint string, receiveToken *lexer.Token) {
 	p.unexpectedPos(
 		receiveToken.Start,
-		fmt.Sprintf("Expected %s, found %s", expectHint, receiveToken.Value),
+		fmt.Sprintf("Expected %s, found %s", expectHint, receiveToken.String()),
 	)
 }
 
@@ -127,11 +127,4 @@ func (p *Parser) consumeKeyword(name string, isPanic bool) *lexer.Token {
 		p.unexpected()
 	}
 	return nil
-}
-
-// 期待当前 token 为指定类型，否则抛错
-func (p *Parser) expect(tokenType lexer.TokenType) {
-	if !p.isToken(tokenType) {
-		p.unexpected()
-	}
 }
