@@ -5,19 +5,8 @@ type Position struct {
 	End   int
 }
 
-type Label struct {
-	Name string
-	Position
-}
-
 type Identifier struct {
 	Name string
-	Kind KindExpr
-	Position
-}
-
-type ConstInt struct {
-	Value int
 	Position
 }
 

@@ -1,9 +1,22 @@
-type A: B extends C {
-    a: str,
-    b: num,
+type D  {
+	E,
+	F
 }
 
-type D {
+type Num [2]num
+
+import "a" as a
+
+interface abc extends x {
+    a: str
+    //b()
+}
+
+
+
+
+
+type D  {
 	E,
 	F
 }

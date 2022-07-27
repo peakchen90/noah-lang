@@ -1,17 +1,19 @@
 package parser
 
 import (
+	"fmt"
 	"github.com/peakchen90/noah-lang/internal/ast"
+	"github.com/peakchen90/noah-lang/internal/helper"
 	"github.com/peakchen90/noah-lang/internal/lexer"
 )
 
 type Parser struct {
-	source        []rune       // utf-8 字符
-	lexer         *lexer.Lexer // 词法分析器
-	current       *lexer.Token // 当前 token
-	isSeenNewline bool         // 读取下一个 token 时是否遇到过换行
-	blockLevel    int          // 当前进入到第几层块级作用域
-	loopLevel     int          // 当前进入到第几层循环块
+	source     []rune       // utf-8 字符
+	lexer      *lexer.Lexer // 词法分析器
+	current    *lexer.Token // 当前 token
+	seenToken  *lexer.Token // 缓存的后一个 token
+	blockLevel int          // 当前进入到第几层块级作用域
+	loopLevel  int          // 当前进入到第几层循环块
 }
 
 func NewParser(input string) *ast.File {
@@ -42,61 +44,89 @@ func (p *Parser) parse() *ast.File {
 	return &node
 }
 
-func (p *Parser) nextToken() {
-	p.current = p.lexer.Next()
+func (p *Parser) nextToken() *lexer.Token {
+	if p.seenToken != nil {
+		p.current = p.seenToken
+		p.seenToken = nil
+	} else {
+		p.current = p.lexer.Next()
+	}
+	return p.current
 }
 
-func (p *Parser) unexpectedToken(token *lexer.Token, msg string) {
-	var message string
-	if len(msg) > 0 {
-		message = msg
-	} else {
-		switch token.Type {
-		case lexer.TTEof:
-			message = "Unexpected end of file"
-		case lexer.TTString, lexer.TTNumber, lexer.TTConst:
-			message = "Unexpected literal: " + token.String()
-		default:
-			message = "Unexpected token " + token.String()
-		}
+func (p *Parser) revertLastToken() {
+	if p.seenToken == nil {
+		p.seenToken = p.current
+		p.current = p.lexer.LastToken
 	}
-	p.lexer.Unexpected(token.Start, message)
+}
+
+func (p *Parser) unexpectedPos(index int, msg string) {
+	line, column := helper.PrintErrorFrame(p.source, index, msg)
+	panic(fmt.Sprintf("%s (%d:%d)", msg, line, column))
+}
+
+func (p *Parser) unexpectedToken(expectHint string, receiveToken *lexer.Token) {
+	p.unexpectedPos(
+		receiveToken.Start,
+		fmt.Sprintf("Expected %s, found %s", expectHint, receiveToken.Value),
+	)
 }
 
 func (p *Parser) unexpected() {
-	p.unexpectedToken(p.current, "")
+	var message string
+	token := p.current
+
+	switch token.Type {
+	case lexer.TTEof:
+		message = "unexpected end of file"
+	case lexer.TTString, lexer.TTNumber, lexer.TTConst:
+		message = "unexpected literal: " + token.String()
+	default:
+		message = "unexpected token " + token.String()
+	}
+
+	p.unexpectedPos(token.Start, message)
 }
 
+// 判断当前是否为指定 token 类型
 func (p *Parser) isToken(tokenType lexer.TokenType) bool {
 	return p.current.Type == tokenType
 }
 
+// 判断当前是否是指定名称的关键字
+func (p *Parser) isKeyword(name string) bool {
+	if p.isToken(lexer.TTKeyword) && p.current.Value == name {
+		return true
+	}
+	return false
+}
+
+// 是否结束
 func (p *Parser) isEnd() bool {
 	return p.isToken(lexer.TTEof)
 }
 
-// 消费一个 token 类型，如果消费成功，返回 true 并读取下一个 token，否则返回 false
-func (p *Parser) consume(tokenType lexer.TokenType, isPanic bool) bool {
+// 消费一个 token 类型，如果消费成功返回 token 并读取下一个 token，否则返回 nil
+func (p *Parser) consume(tokenType lexer.TokenType, isPanic bool) *lexer.Token {
 	if p.isToken(tokenType) {
-		p.nextToken()
-		return true
+		return p.nextToken()
 	}
 	if isPanic {
 		p.unexpected()
 	}
-	return false
+	return nil
 }
 
-// 消费一个 keyword token 类型，如果消费成功，返回 true 并读取下一个 token，否则返回 false
-func (p *Parser) consumeKeyword(name string, isPanic bool) bool {
-	if p.isToken(lexer.TTKeyword) && p.current.Value == name {
-		p.nextToken()
-		return true
+// 消费一个 keyword token 类型，如果消费成功返回 token 并读取下一个 token，否则返回 nil
+func (p *Parser) consumeKeyword(name string, isPanic bool) *lexer.Token {
+	if p.isKeyword(name) {
+		return p.nextToken()
 	}
 	if isPanic {
 		p.unexpected()
 	}
-	return false
+	return nil
 }
 
 // 期待当前 token 为指定类型，否则抛错

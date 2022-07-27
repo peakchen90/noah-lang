@@ -8,10 +8,12 @@ import (
 )
 
 type Lexer struct {
-	source      []rune // utf-8 字符
-	index       int    // 光标位置
-	SeenNewline bool   // 读取下一个 token 时前面是否遇到过换行符
-	allowExpr   bool   // 当前上下文是否允许表达式
+	source       []rune // utf-8 字符
+	index        int    // 光标位置
+	allowExpr    bool   // 当前上下文是否允许表达式
+	SeenNewline  bool   // 读取下一个 token 时前面是否遇到过换行符
+	CurrentToken *Token // 当前的 token
+	LastToken    *Token // 上一个 token
 }
 
 func NewLexer(source []rune) *Lexer {
@@ -159,9 +161,12 @@ func (l *Lexer) Next() *Token {
 			l.index++
 			token = l.createToken(TTColon, l.index-1, l.index)
 		default:
-			l.Unexpected(l.index, "")
+			l.unexpected(l.index, "")
 		}
 	}
+
+	l.LastToken = l.CurrentToken
+	l.CurrentToken = token
 
 	return token
 }
@@ -257,7 +262,7 @@ func (l *Lexer) readAsString() *Token {
 		}
 		// 换行
 		if ch == '\n' && !raw {
-			l.Unexpected(
+			l.unexpected(
 				l.index,
 				"TTString literals cannot wrap. Tip: You can use the raw string `\"\"\"...\"\"\"`",
 			)
@@ -300,7 +305,7 @@ func (l *Lexer) readAsString() *Token {
 					code, _ := strconv.ParseUint(string([]rune{ch1, ch2}), 16, 8)
 					value.WriteByte(byte(code))
 				} else {
-					l.Unexpected(l.index, "Invalid hexadecimal escape sequence")
+					l.unexpected(l.index, "Invalid hexadecimal escape sequence")
 				}
 			default:
 				// \ddd 1~3位八进制字符
@@ -332,9 +337,9 @@ func (l *Lexer) readAsString() *Token {
 
 	if !valid {
 		if raw {
-			l.Unexpected(l.index, "The string literal is missing the terminator `\"\"\"`")
+			l.unexpected(l.index, "The string literal is missing the terminator `\"\"\"`")
 		} else {
-			l.Unexpected(l.index, "The string literal is missing the terminator `\"`")
+			l.unexpected(l.index, "The string literal is missing the terminator `\"`")
 		}
 	}
 
@@ -386,7 +391,7 @@ func (l *Lexer) readAsNumber() *Token {
 	}
 
 	if !valid || consumeNum {
-		l.Unexpected(l.index, "Unexpected number")
+		l.unexpected(l.index, "unexpected number")
 	}
 
 	token := l.createToken(TTNumber, start, l.index)
@@ -428,14 +433,14 @@ func (l *Lexer) readAsIdentifier() *Token {
 	return token
 }
 
-func (l *Lexer) Unexpected(index int, msg string) {
+func (l *Lexer) unexpected(index int, msg string) {
 	var message string
 	if len(msg) > 0 {
 		message = msg
 	} else if index < len(l.source) {
-		message = "Unexpected token " + string(l.source[index])
+		message = "unexpected token " + string(l.source[index])
 	} else {
-		message = "Unexpected end of file"
+		message = "unexpected end of file"
 	}
 	line, column := helper.PrintErrorFrame(l.source, index, message)
 	panic(fmt.Sprintf("%s (%d:%d)", msg, line, column))

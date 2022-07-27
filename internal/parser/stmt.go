@@ -14,9 +14,9 @@ func (p *Parser) parseStatement() *ast.Statement {
 		switch p.current.Value {
 		case "pub":
 			p.nextToken()
-			p.expect(lexer.TTKeyword)
+			token := p.consume(lexer.TTKeyword, true)
 
-			switch p.current.Value {
+			switch token.Value {
 			case "fn":
 				omitTailingSemi = true
 				stmt = p.parseFunctionDeclaration(true)
@@ -64,9 +64,9 @@ func (p *Parser) parseStatement() *ast.Statement {
 		if p.lexer.LookNext() == ':' {
 			p.nextToken()
 			p.consume(lexer.TTColon, true)
-			p.expect(lexer.TTKeyword)
+			token := p.consume(lexer.TTKeyword, true)
 
-			switch p.current.Value {
+			switch token.Value {
 			case "for":
 				omitTailingSemi = true
 				stmt = p.parseForStatement(maybeLabel)
@@ -85,14 +85,14 @@ func (p *Parser) parseStatement() *ast.Statement {
 	}
 
 	tailSemiCount := 0
-	for p.consume(lexer.TTSemi, false) {
+	for p.consume(lexer.TTSemi, false) != nil {
 		tailSemiCount++
 		if p.isEnd() {
 			break
 		}
 	}
 
-	if !omitTailingSemi && tailSemiCount == 0 && !p.isSeenNewline && !p.isEnd() && !p.isToken(lexer.TTBraceR) {
+	if !omitTailingSemi && tailSemiCount == 0 && !p.lexer.SeenNewline && !p.isEnd() && !p.isToken(lexer.TTBraceR) {
 		p.unexpected()
 	}
 
@@ -102,25 +102,30 @@ func (p *Parser) parseStatement() *ast.Statement {
 func (p *Parser) parseImportStatement() *ast.Statement {
 	stmt := ast.Statement{}
 	stmt.Start = p.current.Start
+	p.nextToken()
 
 	// source
-	p.nextToken()
-	p.expect(lexer.TTString)
+	if !p.isToken(lexer.TTString) {
+		p.unexpectedToken("string literal", p.current)
+	}
 	source := p.current.Value
+	p.nextToken()
 
 	// as
-	p.nextToken()
-	p.consumeKeyword("as", true)
+	if p.consumeKeyword("as", false) == nil {
+		p.unexpectedToken("`as` keyword", p.current)
+	}
 
 	// localName
-	p.nextToken()
-	p.expect(lexer.TTIdentifier)
-	local := *NewIdentifier(p.current, nil)
+	if !p.isToken(lexer.TTIdentifier) {
+		p.unexpectedToken("local name", p.current)
+	}
+	local := NewIdentifier(p.current)
 	p.nextToken()
 
 	stmt.Node = &ast.ImportDeclaration{
 		Source: source,
-		Local:  local,
+		Local:  *local,
 	}
 	stmt.End = local.End
 
@@ -145,28 +150,27 @@ func (p *Parser) parseInterfaceDeclaration(pub bool) *ast.Statement {
 
 	// type name
 	p.nextToken()
-	p.expect(lexer.TTIdentifier)
-	Name := *NewKindIdentifier(p.current)
-	p.nextToken()
+	token := p.consume(lexer.TTIdentifier, true)
+	Name := *NewKindIdentifier(token)
 
 	Properties := make([]ast.KindProperty, 0, 3)
 
 	// maybe extends a struct
 	var Extends ast.KindIdentifier
-	if p.consumeKeyword("extends", false) {
-		p.expect(lexer.TTIdentifier)
-		Extends = *NewKindIdentifier(p.current)
-		p.nextToken()
+	if p.consumeKeyword("extends", false) != nil {
+		token := p.consume(lexer.TTIdentifier, true)
+		Extends = *NewKindIdentifier(token)
 	}
 
 	// {
 	p.consume(lexer.TTBraceL, true)
 
 	// properties
-	Properties = p.parseKindProperties(Properties, true)
+	Properties = p.parseKindProperties(true)
 
 	// }
-	p.consume(lexer.TTBraceR, true)
+	token = p.consume(lexer.TTBraceR, true)
+	kindDecl.End = token.End
 
 	kindDecl.Node = &ast.TypeInterface{
 		Name:       Name,
@@ -179,6 +183,7 @@ func (p *Parser) parseInterfaceDeclaration(pub bool) *ast.Statement {
 			Decl:  kindDecl,
 			Pubic: pub,
 		},
+		Position: kindDecl.Position,
 	}
 
 	return &stmt
@@ -196,35 +201,40 @@ func (p *Parser) parseTypeDeclaration(pub bool) *ast.Statement {
 				Decl:  kindDecl,
 				Pubic: pub,
 			},
+			Position: kindDecl.Position,
 		}
-		p.expect(lexer.TTBraceR)
-		kindDecl.End = p.current.End
-		stmt.Position = kindDecl.Position
-		p.nextToken()
 	}()
 
 	// type name
 	p.nextToken()
-	p.expect(lexer.TTIdentifier)
-	Name := *NewKindIdentifier(p.current)
-	p.nextToken()
+	token := p.consume(lexer.TTIdentifier, true)
+	Name := NewKindIdentifier(token)
+
+	// type alias
+	if p.isToken(lexer.TTIdentifier) || p.isToken(lexer.TTBracketL) {
+		kind := p.parseKindExpr()
+		kindDecl.Node = &ast.TypeAlias{
+			Name: *Name,
+			Kind: *kind,
+		}
+		kindDecl.End = kind.End
+		return &stmt
+	}
 
 	// maybe has an interface
-	var Interface ast.KindIdentifier
-	if p.consume(lexer.TTColon, false) {
+	var Interface *ast.KindIdentifier
+	if p.consume(lexer.TTColon, false) != nil {
 		shouldBeStruct = true
-		p.expect(lexer.TTIdentifier)
-		Interface = *NewKindIdentifier(p.current)
-		p.nextToken()
+		token := p.consume(lexer.TTIdentifier, true)
+		Interface = NewKindIdentifier(token)
 	}
 
 	// maybe has an extends
-	var Extends ast.KindIdentifier
-	if p.consumeKeyword("extends", false) {
+	var Extends *ast.KindIdentifier
+	if p.consumeKeyword("extends", false) != nil {
 		shouldBeStruct = true
-		p.expect(lexer.TTIdentifier)
-		Extends = *NewKindIdentifier(p.current)
-		p.nextToken()
+		token := p.consume(lexer.TTIdentifier, true)
+		Extends = NewKindIdentifier(token)
 	}
 
 	// {
@@ -232,53 +242,38 @@ func (p *Parser) parseTypeDeclaration(pub bool) *ast.Statement {
 	Properties := make([]ast.KindProperty, 0)
 
 	if !p.isToken(lexer.TTBraceR) {
-		p.expect(lexer.TTIdentifier)
-		headToken := p.current
-		p.nextToken()
+		p.consume(lexer.TTIdentifier, true)
 		if p.isToken(lexer.TTBraceR) || p.isToken(lexer.TTComma) { // 枚举类型
 			if shouldBeStruct {
 				p.unexpected()
 			}
 
-			items := make([]ast.KindIdentifier, 0, 3)
-			items = append(items, *NewKindIdentifier(headToken))
-			hasComma := p.consume(lexer.TTComma, false)
-			if !hasComma && !p.lexer.SeenNewline && !p.isToken(lexer.TTBraceR) {
-				p.unexpected()
-			}
-			items = p.parseEnumItems(items)
+			p.revertLastToken()
+			items := p.parseEnumItems()
 			kindDecl.Node = &ast.TypeEnum{
-				Name:  Name,
+				Name:  *Name,
 				Items: items,
 			}
-			return &stmt
-		} else { // 结构体类型
-			p.consume(lexer.TTColon, true)
-			p.expect(lexer.TTIdentifier)
-			firstPair := ast.KindProperty{
-				Name: *NewKindIdentifier(headToken),
-				Kind: *p.parseKindExpr(),
-			}
-			firstPair.Start = firstPair.Name.Start
-			firstPair.End = firstPair.Kind.End
-			Properties = make([]ast.KindProperty, 0, 3)
-			Properties = append(Properties, firstPair)
 
-			p.nextToken()
-			hasComma := p.consume(lexer.TTComma, false)
-			if !hasComma && !p.lexer.SeenNewline && !p.isToken(lexer.TTBraceR) {
-				p.unexpected()
-			}
-			Properties = p.parseKindProperties(Properties, false)
+			token := p.consume(lexer.TTBraceR, true)
+			kindDecl.End = token.End
+			return &stmt
+
+		} else { // 结构体类型
+			p.revertLastToken()
+			Properties = p.parseKindProperties(false)
 		}
 	}
 
 	kindDecl.Node = &ast.TypeStruct{
-		Name:       Name,
-		Interface:  Interface,
-		Extends:    Extends,
+		Name:       *Name,
+		Interface:  *Interface,
+		Extends:    *Extends,
 		Properties: Properties,
 	}
+	p.nextToken()
+	p.expect(lexer.TTBraceR)
+	kindDecl.End = p.current.End
 
 	return &stmt
 }

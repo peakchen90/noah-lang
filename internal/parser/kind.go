@@ -5,45 +5,13 @@ import (
 	"github.com/peakchen90/noah-lang/internal/lexer"
 )
 
-func (p *Parser) parseKindProperties(properties []ast.KindProperty, allowFunc bool) []ast.KindProperty {
-	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
-		pair := ast.KindProperty{}
-
-		// name
-		p.expect(lexer.TTIdentifier)
-		pair.Name = *NewKindIdentifier(p.current)
-		p.nextToken()
-
-		if p.consume(lexer.TTColon, false) {
-			pair.Kind = *p.parseKindExpr()
-		} else if allowFunc && p.consume(lexer.TTParenL, false) {
-			// TODO interface func
-		} else {
-			p.unexpected()
-		}
-
-		p.nextToken()
-		if !p.consume(lexer.TTComma, false) && !p.isToken(lexer.TTBraceR) {
-			p.nextToken()
-			if !p.lexer.SeenNewline {
-				break
-			}
-		}
-
-		pair.Start = pair.Name.Start
-		pair.End = pair.Kind.End
-		properties = append(properties, pair)
-	}
-
-	return properties
-}
-
 func (p *Parser) parseKindExpr() *ast.KindExpr {
 	kindExpr := ast.KindExpr{}
 
-	if p.isToken(lexer.TTIdentifier) {
+	if p.isToken(lexer.TTIdentifier) { // type alias
 		kindExpr.Node = &ast.KindId{Name: p.current.Value}
 		kindExpr.Position = p.current.Position
+		p.nextToken()
 	} else if p.isToken(lexer.TTBracketL) {
 		kindExpr.Start = p.current.Start
 		p.nextToken()
@@ -64,8 +32,17 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 				Len:  *new(ast.Expression),
 			}
 			kindExpr.End = kind.End
-		default: // [expr]T
-			expr := p.parseExpression()
+		default: // [n]T
+			var expr *ast.Expression
+			if p.isToken(lexer.TTNumber) {
+				expr = NewNumberExpr(p.current, p)
+			} else if p.isToken(lexer.TTIdentifier) {
+				expr = NewIdentifierExpr(p.current)
+			} else {
+				p.unexpectedToken("constant integer", p.current)
+			}
+
+			p.nextToken()
 			p.consume(lexer.TTBracketR, true)
 			kind := p.parseKindExpr()
 			kindExpr.Node = &ast.TypeArray{
@@ -81,15 +58,50 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 	return &kindExpr
 }
 
-func (p *Parser) parseEnumItems(items []ast.KindIdentifier) []ast.KindIdentifier {
-	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
-		p.expect(lexer.TTIdentifier)
-		items = append(items, *NewKindIdentifier(p.current))
-		p.nextToken()
+func (p *Parser) parseKindProperties(allowFunc bool) []ast.KindProperty {
+	properties := make([]ast.KindProperty, 0, 3)
 
-		if !p.consume(lexer.TTComma, false) {
+	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
+		pair := ast.KindProperty{}
+
+		// name
+		token := p.consume(lexer.TTIdentifier, true)
+		pair.Name = *NewKindIdentifier(token)
+
+		if p.consume(lexer.TTColon, false) != nil {
+			pair.Kind = *p.parseKindExpr()
+		} else if allowFunc && p.consume(lexer.TTParenL, false) != nil {
+			// TODO interface func
+		} else {
+			p.unexpected()
+		}
+
+		if p.consume(lexer.TTComma, false) == nil && !p.isToken(lexer.TTBraceR) {
+			p.nextToken()
+			if !p.lexer.SeenNewline {
+				break
+			}
+		}
+
+		pair.Start = pair.Name.Start
+		pair.End = pair.Kind.End
+		properties = append(properties, pair)
+	}
+
+	return properties
+}
+
+func (p *Parser) parseEnumItems() []ast.KindIdentifier {
+	items := make([]ast.KindIdentifier, 0, 3)
+
+	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
+		token := p.consume(lexer.TTIdentifier, true)
+		items = append(items, *NewKindIdentifier(token))
+
+		if p.consume(lexer.TTComma, false) == nil {
 			break
 		}
 	}
+
 	return items
 }

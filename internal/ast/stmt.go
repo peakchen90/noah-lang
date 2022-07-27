@@ -62,24 +62,24 @@ type (
 	}
 
 	ForStatement struct {
-		Label     Label
+		Label     Identifier
 		Init      Statement
 		Condition Expression
 		Update    Statement
 	}
 
 	ForOfStatement struct {
-		Label     Label
+		Label     Identifier
 		IterIndex Identifier
 		IterName  Identifier
 		Target    Expression
 	}
 
 	BreakStatement struct {
-		Label Label
+		Label Identifier
 	}
 
 	ContinueStatement struct {
-		Label Label
+		Label Identifier
 	}
 )
