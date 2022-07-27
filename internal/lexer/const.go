@@ -1,5 +1,6 @@
 package lexer
 
+// Keywords 关键字
 var Keywords = [...]string{
 	// 变量、类型声明
 	"fn", "let", "const", "type", "interface",

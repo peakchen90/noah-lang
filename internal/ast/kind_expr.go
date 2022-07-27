@@ -3,22 +3,27 @@ package ast
 type KE interface{ isKind() }
 
 func (*TypeNumber) isKind()      {}
+func (*TypeByte) isKind()        {}
+func (*TypeChar) isKind()        {}
 func (*TypeString) isKind()      {}
 func (*TypeBool) isKind()        {}
-func (*TypeChar) isKind()        {}
+func (*TypeAny) isKind()         {}
 func (*TypeArray) isKind()       {}
 func (*TypeVectorArray) isKind() {}
-func (*TypeAny) isKind()         {}
-func (*KindId) isKind()          {}
+func (*TypeId) isKind()          {}
 
 type (
 	TypeNumber struct{}
+
+	TypeByte struct{}
+
+	TypeChar struct{}
 
 	TypeString struct{}
 
 	TypeBool struct{}
 
-	TypeChar struct{}
+	TypeAny struct{}
 
 	TypeArray struct {
 		Kind KindExpr
@@ -29,9 +34,7 @@ type (
 		Kind KindExpr
 	}
 
-	TypeAny struct{}
-
-	KindId struct {
+	TypeId struct {
 		Name string
 	}
 )

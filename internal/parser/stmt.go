@@ -13,21 +13,22 @@ func (p *Parser) parseStatement() *ast.Statement {
 	case lexer.TTKeyword:
 		switch p.current.Value {
 		case "pub":
+			pubToken := p.current
 			p.nextToken()
-			token := p.consume(lexer.TTKeyword, true)
+			p.expect(lexer.TTKeyword)
 
-			switch token.Value {
+			switch p.current.Value {
 			case "fn":
 				omitTailingSemi = true
-				stmt = p.parseFunctionDeclaration(true)
+				stmt = p.parseFunctionDeclaration(pubToken)
 			case "let":
-				stmt = p.parseVariableDeclaration(true)
+				stmt = p.parseVariableDeclaration(pubToken)
 			case "const":
-				stmt = p.parseVariableDeclaration(true)
+				stmt = p.parseVariableDeclaration(pubToken)
 			case "type":
-				stmt = p.parseTypeDeclaration(true)
+				stmt = p.parseTypeDeclaration(pubToken)
 			case "interface":
-				stmt = p.parseInterfaceDeclaration(true)
+				stmt = p.parseInterfaceDeclaration(pubToken)
 			default:
 				p.unexpected()
 			}
@@ -35,15 +36,15 @@ func (p *Parser) parseStatement() *ast.Statement {
 			stmt = p.parseImportStatement()
 		case "fn":
 			omitTailingSemi = true
-			stmt = p.parseFunctionDeclaration(false)
+			stmt = p.parseFunctionDeclaration(nil)
 		case "let":
-			stmt = p.parseVariableDeclaration(false)
+			stmt = p.parseVariableDeclaration(nil)
 		case "const":
-			stmt = p.parseVariableDeclaration(false)
+			stmt = p.parseVariableDeclaration(nil)
 		case "type":
-			stmt = p.parseTypeDeclaration(false)
+			stmt = p.parseTypeDeclaration(nil)
 		case "interface":
-			stmt = p.parseInterfaceDeclaration(false)
+			stmt = p.parseInterfaceDeclaration(nil)
 		case "if":
 			omitTailingSemi = true
 			stmt = p.parseIfStatement()
@@ -132,28 +133,29 @@ func (p *Parser) parseImportStatement() *ast.Statement {
 	return &stmt
 }
 
-func (p *Parser) parseFunctionDeclaration(pub bool) *ast.Statement {
+func (p *Parser) parseFunctionDeclaration(pubToken *lexer.Token) *ast.Statement {
 	stmt := ast.Statement{}
 
 	return &stmt
 }
 
-func (p *Parser) parseVariableDeclaration(pub bool) *ast.Statement {
+func (p *Parser) parseVariableDeclaration(pubToken *lexer.Token) *ast.Statement {
 	stmt := ast.Statement{}
 
 	return &stmt
 }
 
-func (p *Parser) parseInterfaceDeclaration(pub bool) *ast.Statement {
+func (p *Parser) parseInterfaceDeclaration(pubToken *lexer.Token) *ast.Statement {
 	kindDecl := ast.KindDecl{}
 	kindDecl.Start = p.current.Start
 
 	// type name
 	p.nextToken()
 	token := p.consume(lexer.TTIdentifier, true)
+	if IsReservedType(token.Value) {
+		p.unexpectedPos(token.Start, "Cannot declare reserved type "+token.Value)
+	}
 	Name := *NewKindIdentifier(token)
-
-	Properties := make([]ast.KindProperty, 0, 3)
 
 	// maybe extends a struct
 	var Extends ast.KindIdentifier
@@ -166,7 +168,7 @@ func (p *Parser) parseInterfaceDeclaration(pub bool) *ast.Statement {
 	p.consume(lexer.TTBraceL, true)
 
 	// properties
-	Properties = p.parseKindProperties(true)
+	Properties := p.parseKindProperties(true)
 
 	// }
 	token = p.consume(lexer.TTBraceR, true)
@@ -181,7 +183,7 @@ func (p *Parser) parseInterfaceDeclaration(pub bool) *ast.Statement {
 	stmt := ast.Statement{
 		Node: &ast.TypeDeclaration{
 			Decl:  kindDecl,
-			Pubic: pub,
+			Pubic: pubToken != nil,
 		},
 		Position: kindDecl.Position,
 	}
@@ -189,7 +191,7 @@ func (p *Parser) parseInterfaceDeclaration(pub bool) *ast.Statement {
 	return &stmt
 }
 
-func (p *Parser) parseTypeDeclaration(pub bool) *ast.Statement {
+func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 	var stmt ast.Statement
 	kindDecl := ast.KindDecl{}
 	kindDecl.Start = p.current.Start
@@ -198,7 +200,7 @@ func (p *Parser) parseTypeDeclaration(pub bool) *ast.Statement {
 		stmt = ast.Statement{
 			Node: &ast.TypeDeclaration{
 				Decl:  kindDecl,
-				Pubic: pub,
+				Pubic: pubToken != nil,
 			},
 			Position: kindDecl.Position,
 		}
@@ -207,6 +209,9 @@ func (p *Parser) parseTypeDeclaration(pub bool) *ast.Statement {
 	// type name
 	p.nextToken()
 	token := p.consume(lexer.TTIdentifier, true)
+	if IsReservedType(token.Value) {
+		p.unexpectedPos(token.Start, "Cannot declare reserved type "+token.Value)
+	}
 	Name := NewKindIdentifier(token)
 
 	// type alias

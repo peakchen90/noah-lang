@@ -4,6 +4,7 @@ import (
 	"github.com/peakchen90/noah-lang/internal/ast"
 	"github.com/peakchen90/noah-lang/internal/lexer"
 	"strconv"
+	"strings"
 )
 
 func NewIdentifier(token *lexer.Token) *ast.Identifier {
@@ -35,5 +36,21 @@ func NewNumberExpr(token *lexer.Token, parser *Parser) *ast.Expression {
 	return &ast.Expression{
 		Node:     &ast.NumberLiteral{Value: value},
 		Position: token.Position,
+	}
+}
+
+func IsUnsignedInt(value string) bool {
+	first := value[0:1]
+	return len(first) > 0 &&
+		first[0] != '-' &&
+		strings.IndexByte(value, '.') == -1
+}
+
+func GetNumberExprValue(expr ast.Expression) float64 {
+	switch node := expr.Node.(type) {
+	case *ast.NumberLiteral:
+		return node.Value
+	default:
+		panic("Internal Error")
 	}
 }

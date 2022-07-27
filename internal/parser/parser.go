@@ -110,7 +110,9 @@ func (p *Parser) isEnd() bool {
 // 消费一个 token 类型，如果消费成功返回 token 并读取下一个 token，否则返回 nil
 func (p *Parser) consume(tokenType lexer.TokenType, isPanic bool) *lexer.Token {
 	if p.isToken(tokenType) {
-		return p.nextToken()
+		token := p.current
+		p.nextToken()
+		return token
 	}
 	if isPanic {
 		p.unexpected()
@@ -121,10 +123,19 @@ func (p *Parser) consume(tokenType lexer.TokenType, isPanic bool) *lexer.Token {
 // 消费一个 keyword token 类型，如果消费成功返回 token 并读取下一个 token，否则返回 nil
 func (p *Parser) consumeKeyword(name string, isPanic bool) *lexer.Token {
 	if p.isKeyword(name) {
-		return p.nextToken()
+		token := p.current
+		p.nextToken()
+		return token
 	}
 	if isPanic {
 		p.unexpected()
 	}
 	return nil
+}
+
+// 期待当前 token 为指定类型，否则抛错
+func (p *Parser) expect(tokenType lexer.TokenType) {
+	if !p.isToken(tokenType) {
+		p.unexpected()
+	}
 }

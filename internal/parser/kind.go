@@ -9,7 +9,23 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 	kindExpr := ast.KindExpr{}
 
 	if p.isToken(lexer.TTIdentifier) { // type alias
-		kindExpr.Node = &ast.KindId{Name: p.current.Value}
+		switch p.current.Value {
+		case "num":
+			kindExpr.Node = &ast.TypeNumber{}
+		case "byte":
+			kindExpr.Node = &ast.TypeByte{}
+		case "char":
+			kindExpr.Node = &ast.TypeChar{}
+		case "str":
+			kindExpr.Node = &ast.TypeString{}
+		case "bool":
+			kindExpr.Node = &ast.TypeBool{}
+		case "any":
+			kindExpr.Node = &ast.TypeAny{}
+		default:
+			kindExpr.Node = &ast.TypeId{Name: p.current.Value}
+		}
+
 		kindExpr.Position = p.current.Position
 		p.nextToken()
 	} else if p.isToken(lexer.TTBracketL) {
@@ -35,6 +51,9 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 		default: // [n]T
 			var expr *ast.Expression
 			if p.isToken(lexer.TTNumber) {
+				if !IsUnsignedInt(p.current.Value) {
+					p.unexpectedToken("constant integer", p.current)
+				}
 				expr = NewNumberExpr(p.current, p)
 			} else if p.isToken(lexer.TTIdentifier) {
 				expr = NewIdentifierExpr(p.current)
