@@ -4,15 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/peakchen90/noah-lang/internal/parser"
+	"os"
 )
 
 func main() {
-	node := *parser.NewParser(`
-interface abc  extends A{
-a: num
-}
-//import "axe.aa/fwa" as ab
-`)
+	code, _ := os.ReadFile("example.noah")
+	node := *parser.NewParser(string(code))
 
 	jsonStr, _ := json.MarshalIndent(node, "", "  ")
 	fmt.Println(string(jsonStr))

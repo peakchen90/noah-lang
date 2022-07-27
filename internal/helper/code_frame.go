@@ -14,11 +14,23 @@ const (
 )
 
 // 生成 n 个长度的空白字符
-func genSpaceStr(width int) string {
+func genIndentStr(prefixWidth int, width int, lastLine string) string {
+	lastLineChars := []rune(lastLine)
 	str := strings.Builder{}
+
 	i := 0
-	for i < width {
+	for i < prefixWidth {
 		str.WriteByte(' ')
+		i++
+	}
+
+	i = 0
+	for i < width {
+		if i < len(lastLineChars) && lastLineChars[i] == '\t' {
+			str.WriteByte('\t')
+		} else {
+			str.WriteByte(' ')
+		}
 		i++
 	}
 	return str.String()
@@ -116,7 +128,11 @@ func printCodeFrame(source []rune, pos int, message string, level codeFrameLevel
 
 	// 打印提示信息（需预留行号空白位置）
 	formatMsg := strings.Builder{}
-	formatMsg.WriteString(genSpaceStr(targetColumn - 1 + (lineNoWidth + 3)))
+	lastLine := ""
+	if len(beforeLines) > 0 {
+		lastLine = beforeLines[len(beforeLines)-1]
+	}
+	formatMsg.WriteString(genIndentStr(lineNoWidth+3, targetColumn-1, lastLine))
 	formatMsg.WriteString("^ ")
 	formatMsg.WriteString(message)
 	fmt.Println(formatMsg.String())

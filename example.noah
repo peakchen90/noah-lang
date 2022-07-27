@@ -1,0 +1,9 @@
+type A: B extends C {
+    a: str,
+    b: num,
+}
+
+type D {
+	E,
+	F
+}
