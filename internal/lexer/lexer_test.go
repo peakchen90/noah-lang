@@ -68,4 +68,17 @@ func TestLexer(t *testing.T) {
 		assert.Equal(t, 0, token.Start, "Token position start")
 		assert.Equal(t, len(item), token.End, "Token position end")
 	}
+
+	// 其他字符 token
+	for _, item := range tokenMetaTable {
+		if len(item.Text) == 0 {
+			continue
+		}
+		lexer := NewLexer([]rune(item.Text))
+		lexer.allowExpr = false
+		token := lexer.Next()
+		assert.Equal(t, item.Type, token.Type, "Token type")
+		assert.Equal(t, 0, token.Start, "Token position start")
+		assert.Equal(t, len(item.Text), token.End, "Token position end")
+	}
 }

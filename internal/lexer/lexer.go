@@ -67,11 +67,7 @@ func (l *Lexer) Next() *Token {
 			}
 		case '*':
 			l.index++
-			if l.allowExpr {
-				token = l.createToken(TTUnref, l.index-1, l.index)
-			} else {
-				token = l.createToken(TTMul, l.index-1, l.index)
-			}
+			token = l.createToken(TTMul, l.index-1, l.index)
 		case '/':
 			l.index++
 			token = l.createToken(TTDiv, l.index-1, l.index)
@@ -98,9 +94,6 @@ func (l *Lexer) Next() *Token {
 			if l.Look(1) == '&' {
 				l.index += 2
 				token = l.createToken(TTLogicAnd, l.index-2, l.index)
-			} else if l.allowExpr {
-				l.index++
-				token = l.createToken(TTRef, l.index-1, l.index)
 			} else {
 				l.index++
 				token = l.createToken(TTBitAnd, l.index-1, l.index)
@@ -149,9 +142,9 @@ func (l *Lexer) Next() *Token {
 			l.index++
 			token = l.createToken(TTComma, l.index-1, l.index)
 		case '.':
-			if l.Look(1) == '.' {
-				l.index += 2
-				token = l.createToken(TTRest, l.index-2, l.index)
+			if l.Look(1) == '.' && l.Look(2) == '.' {
+				l.index += 3
+				token = l.createToken(TTRest, l.index-3, l.index)
 			} else {
 				l.index++
 				token = l.createToken(TTDot, l.index-1, l.index)

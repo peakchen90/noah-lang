@@ -100,5 +100,104 @@
                 11
             ]
         }
+    },
+    {
+        "input": "123",
+        "output": {
+            "type": "TTNumber",
+            "value": "123",
+            "position": [
+                0,
+                3
+            ]
+        }
+    },
+    {
+        "input": "-12.3",
+        "output": {
+            "type": "TTNumber",
+            "value": "-12.3",
+            "position": [
+                0,
+                5
+            ]
+        }
+    },
+    {
+        "input": "-12.3",
+        "output": {
+            "type": "TTNumber",
+            "value": "-12.3",
+            "position": [
+                0,
+                5
+            ]
+        }
+    },
+    {
+        "input": "a",
+        "output": {
+            "type": "TTIdentifier",
+            "value": "a",
+            "position": [
+                0,
+                1
+            ]
+        }
+    },
+    {
+        "input": "_a2",
+        "output": {
+            "type": "TTIdentifier",
+            "value": "_a2",
+            "position": [
+                0,
+                3
+            ]
+        }
+    },
+    {
+        "input": "$aB3",
+        "output": {
+            "type": "TTIdentifier",
+            "value": "$aB3",
+            "position": [
+                0,
+                4
+            ]
+        }
+    },
+    {
+        "input": "$aB3",
+        "output": {
+            "type": "TTIdentifier",
+            "value": "$aB3",
+            "position": [
+                0,
+                4
+            ]
+        }
+    },
+    {
+        "input": "// line comment\nabc",
+        "output": {
+            "type": "TTIdentifier",
+            "value": "abc",
+            "position": [
+                16,
+                19
+            ]
+        }
+    },
+    {
+        "input": "/* block \n comment */ abc",
+        "output": {
+            "type": "TTIdentifier",
+            "value": "abc",
+            "position": [
+                22,
+                25
+            ]
+        }
     }
 ]

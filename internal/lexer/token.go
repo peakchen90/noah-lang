@@ -59,19 +59,17 @@ const (
 	TTBitNot   // ~
 	TTBitXor   // ^
 	TTDot      // .
-	TTRef      // &
-	TTUnref    // *
 )
 
 var tokenMetaTable = [...]TokenMeta{
-	TTEof:        {TTEof, "TTEof", "EOF", -1, false},
-	TTComment:    {TTComment, "TTComment", "Comment", -1, false},
-	TTKeyword:    {TTKeyword, "TTKeyword", "Keywords", -1, false},
-	TTIdentifier: {TTIdentifier, "TTIdentifier", "Identifier", -1, false},
-	TTNumber:     {TTNumber, "TTNumber", "Number", -1, false},
-	TTString:     {TTString, "TTString", "String", -1, false},
-	TTTemplate:   {TTTemplate, "TTTemplate", "Template", -1, false},
-	TTConst:      {TTConst, "TTConst", "Const", -1, false},
+	TTEof:        {TTEof, "TTEof", "", -1, false},
+	TTComment:    {TTComment, "TTComment", "", -1, false},
+	TTKeyword:    {TTKeyword, "TTKeyword", "", -1, false},
+	TTIdentifier: {TTIdentifier, "TTIdentifier", "", -1, false},
+	TTNumber:     {TTNumber, "TTNumber", "", -1, false},
+	TTString:     {TTString, "TTString", "", -1, false},
+	TTTemplate:   {TTTemplate, "TTTemplate", "", -1, false},
+	TTConst:      {TTConst, "TTConst", "", -1, false},
 	TTReturnSym:  {TTReturnSym, "TTReturnSym", "->", -1, false},
 	TTParenL:     {TTParenL, "TTParenL", "(", -1, true},
 	TTParenR:     {TTParenR, "TTParenR", ")", -1, false},
@@ -79,7 +77,7 @@ var tokenMetaTable = [...]TokenMeta{
 	TTBracketR:   {TTBracketR, "TTBracketR", "]", -1, true},
 	TTBraceL:     {TTBraceL, "TTBraceL", "{", -1, true},
 	TTBraceR:     {TTBraceR, "TTBraceR", "}", -1, true},
-	TTRest:       {TTRest, "TTRest", "..", -1, true},
+	TTRest:       {TTRest, "TTRest", "...", -1, true},
 	TTSemi:       {TTSemi, "TTSemi", ";", -1, true},
 	TTColon:      {TTColon, "TTColon", ":", -1, true},
 	TTComma:      {TTComma, "TTComma", ",", -1, true},
@@ -107,8 +105,6 @@ var tokenMetaTable = [...]TokenMeta{
 	TTBitNot:   {TTBitNot, "TTBitNot", "~", 15, true},
 	TTBitXor:   {TTBitXor, "TTBitXor", "^", 7, true},
 	TTDot:      {TTDot, "TTDot", ".", 18, true},
-	TTRef:      {TTRef, "TTRef", "&", 17, true},
-	TTUnref:    {TTUnref, "TTUnref", "*", 17, true},
 }
 
 type Token struct {
