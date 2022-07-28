@@ -41,7 +41,9 @@ func (l *Lexer) Next() *Token {
 	} else {
 		switch ch {
 		case '"':
-			token = l.readAsString()
+			token = l.readAsString(false)
+		case '`':
+			token = l.readAsString(true)
 		case '=':
 			if l.Look(1) == '=' {
 				l.index += 2
@@ -239,32 +241,27 @@ func (l *Lexer) skipComment() {
 	}
 }
 
-func (l *Lexer) readAsString() *Token {
+func (l *Lexer) readAsString(isTemplate bool) *Token {
 	start := l.index
-	raw := false
 	valid := false
 	value := strings.Builder{}
-
-	if l.Look(1) == '"' && l.Look(2) == '"' {
-		l.index += 3
-		raw = true
-	} else {
-		l.index++
-	}
+	l.index++
 
 	for l.checkIndex() {
 		ch := l.Look(0)
-		if ch == '"' {
-			if !raw || (l.Look(1) == '"' && l.Look(2) == '"') {
-				valid = true
-				break
-			}
+		if isTemplate && ch == '`' {
+			valid = true
+			break
+		} else if !isTemplate && ch == '"' {
+			valid = true
+			break
 		}
+
 		// 换行
-		if ch == '\n' && !raw {
+		if ch == '\n' && !isTemplate {
 			l.unexpected(
 				l.index,
-				"TTString literals cannot wrap. Tip: You can use the raw string `\"\"\"...\"\"\"`",
+				"The string literal cannot wrap. Tip: You can use the template string `...`",
 			)
 		}
 
@@ -287,12 +284,6 @@ func (l *Lexer) readAsString() *Token {
 				value.WriteByte('\t')
 			case 'v':
 				value.WriteByte('\v')
-			case '\\':
-				value.WriteByte('\\')
-			case '\'':
-				value.WriteByte('\'')
-			case '"':
-				value.WriteByte('"')
 			case '?':
 				value.WriteByte(63)
 			case 'x': // \xhh 2位十六进制字符
@@ -303,7 +294,7 @@ func (l *Lexer) readAsString() *Token {
 					(ch2 >= '0' && ch2 <= '9') || (ch2 >= 'a' && ch2 <= 'f') || (ch2 >= 'A' && ch2 <= 'F') {
 					l.index++
 					code, _ := strconv.ParseUint(string([]rune{ch1, ch2}), 16, 8)
-					value.WriteByte(byte(code))
+					value.WriteRune(rune(code))
 				} else {
 					l.unexpected(l.index, "Invalid hexadecimal escape sequence")
 				}
@@ -320,8 +311,8 @@ func (l *Lexer) readAsString() *Token {
 				}
 				if str.Len() > 0 {
 					l.index += str.Len() - 1
-					code, _ := strconv.ParseUint(str.String(), 8, 8)
-					value.WriteByte(byte(code))
+					code, _ := strconv.ParseUint(str.String(), 8, 16)
+					value.WriteRune(rune(code))
 				} else {
 					value.WriteRune(l.Look(0))
 				}
@@ -336,23 +327,30 @@ func (l *Lexer) readAsString() *Token {
 	}
 
 	if !valid {
-		if raw {
-			l.unexpected(l.index, "The string literal is missing the terminator `\"\"\"`")
+		if isTemplate {
+			l.unexpected(l.index, "Invalid template string")
 		} else {
-			l.unexpected(l.index, "The string literal is missing the terminator `\"`")
+			l.unexpected(l.index, "Invalid string literal")
 		}
 	}
 
-	if raw {
-		l.index += 3
-	} else {
-		l.index++
-	}
+	l.index++
 
-	token := l.createToken(TTString, start, l.index)
-	token.Value = value.String()
-	token.Ext = raw
-	return token
+	if isTemplate {
+		if !valid {
+			l.unexpected(l.index, "Invalid template string")
+		}
+		token := l.createToken(TTTemplate, start, l.index)
+		token.Value = value.String()
+		return token
+	} else {
+		if !valid {
+			l.unexpected(l.index, "Invalid string literal")
+		}
+		token := l.createToken(TTString, start, l.index)
+		token.Value = value.String()
+		return token
+	}
 }
 
 func (l *Lexer) readAsNumber() *Token {

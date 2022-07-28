@@ -61,6 +61,10 @@ type (
 
 	StringLiteral struct {
 		Value string
-		Raw   bool // 原始字符串（多行）
+	}
+
+	TemplateString struct {
+		Fragments []string
+		Values    []Expression
 	}
 )

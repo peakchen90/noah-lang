@@ -89,8 +89,8 @@ func getSourcePosition(source *string, index int) (line int, column int) {
 // 打印代码帧信息，返回目标位置的行列信息
 func printCodeFrame(source []rune, pos int, message string, level codeFrameLevel) (targetLine int, targetColumn int) {
 	input := string(source)
-	beforeLines := make([]string, 0, 3)
-	afterLines := make([]string, 0, 3)
+	beforeLines := make([]string, 0, DefaultCap)
+	afterLines := make([]string, 0, DefaultCap)
 
 	// 分割提示信息的前后代码片段（打印目标位置，上面3行，下面2行）
 	lines := strings.Split(input, "\n")

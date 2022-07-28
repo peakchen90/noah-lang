@@ -2,6 +2,7 @@ package parser
 
 import (
 	"github.com/peakchen90/noah-lang/internal/ast"
+	"github.com/peakchen90/noah-lang/internal/helper"
 	"github.com/peakchen90/noah-lang/internal/lexer"
 )
 
@@ -262,7 +263,7 @@ func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 
 	// `{`
 	p.consume(lexer.TTBraceL, true)
-	Properties := make([]ast.KindProperty, 0)
+	Properties := make([]ast.KindProperty, helper.DefaultCap)
 
 	if !p.isToken(lexer.TTBraceR) {
 		p.consume(lexer.TTIdentifier, true)

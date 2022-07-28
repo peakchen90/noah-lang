@@ -19,5 +19,6 @@ func IsKeyword(value string) bool {
 			return true
 		}
 	}
+
 	return false
 }

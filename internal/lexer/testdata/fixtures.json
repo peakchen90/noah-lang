@@ -1,0 +1,104 @@
+[
+    {
+        "input": "\"abc\"",
+        "output": {
+            "type": "TTString",
+            "value": "abc",
+            "position": [
+                0,
+                5
+            ]
+        }
+    },
+    {
+        "input": "\"\\a\\b\\f\\n\\r\\t\\v\\\\\\'\\\"\\?\\0\"",
+        "output": {
+            "type": "TTString",
+            "chars": [
+                7,
+                8,
+                12,
+                10,
+                13,
+                9,
+                11,
+                92,
+                39,
+                34,
+                63,
+                0
+            ],
+            "position": [
+                0,
+                26
+            ]
+        }
+    },
+    {
+        "input": "\"\\1a\"",
+        "output": {
+            "type": "TTString",
+            "chars": [
+                1,
+                97
+            ],
+            "position": [
+                0,
+                5
+            ]
+        }
+    },
+    {
+        "input": "\"\\7777\"",
+        "output": {
+            "type": "TTString",
+            "chars": [
+                511,
+                55
+            ],
+            "position": [
+                0,
+                7
+            ]
+        }
+    },
+    {
+        "input": "\"\\x000\"",
+        "output": {
+            "type": "TTString",
+            "chars": [
+                0,
+                48
+            ],
+            "position": [
+                0,
+                7
+            ]
+        }
+    },
+    {
+        "input": "\"\\xFFF\"",
+        "output": {
+            "type": "TTString",
+            "chars": [
+                255,
+                70
+            ],
+            "position": [
+                0,
+                7
+            ]
+        }
+    },
+    {
+        "input": "`a\n{e}b\"c\"`",
+        "output": {
+            "type": "TTTemplate",
+            "value": "a\n{e}b\"c\"",
+            "position": [
+                0,
+                11
+            ]
+        }
+    }
+]

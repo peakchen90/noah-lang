@@ -2,6 +2,7 @@ package parser
 
 import (
 	"github.com/peakchen90/noah-lang/internal/ast"
+	"github.com/peakchen90/noah-lang/internal/helper"
 	"github.com/peakchen90/noah-lang/internal/lexer"
 )
 
@@ -79,7 +80,7 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 }
 
 func (p *Parser) parseKindProperties(allowFunc bool) []ast.KindProperty {
-	properties := make([]ast.KindProperty, 0, 3)
+	properties := make([]ast.KindProperty, 0, helper.DefaultCap)
 
 	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
 		pair := ast.KindProperty{}
@@ -111,7 +112,7 @@ func (p *Parser) parseKindProperties(allowFunc bool) []ast.KindProperty {
 }
 
 func (p *Parser) parseEnumItems() []ast.KindIdentifier {
-	items := make([]ast.KindIdentifier, 0, 3)
+	items := make([]ast.KindIdentifier, 0, helper.DefaultCap)
 
 	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
 		token := p.consume(lexer.TTIdentifier, true)

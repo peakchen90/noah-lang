@@ -26,7 +26,7 @@ func NewParser(input string) *ast.File {
 }
 
 func (p *Parser) parse() *ast.File {
-	body := make([]ast.Statement, 0, 3)
+	body := make([]ast.Statement, 0, helper.DefaultCap)
 	p.nextToken()
 
 	for !p.isEnd() {
