@@ -7,23 +7,6 @@ import (
 	"testing"
 )
 
-var tokenFixtures = [...]string{
-	`"abc"`,
-	`"\\a"`,
-	`"\1a"`,
-	`"\7777"`,
-	`"\8"`,
-	`"\xff"`,
-	`"\x00"`,
-	`"""a
-b"c"
-"""`,
-	`0`,
-	`1.2`,
-	`-12`,
-	`-12.34`,
-}
-
 type Fixture struct {
 	Input  string `json:"input"`
 	Output struct {
@@ -58,18 +41,31 @@ func TestLexer(t *testing.T) {
 
 	for _, fixture := range fixtures {
 		token := NewLexer([]rune(fixture.Input)).Next()
-		assert.Equal(t, token.Name, fixture.Output.Type)
+		assert.Equal(t, token.Name, fixture.Output.Type, "Token name")
 		if len(fixture.Output.Value) > 0 {
-			assert.Equal(t, fixture.Output.Value, token.Value)
+			assert.Equal(t, fixture.Output.Value, token.Value, "Token value")
 		} else if len(fixture.Output.Chars) > 0 {
-			assert.Equal(t, string(fixture.Output.Chars), token.Value)
+			assert.Equal(t, string(fixture.Output.Chars), token.Value, "Token value")
 		}
-		assert.Equal(t, fixture.Output.Position[0], token.Position.Start)
-		assert.Equal(t, fixture.Output.Position[1], token.Position.End)
+		assert.Equal(t, fixture.Output.Position[0], token.Start, "Token position start")
+		assert.Equal(t, fixture.Output.Position[1], token.End, "Token position end")
 	}
 
-	for _, fixture := range Keywords {
-		token := NewLexer([]rune(fixture)).Next()
-		assert.NotNil(t, token)
+	// 关键字
+	for _, item := range Keywords {
+		token := NewLexer([]rune(item)).Next()
+		assert.Equal(t, TTKeyword, token.Type, "Token type")
+		assert.Equal(t, item, token.Value, "Token value")
+		assert.Equal(t, 0, token.Start, "Token position start")
+		assert.Equal(t, len(item), token.End, "Token position end")
+	}
+
+	// 内置常量
+	for _, item := range Constants {
+		token := NewLexer([]rune(item)).Next()
+		assert.Equal(t, TTConst, token.Type, "Token type")
+		assert.Equal(t, item, token.Value, "Token value")
+		assert.Equal(t, 0, token.Start, "Token position start")
+		assert.Equal(t, len(item), token.End, "Token position end")
 	}
 }

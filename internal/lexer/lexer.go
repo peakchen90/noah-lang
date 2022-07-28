@@ -415,13 +415,9 @@ func (l *Lexer) readAsIdentifier() *Token {
 	var token *Token
 
 	if IsKeyword(valueStr) {
-		switch valueStr {
-		case "true", "false", "null", "self":
-			token = l.createToken(TTConst, start, l.index)
-		default:
-			token = l.createToken(TTKeyword, start, l.index)
-		}
-
+		token = l.createToken(TTKeyword, start, l.index)
+	} else if IsConstant(valueStr) {
+		token = l.createToken(TTConst, start, l.index)
 	} else {
 		token = l.createToken(TTIdentifier, start, l.index)
 	}
