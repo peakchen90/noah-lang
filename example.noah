@@ -1,4 +1,4 @@
-type Num [..]num
+type Num [...]num
 type :abc {
     a: astr
     //b()
@@ -11,7 +11,7 @@ pub type : B  extends C {
     a: [0][a][][]str,
 }
 
-pub type D  {
+pub type D:a  {
 	E,
 	F
 }

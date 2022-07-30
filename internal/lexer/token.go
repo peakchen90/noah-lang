@@ -24,7 +24,6 @@ const (
 	TTIdentifier                  // 标识符
 	TTNumber                      // 数字字面量
 	TTString                      // 字符串字面量
-	TTTemplate                    // 模板字符串
 	TTReturnSym                   // ->
 	TTParenL                      // (
 	TTParenR                      // )
@@ -68,7 +67,6 @@ var tokenMetaTable = [...]TokenMeta{
 	TTIdentifier: {TTIdentifier, "TTIdentifier", "", -1, false},
 	TTNumber:     {TTNumber, "TTNumber", "", -1, false},
 	TTString:     {TTString, "TTString", "", -1, false},
-	TTTemplate:   {TTTemplate, "TTTemplate", "", -1, false},
 	TTConst:      {TTConst, "TTConst", "", -1, false},
 	TTReturnSym:  {TTReturnSym, "TTReturnSym", "->", -1, false},
 	TTParenL:     {TTParenL, "TTParenL", "(", -1, true},
@@ -77,7 +75,7 @@ var tokenMetaTable = [...]TokenMeta{
 	TTBracketR:   {TTBracketR, "TTBracketR", "]", -1, true},
 	TTBraceL:     {TTBraceL, "TTBraceL", "{", -1, true},
 	TTBraceR:     {TTBraceR, "TTBraceR", "}", -1, true},
-	TTRest:       {TTRest, "TTRest", "...", -1, true},
+	TTRest:       {TTRest, "TTRest", "..", -1, true},
 	TTSemi:       {TTSemi, "TTSemi", ";", -1, true},
 	TTColon:      {TTColon, "TTColon", ":", -1, true},
 	TTComma:      {TTComma, "TTComma", ",", -1, true},
@@ -110,6 +108,7 @@ var tokenMetaTable = [...]TokenMeta{
 type Token struct {
 	*TokenMeta
 	Value string
+	Flag  string
 	ast.Position
 }
 

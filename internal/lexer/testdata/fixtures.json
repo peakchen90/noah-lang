@@ -93,8 +93,9 @@
     {
         "input": "`a\n{e}b\"c\"`",
         "output": {
-            "type": "TTTemplate",
+            "type": "TTString",
             "value": "a\n{e}b\"c\"",
+            "flag": "raw",
             "position": [
                 0,
                 11

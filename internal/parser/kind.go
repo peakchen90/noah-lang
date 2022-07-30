@@ -51,6 +51,7 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 			}
 			kindExpr.End = kind.End
 		default: // [n]T
+			// TODO 直接解析表达式
 			var expr *ast.Expression
 			if p.isToken(lexer.TTNumber) {
 				if !IsUnsignedInt(p.current.Value) {

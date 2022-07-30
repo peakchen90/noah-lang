@@ -142,9 +142,9 @@ func (l *Lexer) Next() *Token {
 			l.index++
 			token = l.createToken(TTComma, l.index-1, l.index)
 		case '.':
-			if l.Look(1) == '.' && l.Look(2) == '.' {
-				l.index += 3
-				token = l.createToken(TTRest, l.index-3, l.index)
+			if l.Look(1) == '.' {
+				l.index += 2
+				token = l.createToken(TTRest, l.index-2, l.index)
 			} else {
 				l.index++
 				token = l.createToken(TTDot, l.index-1, l.index)
@@ -234,7 +234,7 @@ func (l *Lexer) skipComment() {
 	}
 }
 
-func (l *Lexer) readAsString(isTemplate bool) *Token {
+func (l *Lexer) readAsString(raw bool) *Token {
 	start := l.index
 	valid := false
 	value := strings.Builder{}
@@ -242,16 +242,16 @@ func (l *Lexer) readAsString(isTemplate bool) *Token {
 
 	for l.checkIndex() {
 		ch := l.Look(0)
-		if isTemplate && ch == '`' {
+		if raw && ch == '`' {
 			valid = true
 			break
-		} else if !isTemplate && ch == '"' {
+		} else if !raw && ch == '"' {
 			valid = true
 			break
 		}
 
 		// 换行
-		if ch == '\n' && !isTemplate {
+		if ch == '\n' && !raw {
 			l.unexpected(
 				l.index,
 				"The string literal cannot wrap. Tip: You can use the template string `...`",
@@ -320,7 +320,7 @@ func (l *Lexer) readAsString(isTemplate bool) *Token {
 	}
 
 	if !valid {
-		if isTemplate {
+		if raw {
 			l.unexpected(l.index, "Invalid template string")
 		} else {
 			l.unexpected(l.index, "Invalid string literal")
@@ -329,21 +329,15 @@ func (l *Lexer) readAsString(isTemplate bool) *Token {
 
 	l.index++
 
-	if isTemplate {
-		if !valid {
-			l.unexpected(l.index, "Invalid template string")
-		}
-		token := l.createToken(TTTemplate, start, l.index)
-		token.Value = value.String()
-		return token
-	} else {
-		if !valid {
-			l.unexpected(l.index, "Invalid string literal")
-		}
-		token := l.createToken(TTString, start, l.index)
-		token.Value = value.String()
-		return token
+	if !valid {
+		l.unexpected(l.index, "Invalid string literal")
 	}
+	token := l.createToken(TTString, start, l.index)
+	token.Value = value.String()
+	if raw {
+		token.Flag = "raw"
+	}
+	return token
 }
 
 func (l *Lexer) readAsNumber() *Token {

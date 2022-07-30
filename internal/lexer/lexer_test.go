@@ -13,6 +13,7 @@ type Fixture struct {
 		Type     string `json:"type"`
 		Value    string `json:"value"`
 		Chars    []rune `json:"chars"`
+		Flag     string `json:"flag"`
 		Position [2]int `json:"position"`
 	} `json:"output"`
 }
@@ -46,6 +47,9 @@ func TestLexer(t *testing.T) {
 			assert.Equal(t, fixture.Output.Value, token.Value, "Token value")
 		} else if len(fixture.Output.Chars) > 0 {
 			assert.Equal(t, string(fixture.Output.Chars), token.Value, "Token value")
+		}
+		if len(fixture.Output.Flag) > 0 {
+			assert.Equal(t, string(fixture.Output.Flag), token.Flag, "Token Flag")
 		}
 		assert.Equal(t, fixture.Output.Position[0], token.Start, "Token position start")
 		assert.Equal(t, fixture.Output.Position[1], token.End, "Token position end")

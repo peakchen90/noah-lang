@@ -269,9 +269,9 @@ func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 		p.consume(lexer.TTIdentifier, true)
 		if p.isToken(lexer.TTBraceR) || p.isToken(lexer.TTComma) { // 枚举类型
 			if interfaceToken != nil {
-				p.unexpectedPos(interfaceToken.Start, "Enumeration type does not support interface")
+				p.unexpectedPos(interfaceToken.Start, "Enum types cannot implement interfaces")
 			} else if extendsToken != nil {
-				p.unexpectedPos(extendsToken.Start, "Enumeration type does not support extends")
+				p.unexpectedPos(extendsToken.Start, "Enum types cannot support extends")
 			}
 
 			p.revertLastToken()
