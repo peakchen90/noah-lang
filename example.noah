@@ -1,7 +1,7 @@
-type Num [...]num
+type Num = [..]num
 type :abc {
-    a: astr
-    //b()
+    a: str
+    fn b() -> a
 }
 
 pub type : B  extends C {
@@ -11,13 +11,13 @@ pub type : B  extends C {
     a: [0][a][][]str,
 }
 
-pub type D:a  {
+pub type D  {
 	E,
 	F
 }
 
-pub type Str a
-type Num [2]num
+pub type Str = a
+type Num = [2]num
 
 import "a" as a
 
@@ -25,7 +25,6 @@ pub type :abc extends x {
     a: astr
     //b()
 }
-
 
 type D  {
 	E,

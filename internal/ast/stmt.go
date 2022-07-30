@@ -25,10 +25,9 @@ type (
 	}
 
 	FunctionDeclaration struct {
-		TypeFunction
-		Impl  KindIdentifier
-		Body  []Statement
-		Pubic bool
+		FuncSign KindExpr
+		Body     []Statement
+		Pubic    bool
 	}
 
 	VariableDeclaration struct {

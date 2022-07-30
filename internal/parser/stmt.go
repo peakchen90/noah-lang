@@ -142,52 +142,6 @@ func (p *Parser) parseVariableDeclaration(pubToken *lexer.Token) *ast.Statement 
 	return &stmt
 }
 
-func (p *Parser) parseInterfaceDeclaration2222(pubToken *lexer.Token) *ast.Statement {
-	kindDecl := ast.KindDecl{}
-	kindDecl.Start = p.current.Start
-
-	// type name
-	p.nextToken()
-	token := p.consume(lexer.TTIdentifier, true)
-	if IsReservedType(token.Value) {
-		p.unexpectedPos(token.Start, "Cannot declare reserved type "+token.Value)
-	}
-	Name := *NewKindIdentifier(token)
-
-	// maybe extends a struct
-	var Extends ast.KindIdentifier
-	if p.consumeKeyword("extends", false) != nil {
-		token := p.consume(lexer.TTIdentifier, true)
-		Extends = *NewKindIdentifier(token)
-	}
-
-	// `{`
-	p.consume(lexer.TTBraceL, true)
-
-	// properties
-	Properties := p.parseKindProperties(true)
-
-	// `}`
-	token = p.consume(lexer.TTBraceR, true)
-	kindDecl.End = token.End
-
-	kindDecl.Node = &ast.TypeInterface{
-		Name:       Name,
-		Extends:    Extends,
-		Properties: Properties,
-	}
-
-	stmt := ast.Statement{
-		Node: &ast.TypeDeclaration{
-			Decl:  kindDecl,
-			Pubic: pubToken != nil,
-		},
-		Position: kindDecl.Position,
-	}
-
-	return &stmt
-}
-
 func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 	var stmt ast.Statement
 	kindDecl := ast.KindDecl{}
@@ -239,9 +193,9 @@ func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 	}
 
 	// type alias
-	if !isInterface && (p.isToken(lexer.TTIdentifier) || p.isToken(lexer.TTBracketL)) {
+	if p.consume(lexer.TTAssign, false) != nil {
 		kind := p.parseKindExpr()
-		kindDecl.Node = &ast.TypeAlias{
+		kindDecl.Node = &ast.TypeDeclAlias{
 			Name: Name,
 			Kind: *kind,
 		}
@@ -276,7 +230,7 @@ func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 
 			p.revertLastToken()
 			items := p.parseEnumItems()
-			kindDecl.Node = &ast.TypeEnum{
+			kindDecl.Node = &ast.TypeDeclEnum{
 				Name:  Name,
 				Items: items,
 			}
@@ -285,20 +239,20 @@ func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 			kindDecl.End = token.End
 			return &stmt
 
-		} else { // 结构体或枚举类型
+		} else { // 结构体或接口类型
 			p.revertLastToken()
-			Properties = p.parseKindProperties(false)
+			Properties = p.parseKindProperties(isInterface)
 		}
 	}
 
 	if isInterface {
-		kindDecl.Node = &ast.TypeInterface{
+		kindDecl.Node = &ast.TypeDeclInterface{
 			Name:       Interface,
 			Extends:    Extends,
 			Properties: Properties,
 		}
 	} else {
-		kindDecl.Node = &ast.TypeStruct{
+		kindDecl.Node = &ast.TypeDeclStruct{
 			Name:       Name,
 			Interface:  Interface,
 			Extends:    Extends,

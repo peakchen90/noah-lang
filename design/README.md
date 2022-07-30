@@ -11,7 +11,7 @@
 - `bool`: 布尔类型（默认值: `false`）
 - `[n]T` : 数组类型，如：`[3]str`、`[]num` 等（默认值: `null`）
 - `[..]T` : 可变长数组类型，如：`[..]str`、`[..]num` 等（默认值: `null`）
-- `any`: 动态类型 `type :any {}`（默认值: `null`）
+- `any`: 动态类型（默认值: `null`）
 
 **自定义类型**:
 
@@ -34,6 +34,12 @@ type Person {
 type Color {
     Red,
     Green
+}
+
+// 定义接口
+type :Man {
+    name: str
+    fn say(a: num) -> str
 }
 
 // 定义一个 `Student` 结构体，继承 `Person` 的属性和实现的方法
@@ -209,7 +215,7 @@ for {
 ```noah
 type :Man {
     name: str
-    say() -> str
+    fn say() -> str
 }
 
 // 结构体 `Person` 实现 `Man` 接口
@@ -232,7 +238,7 @@ fn Student say() -> str {
 
 ```noah
 type :Woman extend Man {
-    eat(n: num)
+    fn eat(n: num)
 }
 
 type Alice: Woman {
@@ -254,7 +260,7 @@ fn Alice eat(n: num) {
 
 ```noah
 // 作为函数参数
-fn hello(m: Man) {
+fn Person hello(m: Man) {
     m.say()
 }
 

@@ -48,5 +48,7 @@ type KindProperty struct {
 
 type Argument struct {
 	Identifier
+	Kind KindExpr
 	Rest bool
+	Position
 }

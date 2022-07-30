@@ -1,40 +1,33 @@
 package ast
 
-type KD interface{ isKind() }
+type KD interface{ isKindDecl() }
 
-func (*TypeAlias) isKind()     {}
-func (*TypeStruct) isKind()    {}
-func (*TypeEnum) isKind()      {}
-func (*TypeInterface) isKind() {}
-func (*TypeFunction) isKind()  {}
+func (*TypeDeclAlias) isKindDecl()     {}
+func (*TypeDeclStruct) isKindDecl()    {}
+func (*TypeDeclEnum) isKindDecl()      {}
+func (*TypeDeclInterface) isKindDecl() {}
 
 type (
-	TypeAlias struct {
+	TypeDeclAlias struct {
 		Name KindIdentifier
 		Kind KindExpr
 	}
 
-	TypeStruct struct {
+	TypeDeclStruct struct {
 		Name       KindIdentifier
 		Interface  KindIdentifier
 		Extends    KindIdentifier
 		Properties []KindProperty
 	}
 
-	TypeEnum struct {
+	TypeDeclEnum struct {
 		Name  KindIdentifier
 		Items []KindIdentifier
 	}
 
-	TypeInterface struct {
+	TypeDeclInterface struct {
 		Name       KindIdentifier
 		Extends    KindIdentifier
 		Properties []KindProperty
-	}
-
-	TypeFunction struct {
-		Name      KindIdentifier
-		Arguments []Argument
-		Kind      KindExpr
 	}
 )

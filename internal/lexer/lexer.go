@@ -29,7 +29,7 @@ func (l *Lexer) Next() *Token {
 	l.skipSpace()
 	l.skipComment()
 
-	var token *Token
+	token := new(Token)
 	ch := l.Look(0)
 
 	if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '_' || ch == '$' {
@@ -399,7 +399,7 @@ func (l *Lexer) readAsIdentifier() *Token {
 	}
 
 	valueStr := value.String()
-	var token *Token
+	token := new(Token)
 
 	if IsKeyword(valueStr) {
 		token = l.createToken(TTKeyword, start, l.index)

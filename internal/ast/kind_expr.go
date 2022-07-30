@@ -1,16 +1,17 @@
 package ast
 
-type KE interface{ isKind() }
+type KE interface{ isKindExpr() }
 
-func (*TypeNumber) isKind()      {}
-func (*TypeByte) isKind()        {}
-func (*TypeChar) isKind()        {}
-func (*TypeString) isKind()      {}
-func (*TypeBool) isKind()        {}
-func (*TypeAny) isKind()         {}
-func (*TypeArray) isKind()       {}
-func (*TypeVectorArray) isKind() {}
-func (*TypeId) isKind()          {}
+func (*TypeNumber) isKindExpr()      {}
+func (*TypeByte) isKindExpr()        {}
+func (*TypeChar) isKindExpr()        {}
+func (*TypeString) isKindExpr()      {}
+func (*TypeBool) isKindExpr()        {}
+func (*TypeAny) isKindExpr()         {}
+func (*TypeArray) isKindExpr()       {}
+func (*TypeVectorArray) isKindExpr() {}
+func (*TypeId) isKindExpr()          {}
+func (*TypeFuncSign) isKindExpr()    {}
 
 type (
 	TypeNumber struct{}
@@ -36,5 +37,12 @@ type (
 
 	TypeId struct {
 		Name string
+	}
+
+	TypeFuncSign struct {
+		Name      KindIdentifier
+		Impl      KindIdentifier
+		Arguments []Argument
+		Kind      KindExpr
 	}
 )
