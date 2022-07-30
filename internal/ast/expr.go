@@ -3,44 +3,44 @@ package ast
 // E expression
 type E interface{ isExpr() }
 
-func (*CallExpression) isExpr()       {}
-func (*MemberExpression) isExpr()     {}
-func (*BinaryExpression) isExpr()     {}
-func (*UnaryExpression) isExpr()      {}
-func (*AssignmentExpression) isExpr() {}
-func (*IdentifierLiteral) isExpr()    {}
-func (*NumberLiteral) isExpr()        {}
-func (*BooleanLiteral) isExpr()       {}
-func (*NullLiteral) isExpr()          {}
-func (*StringLiteral) isExpr()        {}
+func (*CallExpr) isExpr()          {}
+func (*MemberExpr) isExpr()        {}
+func (*BinaryExpr) isExpr()        {}
+func (*UnaryExpr) isExpr()         {}
+func (*AssignmentExpr) isExpr()    {}
+func (*IdentifierLiteral) isExpr() {}
+func (*NumberLiteral) isExpr()     {}
+func (*BooleanLiteral) isExpr()    {}
+func (*NullLiteral) isExpr()       {}
+func (*StringLiteral) isExpr()     {}
 
 type (
-	CallExpression struct {
-		Callee    *Expression
-		Arguments []*Expression
+	CallExpr struct {
+		Callee    *Expr
+		Arguments []*Expr
 	}
 
-	MemberExpression struct {
-		Object   *Expression
-		Property *Expression
+	MemberExpr struct {
+		Object   *Expr
+		Property *Expr
 		Computed bool
 	}
 
-	BinaryExpression struct {
-		Left     *Expression
-		Right    *Expression
+	BinaryExpr struct {
+		Left     *Expr
+		Right    *Expr
 		Operator string
 	}
 
-	UnaryExpression struct {
-		Argument *Expression
+	UnaryExpr struct {
+		Argument *Expr
 		Operator string
 		Prefix   bool
 	}
 
-	AssignmentExpression struct {
-		Left     *Expression
-		Right    *Expression
+	AssignmentExpr struct {
+		Left     *Expr
+		Right    *Expr
 		Operator string
 	}
 

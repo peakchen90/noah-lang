@@ -28,7 +28,7 @@ type (
 
 	TypeArray struct {
 		Kind *KindExpr
-		Len  *Expression
+		Len  *Expr
 	}
 
 	TypeVectorArray struct {

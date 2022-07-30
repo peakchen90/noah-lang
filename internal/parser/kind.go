@@ -52,7 +52,7 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 			kindExpr.End = kind.End
 		default: // [n]T
 			// TODO 直接解析表达式
-			var expr *ast.Expression
+			var expr *ast.Expr
 			if p.isToken(lexer.TTNumber) {
 				if !IsUnsignedInt(p.current.Value) {
 					p.unexpectedToken("constant integer", p.current)
@@ -140,7 +140,7 @@ func (p *Parser) parseFuncSignExpr(start int) *ast.KindExpr {
 	return kindExpr
 }
 
-func (p *Parser) parseKindProperties(isFunc bool) []*ast.KindProperty {
+func (p *Parser) parseKindProps(isFunc bool) []*ast.KindProperty {
 	properties := make([]*ast.KindProperty, 0, helper.DefaultCap)
 
 	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {

@@ -11,16 +11,16 @@ type Identifier struct {
 }
 
 type File struct {
-	Body []*Statement
+	Body []*Stmt
 	Position
 }
 
-type Statement struct {
+type Stmt struct {
 	Node S
 	Position
 }
 
-type Expression struct {
+type Expr struct {
 	Node E
 	Position
 }

@@ -21,19 +21,19 @@ func NewKindIdentifier(token *lexer.Token) *ast.KindIdentifier {
 	}
 }
 
-func NewIdentifierExpr(token *lexer.Token) *ast.Expression {
-	return &ast.Expression{
+func NewIdentifierExpr(token *lexer.Token) *ast.Expr {
+	return &ast.Expr{
 		Node:     &ast.IdentifierLiteral{Name: token.Value},
 		Position: token.Position,
 	}
 }
 
-func NewNumberExpr(token *lexer.Token, parser *Parser) *ast.Expression {
+func NewNumberExpr(token *lexer.Token, parser *Parser) *ast.Expr {
 	value, err := strconv.ParseFloat(token.Value, 64)
 	if err != nil {
 		parser.unexpectedPos(token.Start, err.Error())
 	}
-	return &ast.Expression{
+	return &ast.Expr{
 		Node:     &ast.NumberLiteral{Value: value},
 		Position: token.Position,
 	}
@@ -46,7 +46,7 @@ func IsUnsignedInt(value string) bool {
 		strings.IndexByte(value, '.') == -1
 }
 
-func GetNumberExprValue(expr ast.Expression) float64 {
+func GetNumberExprValue(expr ast.Expr) float64 {
 	switch node := expr.Node.(type) {
 	case *ast.NumberLiteral:
 		return node.Value

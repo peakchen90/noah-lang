@@ -6,8 +6,8 @@ import (
 	"github.com/peakchen90/noah-lang/internal/lexer"
 )
 
-func (p *Parser) parseStatement() *ast.Statement {
-	var stmt *ast.Statement
+func (p *Parser) parseStmt() *ast.Stmt {
+	var stmt *ast.Stmt
 
 	omitTailingSemi := false
 	switch p.current.Type {
@@ -21,51 +21,51 @@ func (p *Parser) parseStatement() *ast.Statement {
 			switch p.current.Value {
 			case "fn":
 				omitTailingSemi = true
-				stmt = p.parseFunctionDeclaration(pubToken)
+				stmt = p.parseFuncDecl(pubToken)
 			case "let":
-				stmt = p.parseVariableDeclaration(false, pubToken)
+				stmt = p.parseVarDecl(false, pubToken)
 			case "const":
-				stmt = p.parseVariableDeclaration(true, pubToken)
+				stmt = p.parseVarDecl(true, pubToken)
 			case "type":
-				stmt = p.parseTypeDeclaration(pubToken)
+				stmt = p.parseTypeDecl(pubToken)
 			case "interface":
-				stmt = p.parseInterfaceDeclaration(pubToken)
+				stmt = p.parseInterfaceDecl(pubToken)
 			case "struct":
-				stmt = p.parseStructDeclaration(pubToken)
+				stmt = p.parseStructDecl(pubToken)
 			case "enum":
-				stmt = p.parseEnumDeclaration(pubToken)
+				stmt = p.parseEnumDecl(pubToken)
 			default:
 				p.unexpected()
 			}
 		case "import":
-			stmt = p.parseImportStatement()
+			stmt = p.parseImportStmt()
 		case "fn":
 			omitTailingSemi = true
-			stmt = p.parseFunctionDeclaration(nil)
+			stmt = p.parseFuncDecl(nil)
 		case "let":
-			stmt = p.parseVariableDeclaration(false, nil)
+			stmt = p.parseVarDecl(false, nil)
 		case "const":
-			stmt = p.parseVariableDeclaration(true, nil)
+			stmt = p.parseVarDecl(true, nil)
 		case "type":
-			stmt = p.parseTypeDeclaration(nil)
+			stmt = p.parseTypeDecl(nil)
 		case "interface":
-			stmt = p.parseInterfaceDeclaration(nil)
+			stmt = p.parseInterfaceDecl(nil)
 		case "struct":
-			stmt = p.parseStructDeclaration(nil)
+			stmt = p.parseStructDecl(nil)
 		case "enum":
-			stmt = p.parseEnumDeclaration(nil)
+			stmt = p.parseEnumDecl(nil)
 		case "if":
 			omitTailingSemi = true
-			stmt = p.parseIfStatement()
+			stmt = p.parseIfStmt()
 		case "for":
 			omitTailingSemi = true
-			stmt = p.parseForStatement("")
+			stmt = p.parseForStmt("")
 		case "return":
-			stmt = p.parseReturnStatement()
+			stmt = p.parseReturnStmt()
 		case "break":
-			stmt = p.parseBreakStatement()
+			stmt = p.parseBreakStmt()
 		case "continue":
-			stmt = p.parseContinueStatement()
+			stmt = p.parseContinueStmt()
 		default:
 			p.unexpected()
 		}
@@ -79,17 +79,17 @@ func (p *Parser) parseStatement() *ast.Statement {
 			switch token.Value {
 			case "for":
 				omitTailingSemi = true
-				stmt = p.parseForStatement(maybeLabel)
+				stmt = p.parseForStmt(maybeLabel)
 			default:
 				p.unexpected()
 			}
 
 		} else {
-			stmt = p.parseExpressionStatement()
+			stmt = p.parseExprStmt()
 		}
 	case lexer.TTBraceL:
 		omitTailingSemi = true
-		stmt = p.parseBlockStatement()
+		stmt = p.parseBlockStmt()
 	default:
 		p.unexpected()
 	}
@@ -109,8 +109,8 @@ func (p *Parser) parseStatement() *ast.Statement {
 	return stmt
 }
 
-func (p *Parser) parseImportStatement() *ast.Statement {
-	stmt := ast.Statement{}
+func (p *Parser) parseImportStmt() *ast.Stmt {
+	stmt := ast.Stmt{}
 	stmt.Start = p.current.Start
 	p.nextToken()
 
@@ -133,7 +133,7 @@ func (p *Parser) parseImportStatement() *ast.Statement {
 	local := NewIdentifier(p.current)
 	p.nextToken()
 
-	stmt.Node = &ast.ImportDeclaration{
+	stmt.Node = &ast.ImportDecl{
 		Source: source,
 		Local:  local,
 	}
@@ -142,8 +142,8 @@ func (p *Parser) parseImportStatement() *ast.Statement {
 	return &stmt
 }
 
-func (p *Parser) parseFunctionDeclaration(pubToken *lexer.Token) *ast.Statement {
-	stmt := ast.Statement{}
+func (p *Parser) parseFuncDecl(pubToken *lexer.Token) *ast.Stmt {
+	stmt := ast.Stmt{}
 	if pubToken != nil {
 		stmt.Start = pubToken.Start
 	} else {
@@ -164,10 +164,10 @@ func (p *Parser) parseFunctionDeclaration(pubToken *lexer.Token) *ast.Statement 
 
 	funcSign := p.parseFuncSignExpr(stmt.Start)
 
-	funcDecl := &ast.FunctionDeclaration{
+	funcDecl := &ast.FuncDecl{
 		Name:     NewIdentifier(nameToken),
 		FuncSign: funcSign,
-		Body:     p.parseBlockStatement(),
+		Body:     p.parseBlockStmt(),
 		Pubic:    pubToken != nil,
 	}
 	if implToken != nil {
@@ -178,14 +178,14 @@ func (p *Parser) parseFunctionDeclaration(pubToken *lexer.Token) *ast.Statement 
 	return &stmt
 }
 
-func (p *Parser) parseVariableDeclaration(isConst bool, pubToken *lexer.Token) *ast.Statement {
-	stmt := ast.Statement{}
+func (p *Parser) parseVarDecl(isConst bool, pubToken *lexer.Token) *ast.Stmt {
+	stmt := ast.Stmt{}
 
 	return &stmt
 }
 
-func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
-	stmt := &ast.Statement{}
+func (p *Parser) parseTypeDecl(pubToken *lexer.Token) *ast.Stmt {
+	stmt := &ast.Stmt{}
 	if pubToken != nil {
 		stmt.Start = pubToken.Start
 	} else {
@@ -215,8 +215,8 @@ func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 	return stmt
 }
 
-func (p *Parser) parseInterfaceDeclaration(pubToken *lexer.Token) *ast.Statement {
-	stmt := &ast.Statement{}
+func (p *Parser) parseInterfaceDecl(pubToken *lexer.Token) *ast.Stmt {
+	stmt := &ast.Stmt{}
 	if pubToken != nil {
 		stmt.Start = pubToken.Start
 	} else {
@@ -243,7 +243,7 @@ func (p *Parser) parseInterfaceDeclaration(pubToken *lexer.Token) *ast.Statement
 
 	// `{`
 	p.consume(lexer.TTBraceL, true)
-	properties := p.parseKindProperties(true)
+	properties := p.parseKindProps(true)
 	p.consume(lexer.TTBraceR, true)
 
 	stmt.Node = &ast.TypeInterfaceDecl{
@@ -256,8 +256,8 @@ func (p *Parser) parseInterfaceDeclaration(pubToken *lexer.Token) *ast.Statement
 	return stmt
 }
 
-func (p *Parser) parseStructDeclaration(pubToken *lexer.Token) *ast.Statement {
-	stmt := &ast.Statement{}
+func (p *Parser) parseStructDecl(pubToken *lexer.Token) *ast.Stmt {
+	stmt := &ast.Stmt{}
 	if pubToken != nil {
 		stmt.Start = pubToken.Start
 	} else {
@@ -294,7 +294,7 @@ func (p *Parser) parseStructDeclaration(pubToken *lexer.Token) *ast.Statement {
 
 	// `{`
 	p.consume(lexer.TTBraceL, true)
-	properties := p.parseKindProperties(false)
+	properties := p.parseKindProps(false)
 	p.consume(lexer.TTBraceR, true)
 
 	stmt.Node = &ast.TypeStructDecl{
@@ -308,8 +308,8 @@ func (p *Parser) parseStructDeclaration(pubToken *lexer.Token) *ast.Statement {
 	return stmt
 }
 
-func (p *Parser) parseEnumDeclaration(pubToken *lexer.Token) *ast.Statement {
-	stmt := &ast.Statement{}
+func (p *Parser) parseEnumDecl(pubToken *lexer.Token) *ast.Stmt {
+	stmt := &ast.Stmt{}
 	if pubToken != nil {
 		stmt.Start = pubToken.Start
 	} else {
@@ -338,54 +338,54 @@ func (p *Parser) parseEnumDeclaration(pubToken *lexer.Token) *ast.Statement {
 	return stmt
 }
 
-func (p *Parser) parseIfStatement() *ast.Statement {
-	stmt := ast.Statement{}
+func (p *Parser) parseIfStmt() *ast.Stmt {
+	stmt := ast.Stmt{}
 
 	return &stmt
 }
 
-func (p *Parser) parseForStatement(label string) *ast.Statement {
-	stmt := ast.Statement{}
+func (p *Parser) parseForStmt(label string) *ast.Stmt {
+	stmt := ast.Stmt{}
 
 	return &stmt
 }
 
-func (p *Parser) parseReturnStatement() *ast.Statement {
-	stmt := ast.Statement{}
+func (p *Parser) parseReturnStmt() *ast.Stmt {
+	stmt := ast.Stmt{}
 
 	return &stmt
 }
 
-func (p *Parser) parseBreakStatement() *ast.Statement {
-	stmt := ast.Statement{}
+func (p *Parser) parseBreakStmt() *ast.Stmt {
+	stmt := ast.Stmt{}
 
 	return &stmt
 }
 
-func (p *Parser) parseContinueStatement() *ast.Statement {
-	stmt := ast.Statement{}
+func (p *Parser) parseContinueStmt() *ast.Stmt {
+	stmt := ast.Stmt{}
 
 	return &stmt
 }
 
-func (p *Parser) parseExpressionStatement() *ast.Statement {
-	stmt := ast.Statement{}
+func (p *Parser) parseExprStmt() *ast.Stmt {
+	stmt := ast.Stmt{}
 
 	return &stmt
 }
 
-func (p *Parser) parseBlockStatement() *ast.Statement {
-	stmt := ast.Statement{}
+func (p *Parser) parseBlockStmt() *ast.Stmt {
+	stmt := ast.Stmt{}
 	stmt.Start = p.current.Start
 	p.consume(lexer.TTBraceL, true)
 
-	body := make([]*ast.Statement, 0, helper.DefaultCap)
+	body := make([]*ast.Stmt, 0, helper.DefaultCap)
 
 	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
-		body = append(body, p.parseStatement())
+		body = append(body, p.parseStmt())
 	}
 
-	stmt.Node = &ast.BlockStatement{Body: body}
+	stmt.Node = &ast.BlockStmt{Body: body}
 	stmt.End = p.current.End
 	p.consume(lexer.TTBraceR, true)
 

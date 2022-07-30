@@ -3,76 +3,76 @@ package ast
 // S statements
 type S interface{ isStmt() }
 
-func (*ImportDeclaration) isStmt()   {}
-func (*FunctionDeclaration) isStmt() {}
-func (*VariableDeclaration) isStmt() {}
-func (*BlockStatement) isStmt()      {}
-func (*ReturnStatement) isStmt()     {}
-func (*ExpressionStatement) isStmt() {}
-func (*IfStatement) isStmt()         {}
-func (*ForStatement) isStmt()        {}
-func (*ForOfStatement) isStmt()      {}
-func (*BreakStatement) isStmt()      {}
-func (*ContinueStatement) isStmt()   {}
+func (*ImportDecl) isStmt()   {}
+func (*FuncDecl) isStmt()     {}
+func (*VarDecl) isStmt()      {}
+func (*BlockStmt) isStmt()    {}
+func (*ReturnStmt) isStmt()   {}
+func (*ExprStmt) isStmt()     {}
+func (*IfStmt) isStmt()       {}
+func (*ForStmt) isStmt()      {}
+func (*ForOfStmt) isStmt()    {}
+func (*BreakStmt) isStmt()    {}
+func (*ContinueStmt) isStmt() {}
 
 type (
-	ImportDeclaration struct {
+	ImportDecl struct {
 		Source string
 		Local  *Identifier
 	}
 
-	FunctionDeclaration struct {
+	FuncDecl struct {
 		Name     *Identifier
 		Impl     *KindIdentifier
 		FuncSign *KindExpr
-		Body     *Statement
+		Body     *Stmt
 		Pubic    bool
 	}
 
-	VariableDeclaration struct {
+	VarDecl struct {
 		Id    *Identifier
-		Init  *Expression
+		Init  *Expr
 		Const bool
 		Pubic bool
 	}
 
-	BlockStatement struct {
-		Body []*Statement
+	BlockStmt struct {
+		Body []*Stmt
 	}
 
-	ReturnStatement struct {
-		Argument *Expression
+	ReturnStmt struct {
+		Argument *Expr
 	}
 
-	ExpressionStatement struct {
-		Expression *Expression
+	ExprStmt struct {
+		Expression *Expr
 	}
 
-	IfStatement struct {
-		Condition  *Expression
-		Consequent *Statement
-		Alternate  *Statement
+	IfStmt struct {
+		Condition  *Expr
+		Consequent *Stmt
+		Alternate  *Stmt
 	}
 
-	ForStatement struct {
+	ForStmt struct {
 		Label     *Identifier
-		Init      *Statement
-		Condition *Expression
-		Update    *Statement
+		Init      *Stmt
+		Condition *Expr
+		Update    *Stmt
 	}
 
-	ForOfStatement struct {
+	ForOfStmt struct {
 		Label     *Identifier
 		IterIndex *Identifier
 		IterName  *Identifier
-		Target    *Expression
+		Target    *Expr
 	}
 
-	BreakStatement struct {
+	BreakStmt struct {
 		Label *Identifier
 	}
 
-	ContinueStatement struct {
+	ContinueStmt struct {
 		Label *Identifier
 	}
 )

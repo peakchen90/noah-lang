@@ -26,11 +26,11 @@ func NewParser(input string) *ast.File {
 }
 
 func (p *Parser) parse() *ast.File {
-	body := make([]*ast.Statement, 0, helper.DefaultCap)
+	body := make([]*ast.Stmt, 0, helper.DefaultCap)
 	p.nextToken()
 
 	for !p.isEnd() {
-		stmt := p.parseStatement()
+		stmt := p.parseStmt()
 		body = append(body, stmt)
 	}
 

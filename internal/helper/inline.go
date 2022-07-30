@@ -6,6 +6,6 @@ func InlineExpr() any {
 	return 0
 }
 
-func InlineIntExpr(expr *ast.Expression) (int, error) {
+func InlineIntExpr(expr *ast.Expr) (int, error) {
 	return 0, nil
 }
