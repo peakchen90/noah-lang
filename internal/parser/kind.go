@@ -140,27 +140,26 @@ func (p *Parser) parseFuncSignExpr(start int) *ast.KindExpr {
 	return kindExpr
 }
 
-func (p *Parser) parseKindProperties(allowFunc bool) []*ast.KindProperty {
+func (p *Parser) parseKindProperties(isFunc bool) []*ast.KindProperty {
 	properties := make([]*ast.KindProperty, 0, helper.DefaultCap)
 
 	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
 		pair := &ast.KindProperty{}
 
-		// name
-		nameToken := p.consume(lexer.TTIdentifier, false)
-		if nameToken != nil {
-			pair.Name = NewIdentifier(nameToken)
-			p.consume(lexer.TTColon, true)
-			pair.Kind = p.parseKindExpr()
-		} else if allowFunc && p.isKeyword("fn") {
+		if isFunc && p.isKeyword("fn") {
 			start := p.current.Start
 			p.nextToken()
 			if !p.isToken(lexer.TTIdentifier) {
-				p.unexpectedToken("a function name", p.current)
+				p.unexpectedMissing("function name")
 			}
 			pair.Name = NewIdentifier(p.current)
 			p.nextToken()
 			pair.Kind = p.parseFuncSignExpr(start)
+		} else if !isFunc {
+			token := p.consume(lexer.TTIdentifier, true)
+			pair.Name = NewIdentifier(token)
+			p.consume(lexer.TTColon, true)
+			pair.Kind = p.parseKindExpr()
 		} else {
 			p.unexpected()
 		}
@@ -169,10 +168,12 @@ func (p *Parser) parseKindProperties(allowFunc bool) []*ast.KindProperty {
 		pair.End = pair.Kind.End
 		properties = append(properties, pair)
 
-		if p.consume(lexer.TTComma, false) == nil && !p.isToken(lexer.TTBraceR) {
-			if !p.lexer.SeenNewline {
-				break
-			}
+		tail := p.consume(lexer.TTComma, false)
+		if tail == nil {
+			tail = p.consume(lexer.TTSemi, false)
+		}
+		if tail == nil && !p.lexer.SeenNewline {
+			break
 		}
 	}
 

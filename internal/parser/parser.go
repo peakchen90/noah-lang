@@ -73,6 +73,10 @@ func (p *Parser) unexpectedToken(expectHint string, receiveToken *lexer.Token) {
 	)
 }
 
+func (p *Parser) unexpectedMissing(missingHint string) {
+	p.unexpectedPos(p.lexer.LastToken.End, fmt.Sprintf("Missing %s", missingHint))
+}
+
 func (p *Parser) unexpected() {
 	var message string
 	token := p.current

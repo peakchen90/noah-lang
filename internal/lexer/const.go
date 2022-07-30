@@ -2,12 +2,14 @@ package lexer
 
 // Keywords 关键字
 var Keywords = [...]string{
-	// 变量、类型声明
-	"fn", "let", "const", "type", "interface",
+	// 变量声明
+	"fn", "let", "const",
+	// 类型声明
+	"type", "interface", "struct", "enum",
 	// 逻辑控制
 	"if", "else", "for", "return", "break", "continue",
 	// 其他修饰符
-	"pub", "extends", "import", "as",
+	"pub", "extends", "import", "as", "new",
 }
 
 // Constants 内置常量

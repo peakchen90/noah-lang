@@ -15,35 +15,34 @@
 
 **自定义类型**:
 
-- `type :T {}`: 接口
-- `type T num` : 类型别名
-- `type T {a: str, b: num}` : 结构体类型（默认值: `null`）
-- `type T {A, B}` : 枚举类型（默认值: `null`）
+- `type T = T2` : 类型别名
+- `interface T {}`: 接口
+- `struct T {a: str, b: num}` : 结构体类型（默认值: `null`）
+- `enum T {A, B}` : 枚举类型（默认值: `null`）
 
 ```noah
 // 定义数字类型的别名
-type TypeNum num
+type TypeNum = num
 
 // 定义结构体
-type Person {
+struct Person {
     name: str
     age: num
 }
 
 // 定义枚举类型
-type Color {
+enum Color {
     Red,
     Green
 }
 
 // 定义接口
-type :Man {
-    name: str
+interface Man {
     fn say(a: num) -> str
 }
 
 // 定义一个 `Student` 结构体，继承 `Person` 的属性和实现的方法
-type Student extends Person {
+struct Student extends Person {
     grade: num
 }
 ```
@@ -213,20 +212,19 @@ for {
 ## 多态
 
 ```noah
-type :Man {
-    name: str
+interface Man {
     fn say() -> str
 }
 
 // 结构体 `Person` 实现 `Man` 接口
-type Person: Man {}
+struct Person: Man {}
 
 // 必须实现 `say()` 方法
 fn Person say() -> str {
     return "Person: " + self.name
 }
 
-type Student: Man {}
+struct Student: Man {}
 
 // 必须实现 `say()` 方法
 fn Student say() -> str {
@@ -237,11 +235,11 @@ fn Student say() -> str {
 **`interface` 继承**
 
 ```noah
-type :Woman extend Man {
+interface Woman extends Man {
     fn eat(n: num)
 }
 
-type Alice: Woman {
+struct Alice: Woman {
     weight: num
 }
 
@@ -299,7 +297,7 @@ var abc = 123 // private
 pub const PI = 3.14159 // public
 
 // public struct
-pub type Person {
+pub struct Person {
     name: str
 }
 ```
@@ -311,7 +309,7 @@ import ".." as entry
 
 let n = entry.abc // 123 (from `foo.noah`)
 
-pub say() -> str {
+pub fn say() -> str {
     return "Hello World"
 }
 ```

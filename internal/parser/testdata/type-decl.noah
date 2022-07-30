@@ -1,0 +1,26 @@
+type TypeNum = num
+
+pub type Vec = [..]char
+
+pub struct Person {
+    name: str
+    age: num
+}
+
+enum Color {
+    Red,
+    Green,
+}
+
+interface Man {
+    fn say(a: num) -> str;
+    fn go(..args: [..]str);
+}
+
+pub interface Cindy {
+    fn walk() -> [2]num;
+}
+
+struct Student: Man extends Person {
+    grade: num
+}

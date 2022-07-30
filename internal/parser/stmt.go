@@ -23,11 +23,17 @@ func (p *Parser) parseStatement() *ast.Statement {
 				omitTailingSemi = true
 				stmt = p.parseFunctionDeclaration(pubToken)
 			case "let":
-				stmt = p.parseVariableDeclaration(pubToken)
+				stmt = p.parseVariableDeclaration(false, pubToken)
 			case "const":
-				stmt = p.parseVariableDeclaration(pubToken)
+				stmt = p.parseVariableDeclaration(true, pubToken)
 			case "type":
 				stmt = p.parseTypeDeclaration(pubToken)
+			case "interface":
+				stmt = p.parseInterfaceDeclaration(pubToken)
+			case "struct":
+				stmt = p.parseStructDeclaration(pubToken)
+			case "enum":
+				stmt = p.parseEnumDeclaration(pubToken)
 			default:
 				p.unexpected()
 			}
@@ -37,11 +43,17 @@ func (p *Parser) parseStatement() *ast.Statement {
 			omitTailingSemi = true
 			stmt = p.parseFunctionDeclaration(nil)
 		case "let":
-			stmt = p.parseVariableDeclaration(nil)
+			stmt = p.parseVariableDeclaration(false, nil)
 		case "const":
-			stmt = p.parseVariableDeclaration(nil)
+			stmt = p.parseVariableDeclaration(true, nil)
 		case "type":
 			stmt = p.parseTypeDeclaration(nil)
+		case "interface":
+			stmt = p.parseInterfaceDeclaration(nil)
+		case "struct":
+			stmt = p.parseStructDeclaration(nil)
+		case "enum":
+			stmt = p.parseEnumDeclaration(nil)
 		case "if":
 			omitTailingSemi = true
 			stmt = p.parseIfStatement()
@@ -104,19 +116,19 @@ func (p *Parser) parseImportStatement() *ast.Statement {
 
 	// source
 	if !p.isToken(lexer.TTString) {
-		p.unexpectedToken("string literal", p.current)
+		p.unexpectedMissing("import source")
 	}
 	source := p.current.Value
 	p.nextToken()
 
 	// as
 	if p.consumeKeyword("as", false) == nil {
-		p.unexpectedToken("`as` keyword", p.current)
+		p.unexpectedMissing("keyword `as`")
 	}
 
 	// localName
 	if !p.isToken(lexer.TTIdentifier) {
-		p.unexpectedToken("local name", p.current)
+		p.unexpectedMissing("local name")
 	}
 	local := NewIdentifier(p.current)
 	p.nextToken()
@@ -141,7 +153,7 @@ func (p *Parser) parseFunctionDeclaration(pubToken *lexer.Token) *ast.Statement 
 	p.nextToken()
 	implToken := p.consume(lexer.TTIdentifier, false)
 	if implToken == nil {
-		p.unexpectedToken("a function name", p.current)
+		p.unexpectedMissing("function name")
 	}
 
 	nameToken := p.consume(lexer.TTIdentifier, false)
@@ -166,138 +178,163 @@ func (p *Parser) parseFunctionDeclaration(pubToken *lexer.Token) *ast.Statement 
 	return &stmt
 }
 
-func (p *Parser) parseVariableDeclaration(pubToken *lexer.Token) *ast.Statement {
+func (p *Parser) parseVariableDeclaration(isConst bool, pubToken *lexer.Token) *ast.Statement {
 	stmt := ast.Statement{}
 
 	return &stmt
 }
 
 func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
-	stmt := new(ast.Statement)
-	kindDecl := &ast.KindDecl{}
+	stmt := &ast.Statement{}
 	if pubToken != nil {
-		kindDecl.Start = pubToken.Start
+		stmt.Start = pubToken.Start
 	} else {
-		kindDecl.Start = p.current.Start
+		stmt.Start = p.current.Start
 	}
-
 	p.nextToken()
 
-	defer func() {
-		*stmt = ast.Statement{
-			Node: &ast.TypeDeclaration{
-				Decl:  kindDecl,
-				Pubic: pubToken != nil,
-			},
-			Position: kindDecl.Position,
-		}
-	}()
-
-	// maybe type name
-	var nameToken *lexer.Token
-	var Name *ast.KindIdentifier
-	if p.isToken(lexer.TTIdentifier) {
-		nameToken = p.current
-		Name = NewKindIdentifier(p.current)
-		p.nextToken()
+	if !p.isToken(lexer.TTIdentifier) {
+		p.unexpectedMissing("type name")
 	}
+	name := NewKindIdentifier(p.current)
+	p.nextToken()
 
-	// maybe interface name
-	var interfaceToken *lexer.Token
-	var Interface *ast.KindIdentifier
-	if p.consume(lexer.TTColon, false) != nil {
-		interfaceToken = p.lexer.LastToken
-		token := p.consume(lexer.TTIdentifier, false)
-		if token == nil {
-			p.unexpectedToken("interface name", p.current)
-		}
-		Interface = NewKindIdentifier(token)
+	if !p.isToken(lexer.TTAssign) {
+		p.unexpectedMissing("=")
 	}
+	p.nextToken()
 
-	// nameToken
-	finalNameToken := nameToken
-	isInterface := false
-	if nameToken == nil {
-		finalNameToken = interfaceToken
-		isInterface = true
+	// alias T
+	kind := p.parseKindExpr()
+	stmt.Node = &ast.TypeAliasDecl{
+		Name:  name,
+		Kind:  kind,
+		Pubic: pubToken != nil,
 	}
-	if finalNameToken == nil {
-		p.unexpectedPos(p.current.Start, "Unexpected type declaration")
-	} else if IsReservedType(finalNameToken.Value) {
-		p.unexpectedPos(finalNameToken.Start, "Cannot declare reserved type "+finalNameToken.Value)
-	}
+	stmt.End = kind.End
+	return stmt
+}
 
-	// type alias
-	if p.consume(lexer.TTAssign, false) != nil {
-		kind := p.parseKindExpr()
-		kindDecl.Node = &ast.TypeDeclAlias{
-			Name: Name,
-			Kind: kind,
-		}
-		kindDecl.End = kind.End
-		return stmt
+func (p *Parser) parseInterfaceDeclaration(pubToken *lexer.Token) *ast.Statement {
+	stmt := &ast.Statement{}
+	if pubToken != nil {
+		stmt.Start = pubToken.Start
+	} else {
+		stmt.Start = p.current.Start
 	}
+	p.nextToken()
 
-	// maybe has extends
-	var extendsToken *lexer.Token
+	// name
+	if !p.isToken(lexer.TTIdentifier) {
+		p.unexpectedMissing("interface name")
+	}
+	name := NewKindIdentifier(p.current)
+	p.nextToken()
+
+	// extends
 	var Extends *ast.KindIdentifier
 	if p.consumeKeyword("extends", false) != nil {
-		extendsToken = p.lexer.LastToken
 		token := p.consume(lexer.TTIdentifier, false)
 		if token == nil {
-			p.unexpectedToken("type identifier", p.current)
+			p.unexpectedMissing("extends type")
 		}
 		Extends = NewKindIdentifier(token)
 	}
 
 	// `{`
 	p.consume(lexer.TTBraceL, true)
-	Properties := make([]*ast.KindProperty, helper.DefaultCap)
+	properties := p.parseKindProperties(true)
+	p.consume(lexer.TTBraceR, true)
 
-	if !p.isToken(lexer.TTBraceR) {
-		p.consume(lexer.TTIdentifier, true)
-		if p.isToken(lexer.TTBraceR) || p.isToken(lexer.TTComma) { // 枚举类型
-			if interfaceToken != nil {
-				p.unexpectedPos(interfaceToken.Start, "Enum types cannot implement interfaces")
-			} else if extendsToken != nil {
-				p.unexpectedPos(extendsToken.Start, "Enum types cannot support extends")
-			}
-
-			p.revertLastToken()
-			items := p.parseEnumItems()
-			kindDecl.Node = &ast.TypeDeclEnum{
-				Name:  Name,
-				Items: items,
-			}
-
-			token := p.consume(lexer.TTBraceR, true)
-			kindDecl.End = token.End
-			return stmt
-
-		} else { // 结构体或接口类型
-			p.revertLastToken()
-			Properties = p.parseKindProperties(isInterface)
-		}
+	stmt.Node = &ast.TypeInterfaceDecl{
+		Name:       name,
+		Extends:    Extends,
+		Properties: properties,
+		Pubic:      pubToken != nil,
 	}
+	stmt.End = p.lexer.LastToken.End
+	return stmt
+}
 
-	if isInterface {
-		kindDecl.Node = &ast.TypeDeclInterface{
-			Name:       Interface,
-			Extends:    Extends,
-			Properties: Properties,
-		}
+func (p *Parser) parseStructDeclaration(pubToken *lexer.Token) *ast.Statement {
+	stmt := &ast.Statement{}
+	if pubToken != nil {
+		stmt.Start = pubToken.Start
 	} else {
-		kindDecl.Node = &ast.TypeDeclStruct{
-			Name:       Name,
-			Interface:  Interface,
-			Extends:    Extends,
-			Properties: Properties,
+		stmt.Start = p.current.Start
+	}
+	p.nextToken()
+
+	// name
+	if !p.isToken(lexer.TTIdentifier) {
+		p.unexpectedMissing("struct name")
+	}
+	name := NewKindIdentifier(p.current)
+	p.nextToken()
+
+	// impl
+	var impl *ast.KindIdentifier
+	if p.consume(lexer.TTColon, false) != nil {
+		token := p.consume(lexer.TTIdentifier, false)
+		if token == nil {
+			p.unexpectedMissing("extends type")
 		}
+		impl = NewKindIdentifier(token)
 	}
 
-	token := p.consume(lexer.TTBraceR, true)
-	kindDecl.End = token.End
+	// extends
+	var extends *ast.KindIdentifier
+	if p.consumeKeyword("extends", false) != nil {
+		token := p.consume(lexer.TTIdentifier, false)
+		if token == nil {
+			p.unexpectedMissing("extends type")
+		}
+		extends = NewKindIdentifier(token)
+	}
 
+	// `{`
+	p.consume(lexer.TTBraceL, true)
+	properties := p.parseKindProperties(false)
+	p.consume(lexer.TTBraceR, true)
+
+	stmt.Node = &ast.TypeStructDecl{
+		Name:       name,
+		Impl:       impl,
+		Extends:    extends,
+		Properties: properties,
+		Pubic:      pubToken != nil,
+	}
+	stmt.End = p.lexer.LastToken.End
+	return stmt
+}
+
+func (p *Parser) parseEnumDeclaration(pubToken *lexer.Token) *ast.Statement {
+	stmt := &ast.Statement{}
+	if pubToken != nil {
+		stmt.Start = pubToken.Start
+	} else {
+		stmt.Start = p.current.Start
+	}
+	p.nextToken()
+
+	// name
+	if !p.isToken(lexer.TTIdentifier) {
+		p.unexpectedMissing("enum name")
+	}
+	name := NewKindIdentifier(p.current)
+	p.nextToken()
+
+	// `{`
+	p.consume(lexer.TTBraceL, true)
+	items := p.parseEnumItems()
+	p.consume(lexer.TTBraceR, true)
+
+	stmt.Node = &ast.TypeEnumDecl{
+		Name:  name,
+		Items: items,
+		Pubic: pubToken != nil,
+	}
+	stmt.End = p.lexer.LastToken.End
 	return stmt
 }
 

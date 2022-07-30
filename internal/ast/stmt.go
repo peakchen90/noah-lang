@@ -6,7 +6,6 @@ type S interface{ isStmt() }
 func (*ImportDeclaration) isStmt()   {}
 func (*FunctionDeclaration) isStmt() {}
 func (*VariableDeclaration) isStmt() {}
-func (*TypeDeclaration) isStmt()     {}
 func (*BlockStatement) isStmt()      {}
 func (*ReturnStatement) isStmt()     {}
 func (*ExpressionStatement) isStmt() {}
@@ -34,11 +33,6 @@ type (
 		Id    *Identifier
 		Init  *Expression
 		Const bool
-		Pubic bool
-	}
-
-	TypeDeclaration struct {
-		Decl  *KindDecl
 		Pubic bool
 	}
 

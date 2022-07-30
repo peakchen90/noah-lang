@@ -25,11 +25,6 @@ type Expression struct {
 	Position
 }
 
-type KindDecl struct {
-	Node KD
-	Position
-}
-
 type KindExpr struct {
 	Node KE
 	Position

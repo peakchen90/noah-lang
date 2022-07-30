@@ -1,0 +1,3 @@
+import "abc" as a
+import "../ab" as a
+import "mod:a/b/c" as b
