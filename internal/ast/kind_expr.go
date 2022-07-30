@@ -27,12 +27,12 @@ type (
 	TypeAny struct{}
 
 	TypeArray struct {
-		Kind KindExpr
-		Len  Expression
+		Kind *KindExpr
+		Len  *Expression
 	}
 
 	TypeVectorArray struct {
-		Kind KindExpr
+		Kind *KindExpr
 	}
 
 	TypeId struct {
@@ -40,7 +40,7 @@ type (
 	}
 
 	TypeFuncSign struct {
-		Arguments []Argument
-		Kind      KindExpr
+		Arguments []*Argument
+		Kind      *KindExpr
 	}
 )

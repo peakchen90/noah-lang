@@ -16,31 +16,31 @@ func (*StringLiteral) isExpr()        {}
 
 type (
 	CallExpression struct {
-		Callee    Expression
-		Arguments []Expression
+		Callee    *Expression
+		Arguments []*Expression
 	}
 
 	MemberExpression struct {
-		Object   Expression
-		Property Expression
+		Object   *Expression
+		Property *Expression
 		Computed bool
 	}
 
 	BinaryExpression struct {
-		Left     Expression
-		Right    Expression
+		Left     *Expression
+		Right    *Expression
 		Operator string
 	}
 
 	UnaryExpression struct {
-		Argument Expression
+		Argument *Expression
 		Operator string
 		Prefix   bool
 	}
 
 	AssignmentExpression struct {
-		Left     Expression
-		Right    Expression
+		Left     *Expression
+		Right    *Expression
 		Operator string
 	}
 
@@ -61,10 +61,5 @@ type (
 
 	StringLiteral struct {
 		Value string
-	}
-
-	TemplateString struct {
-		Fragments []string
-		Values    []Expression
 	}
 )

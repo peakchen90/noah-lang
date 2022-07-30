@@ -123,7 +123,7 @@ func (p *Parser) parseImportStatement() *ast.Statement {
 
 	stmt.Node = &ast.ImportDeclaration{
 		Source: source,
-		Local:  *local,
+		Local:  local,
 	}
 	stmt.End = local.End
 
@@ -153,13 +153,13 @@ func (p *Parser) parseFunctionDeclaration(pubToken *lexer.Token) *ast.Statement 
 	funcSign := p.parseFuncSignExpr(stmt.Start)
 
 	funcDecl := &ast.FunctionDeclaration{
-		Name:     *NewIdentifier(nameToken),
-		FuncSign: *funcSign,
-		Body:     *p.parseBlockStatement(),
+		Name:     NewIdentifier(nameToken),
+		FuncSign: funcSign,
+		Body:     p.parseBlockStatement(),
 		Pubic:    pubToken != nil,
 	}
 	if implToken != nil {
-		funcDecl.Impl = *NewKindIdentifier(implToken)
+		funcDecl.Impl = NewKindIdentifier(implToken)
 	}
 	stmt.Node = funcDecl
 
@@ -173,8 +173,8 @@ func (p *Parser) parseVariableDeclaration(pubToken *lexer.Token) *ast.Statement 
 }
 
 func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
-	var stmt ast.Statement
-	kindDecl := ast.KindDecl{}
+	stmt := new(ast.Statement)
+	kindDecl := &ast.KindDecl{}
 	if pubToken != nil {
 		kindDecl.Start = pubToken.Start
 	} else {
@@ -184,7 +184,7 @@ func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 	p.nextToken()
 
 	defer func() {
-		stmt = ast.Statement{
+		*stmt = ast.Statement{
 			Node: &ast.TypeDeclaration{
 				Decl:  kindDecl,
 				Pubic: pubToken != nil,
@@ -195,23 +195,23 @@ func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 
 	// maybe type name
 	var nameToken *lexer.Token
-	var Name ast.KindIdentifier
+	var Name *ast.KindIdentifier
 	if p.isToken(lexer.TTIdentifier) {
 		nameToken = p.current
-		Name = *NewKindIdentifier(p.current)
+		Name = NewKindIdentifier(p.current)
 		p.nextToken()
 	}
 
 	// maybe interface name
 	var interfaceToken *lexer.Token
-	var Interface ast.KindIdentifier
+	var Interface *ast.KindIdentifier
 	if p.consume(lexer.TTColon, false) != nil {
 		interfaceToken = p.lexer.LastToken
 		token := p.consume(lexer.TTIdentifier, false)
 		if token == nil {
 			p.unexpectedToken("interface name", p.current)
 		}
-		Interface = *NewKindIdentifier(token)
+		Interface = NewKindIdentifier(token)
 	}
 
 	// nameToken
@@ -232,27 +232,27 @@ func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 		kind := p.parseKindExpr()
 		kindDecl.Node = &ast.TypeDeclAlias{
 			Name: Name,
-			Kind: *kind,
+			Kind: kind,
 		}
 		kindDecl.End = kind.End
-		return &stmt
+		return stmt
 	}
 
 	// maybe has extends
 	var extendsToken *lexer.Token
-	var Extends ast.KindIdentifier
+	var Extends *ast.KindIdentifier
 	if p.consumeKeyword("extends", false) != nil {
 		extendsToken = p.lexer.LastToken
 		token := p.consume(lexer.TTIdentifier, false)
 		if token == nil {
 			p.unexpectedToken("type identifier", p.current)
 		}
-		Extends = *NewKindIdentifier(token)
+		Extends = NewKindIdentifier(token)
 	}
 
 	// `{`
 	p.consume(lexer.TTBraceL, true)
-	Properties := make([]ast.KindProperty, helper.DefaultCap)
+	Properties := make([]*ast.KindProperty, helper.DefaultCap)
 
 	if !p.isToken(lexer.TTBraceR) {
 		p.consume(lexer.TTIdentifier, true)
@@ -272,7 +272,7 @@ func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 
 			token := p.consume(lexer.TTBraceR, true)
 			kindDecl.End = token.End
-			return &stmt
+			return stmt
 
 		} else { // 结构体或接口类型
 			p.revertLastToken()
@@ -298,7 +298,7 @@ func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 	token := p.consume(lexer.TTBraceR, true)
 	kindDecl.End = token.End
 
-	return &stmt
+	return stmt
 }
 
 func (p *Parser) parseIfStatement() *ast.Statement {
@@ -342,10 +342,10 @@ func (p *Parser) parseBlockStatement() *ast.Statement {
 	stmt.Start = p.current.Start
 	p.consume(lexer.TTBraceL, true)
 
-	body := make([]ast.Statement, 0, helper.DefaultCap)
+	body := make([]*ast.Statement, 0, helper.DefaultCap)
 
 	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
-		body = append(body, *p.parseStatement())
+		body = append(body, p.parseStatement())
 	}
 
 	stmt.Node = &ast.BlockStatement{Body: body}

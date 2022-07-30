@@ -11,7 +11,7 @@ type Identifier struct {
 }
 
 type File struct {
-	Body []Statement
+	Body []*Statement
 	Position
 }
 
@@ -41,14 +41,14 @@ type KindIdentifier struct {
 }
 
 type KindProperty struct {
-	Name Identifier
-	Kind KindExpr
+	Name *Identifier
+	Kind *KindExpr
 	Position
 }
 
 type Argument struct {
-	Name Identifier
-	Kind KindExpr
+	Name *Identifier
+	Kind *KindExpr
 	Rest bool
 	Position
 }

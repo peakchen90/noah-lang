@@ -39,15 +39,15 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 			p.consume(lexer.TTBracketR, true)
 			kind := p.parseKindExpr()
 			kindExpr.Node = &ast.TypeVectorArray{
-				Kind: *kind,
+				Kind: kind,
 			}
 			kindExpr.End = kind.End
 		case lexer.TTBracketR: // []T
 			p.nextToken()
 			kind := p.parseKindExpr()
 			kindExpr.Node = &ast.TypeArray{
-				Kind: *kind,
-				Len:  *new(ast.Expression),
+				Kind: kind,
+				Len:  nil,
 			}
 			kindExpr.End = kind.End
 		default: // [n]T
@@ -68,8 +68,8 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 			p.consume(lexer.TTBracketR, true)
 			kind := p.parseKindExpr()
 			kindExpr.Node = &ast.TypeArray{
-				Kind: *kind,
-				Len:  *expr,
+				Kind: kind,
+				Len:  expr,
 			}
 			kindExpr.End = kind.End
 		}
@@ -84,11 +84,11 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 
 func (p *Parser) parseFuncSignExpr(start int) *ast.KindExpr {
 	p.consume(lexer.TTParenL, true)
-	kindExpr := ast.KindExpr{}
+	kindExpr := &ast.KindExpr{}
 	kindExpr.Start = start
 
 	// arguments
-	args := make([]ast.Argument, 0, helper.DefaultCap)
+	args := make([]*ast.Argument, 0, helper.DefaultCap)
 	var lastRestToken *lexer.Token
 	for !p.isEnd() && !p.isToken(lexer.TTParenR) {
 		if lastRestToken != nil {
@@ -106,9 +106,9 @@ func (p *Parser) parseFuncSignExpr(start int) *ast.KindExpr {
 		}
 		p.consume(lexer.TTColon, true)
 		kind := p.parseKindExpr()
-		argument := ast.Argument{
-			Name: *NewIdentifier(nameToken),
-			Kind: *kind,
+		argument := &ast.Argument{
+			Name: NewIdentifier(nameToken),
+			Kind: kind,
 			Rest: rest,
 		}
 		argument.Start = nameToken.Start
@@ -119,44 +119,48 @@ func (p *Parser) parseFuncSignExpr(start int) *ast.KindExpr {
 			break
 		}
 	}
+	end := p.current.End
 	p.consume(lexer.TTParenR, true)
 
 	// return kind
-	kind := new(ast.KindExpr)
+	var kind *ast.KindExpr
 	if p.consume(lexer.TTReturnSym, false) != nil {
 		kind = p.parseKindExpr()
 	}
 
 	kindExpr.Node = &ast.TypeFuncSign{
 		Arguments: args,
-		Kind:      *kind,
+		Kind:      kind,
 	}
-	kindExpr.End = kind.End
+	if kind != nil {
+		end = kind.End
+	}
+	kindExpr.End = end
 
-	return &kindExpr
+	return kindExpr
 }
 
-func (p *Parser) parseKindProperties(allowFunc bool) []ast.KindProperty {
-	properties := make([]ast.KindProperty, 0, helper.DefaultCap)
+func (p *Parser) parseKindProperties(allowFunc bool) []*ast.KindProperty {
+	properties := make([]*ast.KindProperty, 0, helper.DefaultCap)
 
 	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
-		pair := ast.KindProperty{}
+		pair := &ast.KindProperty{}
 
 		// name
 		nameToken := p.consume(lexer.TTIdentifier, false)
 		if nameToken != nil {
-			pair.Name = *NewIdentifier(nameToken)
+			pair.Name = NewIdentifier(nameToken)
 			p.consume(lexer.TTColon, true)
-			pair.Kind = *p.parseKindExpr()
+			pair.Kind = p.parseKindExpr()
 		} else if allowFunc && p.isKeyword("fn") {
 			start := p.current.Start
 			p.nextToken()
 			if !p.isToken(lexer.TTIdentifier) {
 				p.unexpectedToken("a function name", p.current)
 			}
-			pair.Name = *NewIdentifier(p.current)
+			pair.Name = NewIdentifier(p.current)
 			p.nextToken()
-			pair.Kind = *p.parseFuncSignExpr(start)
+			pair.Kind = p.parseFuncSignExpr(start)
 		} else {
 			p.unexpected()
 		}
@@ -175,12 +179,12 @@ func (p *Parser) parseKindProperties(allowFunc bool) []ast.KindProperty {
 	return properties
 }
 
-func (p *Parser) parseEnumItems() []ast.KindIdentifier {
-	items := make([]ast.KindIdentifier, 0, helper.DefaultCap)
+func (p *Parser) parseEnumItems() []*ast.KindIdentifier {
+	items := make([]*ast.KindIdentifier, 0, helper.DefaultCap)
 
 	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
 		token := p.consume(lexer.TTIdentifier, true)
-		items = append(items, *NewKindIdentifier(token))
+		items = append(items, NewKindIdentifier(token))
 
 		if p.consume(lexer.TTComma, false) == nil {
 			break

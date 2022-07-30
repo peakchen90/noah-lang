@@ -26,12 +26,12 @@ func NewParser(input string) *ast.File {
 }
 
 func (p *Parser) parse() *ast.File {
-	body := make([]ast.Statement, 0, helper.DefaultCap)
+	body := make([]*ast.Statement, 0, helper.DefaultCap)
 	p.nextToken()
 
 	for !p.isEnd() {
 		stmt := p.parseStatement()
-		body = append(body, *stmt)
+		body = append(body, stmt)
 	}
 
 	node := ast.File{Body: body}

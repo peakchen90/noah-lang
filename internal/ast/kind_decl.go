@@ -9,25 +9,25 @@ func (*TypeDeclInterface) isKindDecl() {}
 
 type (
 	TypeDeclAlias struct {
-		Name KindIdentifier
-		Kind KindExpr
+		Name *KindIdentifier
+		Kind *KindExpr
 	}
 
 	TypeDeclStruct struct {
-		Name       KindIdentifier
-		Interface  KindIdentifier
-		Extends    KindIdentifier
-		Properties []KindProperty
+		Name       *KindIdentifier
+		Interface  *KindIdentifier
+		Extends    *KindIdentifier
+		Properties []*KindProperty
 	}
 
 	TypeDeclEnum struct {
-		Name  KindIdentifier
-		Items []KindIdentifier
+		Name  *KindIdentifier
+		Items []*KindIdentifier
 	}
 
 	TypeDeclInterface struct {
-		Name       KindIdentifier
-		Extends    KindIdentifier
-		Properties []KindProperty
+		Name       *KindIdentifier
+		Extends    *KindIdentifier
+		Properties []*KindProperty
 	}
 )

@@ -19,66 +19,66 @@ func (*ContinueStatement) isStmt()   {}
 type (
 	ImportDeclaration struct {
 		Source string
-		Local  Identifier
+		Local  *Identifier
 	}
 
 	FunctionDeclaration struct {
-		Name     Identifier
-		Impl     KindIdentifier
-		FuncSign KindExpr
-		Body     Statement
+		Name     *Identifier
+		Impl     *KindIdentifier
+		FuncSign *KindExpr
+		Body     *Statement
 		Pubic    bool
 	}
 
 	VariableDeclaration struct {
-		Id    Identifier
-		Init  Expression
+		Id    *Identifier
+		Init  *Expression
 		Const bool
 		Pubic bool
 	}
 
 	TypeDeclaration struct {
-		Decl  KindDecl
+		Decl  *KindDecl
 		Pubic bool
 	}
 
 	BlockStatement struct {
-		Body []Statement
+		Body []*Statement
 	}
 
 	ReturnStatement struct {
-		Argument Expression
+		Argument *Expression
 	}
 
 	ExpressionStatement struct {
-		Expression Expression
+		Expression *Expression
 	}
 
 	IfStatement struct {
-		Condition  Expression
-		Consequent Statement
-		Alternate  Statement
+		Condition  *Expression
+		Consequent *Statement
+		Alternate  *Statement
 	}
 
 	ForStatement struct {
-		Label     Identifier
-		Init      Statement
-		Condition Expression
-		Update    Statement
+		Label     *Identifier
+		Init      *Statement
+		Condition *Expression
+		Update    *Statement
 	}
 
 	ForOfStatement struct {
-		Label     Identifier
-		IterIndex Identifier
-		IterName  Identifier
-		Target    Expression
+		Label     *Identifier
+		IterIndex *Identifier
+		IterName  *Identifier
+		Target    *Expression
 	}
 
 	BreakStatement struct {
-		Label Identifier
+		Label *Identifier
 	}
 
 	ContinueStatement struct {
-		Label Identifier
+		Label *Identifier
 	}
 )
