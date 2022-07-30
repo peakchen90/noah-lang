@@ -132,6 +132,36 @@ func (p *Parser) parseImportStatement() *ast.Statement {
 
 func (p *Parser) parseFunctionDeclaration(pubToken *lexer.Token) *ast.Statement {
 	stmt := ast.Statement{}
+	if pubToken != nil {
+		stmt.Start = pubToken.Start
+	} else {
+		stmt.Start = p.current.Start
+	}
+
+	p.nextToken()
+	implToken := p.consume(lexer.TTIdentifier, false)
+	if implToken == nil {
+		p.unexpectedToken("a function name", p.current)
+	}
+
+	nameToken := p.consume(lexer.TTIdentifier, false)
+	if nameToken == nil {
+		nameToken = implToken
+		implToken = nil
+	}
+
+	funcSign := p.parseFuncSignExpr(stmt.Start)
+
+	funcDecl := &ast.FunctionDeclaration{
+		Name:     *NewIdentifier(nameToken),
+		FuncSign: *funcSign,
+		Body:     *p.parseBlockStatement(),
+		Pubic:    pubToken != nil,
+	}
+	if implToken != nil {
+		funcDecl.Impl = *NewKindIdentifier(implToken)
+	}
+	stmt.Node = funcDecl
 
 	return &stmt
 }
@@ -145,7 +175,12 @@ func (p *Parser) parseVariableDeclaration(pubToken *lexer.Token) *ast.Statement 
 func (p *Parser) parseTypeDeclaration(pubToken *lexer.Token) *ast.Statement {
 	var stmt ast.Statement
 	kindDecl := ast.KindDecl{}
-	kindDecl.Start = p.current.Start
+	if pubToken != nil {
+		kindDecl.Start = pubToken.Start
+	} else {
+		kindDecl.Start = p.current.Start
+	}
+
 	p.nextToken()
 
 	defer func() {
@@ -304,6 +339,18 @@ func (p *Parser) parseExpressionStatement() *ast.Statement {
 
 func (p *Parser) parseBlockStatement() *ast.Statement {
 	stmt := ast.Statement{}
+	stmt.Start = p.current.Start
+	p.consume(lexer.TTBraceL, true)
+
+	body := make([]ast.Statement, 0, helper.DefaultCap)
+
+	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
+		body = append(body, *p.parseStatement())
+	}
+
+	stmt.Node = &ast.BlockStatement{Body: body}
+	stmt.End = p.current.End
+	p.consume(lexer.TTBraceR, true)
 
 	return &stmt
 }

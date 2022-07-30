@@ -74,7 +74,7 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 			kindExpr.End = kind.End
 		}
 	} else if p.isKeyword("fn") { // fn(..arg: [..]T) -> T
-		kindExpr = *p.parseKindFuncSignExpr(false)
+		kindExpr = *p.parseFuncSignExpr(p.current.Start)
 	} else {
 		p.unexpected()
 	}
@@ -82,29 +82,24 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 	return &kindExpr
 }
 
-func (p *Parser) parseKindFuncSignExpr(hasName bool) *ast.KindExpr {
-	kindExpr := ast.KindExpr{}
-	kindExpr.Start = p.current.Start
-	p.nextToken()
-
-	// name
-	nameToken := p.consume(lexer.TTIdentifier, false)
-	if hasName && nameToken == nil {
-		p.unexpectedToken("a function name", p.current)
-	} else if !hasName && nameToken != nil {
-		p.unexpectedPos(nameToken.Start, "Unexpected function name")
-	}
-	name := new(ast.KindIdentifier)
-	if nameToken != nil {
-		name = NewKindIdentifier(nameToken)
-	}
-
-	// args
+func (p *Parser) parseFuncSignExpr(start int) *ast.KindExpr {
 	p.consume(lexer.TTParenL, true)
+	kindExpr := ast.KindExpr{}
+	kindExpr.Start = start
+
+	// arguments
 	args := make([]ast.Argument, 0, helper.DefaultCap)
+	var lastRestToken *lexer.Token
 	for !p.isEnd() && !p.isToken(lexer.TTParenR) {
+		if lastRestToken != nil {
+			p.unexpectedPos(lastRestToken.Start, "Can only use '..' as the final argument")
+		}
+
 		restToken := p.consume(lexer.TTRest, false)
 		rest := restToken != nil
+		if rest {
+			lastRestToken = restToken
+		}
 		nameToken := p.consume(lexer.TTIdentifier, false)
 		if nameToken == nil {
 			p.unexpectedToken("identifier", p.current)
@@ -112,9 +107,9 @@ func (p *Parser) parseKindFuncSignExpr(hasName bool) *ast.KindExpr {
 		p.consume(lexer.TTColon, true)
 		kind := p.parseKindExpr()
 		argument := ast.Argument{
-			Identifier: *NewIdentifier(nameToken),
-			Kind:       *kind,
-			Rest:       rest,
+			Name: *NewIdentifier(nameToken),
+			Kind: *kind,
+			Rest: rest,
 		}
 		argument.Start = nameToken.Start
 		argument.End = kind.End
@@ -133,10 +128,10 @@ func (p *Parser) parseKindFuncSignExpr(hasName bool) *ast.KindExpr {
 	}
 
 	kindExpr.Node = &ast.TypeFuncSign{
-		Name:      *name,
 		Arguments: args,
 		Kind:      *kind,
 	}
+	kindExpr.End = kind.End
 
 	return &kindExpr
 }
@@ -150,17 +145,18 @@ func (p *Parser) parseKindProperties(allowFunc bool) []ast.KindProperty {
 		// name
 		nameToken := p.consume(lexer.TTIdentifier, false)
 		if nameToken != nil {
-			pair.Name = *NewKindIdentifier(nameToken)
+			pair.Name = *NewIdentifier(nameToken)
 			p.consume(lexer.TTColon, true)
 			pair.Kind = *p.parseKindExpr()
 		} else if allowFunc && p.isKeyword("fn") {
+			start := p.current.Start
 			p.nextToken()
 			if !p.isToken(lexer.TTIdentifier) {
 				p.unexpectedToken("a function name", p.current)
 			}
-			pair.Name = *NewKindIdentifier(p.current)
-			p.revertLastToken()
-			pair.Kind = *p.parseKindFuncSignExpr(true)
+			pair.Name = *NewIdentifier(p.current)
+			p.nextToken()
+			pair.Kind = *p.parseFuncSignExpr(start)
 		} else {
 			p.unexpected()
 		}

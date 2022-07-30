@@ -40,8 +40,6 @@ type (
 	}
 
 	TypeFuncSign struct {
-		Name      KindIdentifier
-		Impl      KindIdentifier
 		Arguments []Argument
 		Kind      KindExpr
 	}

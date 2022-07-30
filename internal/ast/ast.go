@@ -41,13 +41,13 @@ type KindIdentifier struct {
 }
 
 type KindProperty struct {
-	Name KindIdentifier
+	Name Identifier
 	Kind KindExpr
 	Position
 }
 
 type Argument struct {
-	Identifier
+	Name Identifier
 	Kind KindExpr
 	Rest bool
 	Position

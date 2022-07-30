@@ -1,7 +1,5 @@
 package ast
 
-func (*Statement) isNode() {}
-
 // S statements
 type S interface{ isStmt() }
 
@@ -25,8 +23,10 @@ type (
 	}
 
 	FunctionDeclaration struct {
+		Name     Identifier
+		Impl     KindIdentifier
 		FuncSign KindExpr
-		Body     []Statement
+		Body     Statement
 		Pubic    bool
 	}
 
