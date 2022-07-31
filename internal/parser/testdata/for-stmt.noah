@@ -1,0 +1,13 @@
+for true {
+}
+
+for {
+}
+
+for let i = 0; i < 10; i++ {
+
+}
+
+for value, index: [1, 2, 3] {
+
+}

@@ -1,32 +1,10 @@
-type Num = [..]num
-type :abc {
-    a: str
-    fn b() -> a
-}
-
-pub type : B  extends C {
-    a: [1000]str,
-    a: [1]str
-    a: [1]str,
-    a: [0][a][][]str,
-}
-
-pub type D  {
-	E,
-	F
-}
-
-pub type Str = a
-type Num = [2]num
-
-import "a" as a
-
-pub type :abc extends x {
-    a: astr
-    //b()
-}
-
-type D  {
-	E,
-	F
-}
+let str2
+const b: str = "a"
+let b2 = `
+    hello
+    world
+`
+pub let c []num = [1, 2]
+let d [2]str
+pub const e [..]num
+let f [..]num = [1]

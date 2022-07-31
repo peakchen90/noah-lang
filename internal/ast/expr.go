@@ -15,6 +15,15 @@ func (*NullLiteral) isExpr()       {}
 func (*StringLiteral) isExpr()     {}
 
 type (
+	FuncExpr struct {
+		FuncSign *KindExpr
+		Body     *Stmt
+	}
+
+	StructExpr struct {
+		Properties []*KindProperty
+	}
+
 	CallExpr struct {
 		Callee    *Expr
 		Arguments []*Expr

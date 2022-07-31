@@ -51,19 +51,7 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 			}
 			kindExpr.End = kind.End
 		default: // [n]T
-			// TODO 直接解析表达式
-			var expr *ast.Expr
-			if p.isToken(lexer.TTNumber) {
-				if !IsUnsignedInt(p.current.Value) {
-					p.unexpectedToken("constant integer", p.current)
-				}
-				expr = NewNumberExpr(p.current, p)
-			} else if p.isToken(lexer.TTIdentifier) {
-				expr = NewIdentifierExpr(p.current)
-			} else {
-				p.unexpectedToken("constant integer", p.current)
-			}
-
+			expr := p.parseExpr()
 			p.nextToken()
 			p.consume(lexer.TTBracketR, true)
 			kind := p.parseKindExpr()

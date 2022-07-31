@@ -4,7 +4,5 @@ fn a() {
 fn A b(a: num) -> str {
 }
 
-
-
 fn c(a: num, ..b: [..]str) -> [..]str {
 }

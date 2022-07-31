@@ -13,7 +13,7 @@ enum Color {
 }
 
 interface Man {
-    fn say(a: num) -> str;
+    fn say(a: num) -> str,
     fn go(..args: [..]str);
 }
 

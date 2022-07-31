@@ -31,6 +31,7 @@ type (
 
 	VarDecl struct {
 		Id    *Identifier
+		Kind  *KindExpr
 		Init  *Expr
 		Const bool
 		Pubic bool

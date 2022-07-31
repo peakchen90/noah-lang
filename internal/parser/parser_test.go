@@ -1,6 +1,9 @@
 package parser
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 var parserFixtures = [...]string{
 	`
@@ -90,6 +93,15 @@ for {
 }
 
 func TestParser(t *testing.T) {
+	files, err := os.ReadDir("testdata")
+	if err != nil {
+		panic(err)
+	}
+
+	for _, file := range files {
+		file.IsDir()
+	}
+
 	for _, fixture := range parserFixtures {
 		NewParser(fixture)
 	}
