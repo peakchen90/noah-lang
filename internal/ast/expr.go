@@ -8,22 +8,18 @@ func (*MemberExpr) isExpr()        {}
 func (*BinaryExpr) isExpr()        {}
 func (*UnaryExpr) isExpr()         {}
 func (*AssignmentExpr) isExpr()    {}
+func (*FuncExpr) isExpr()          {}
+func (*StructExpr) isExpr()        {}
+func (*ArrayExpr) isExpr()         {}
 func (*IdentifierLiteral) isExpr() {}
 func (*NumberLiteral) isExpr()     {}
 func (*BooleanLiteral) isExpr()    {}
 func (*NullLiteral) isExpr()       {}
+func (*SelfLiteral) isExpr()       {}
 func (*StringLiteral) isExpr()     {}
 
+// expr
 type (
-	FuncExpr struct {
-		FuncSign *KindExpr
-		Body     *Stmt
-	}
-
-	StructExpr struct {
-		Properties []*KindProperty
-	}
-
 	CallExpr struct {
 		Callee    *Expr
 		Arguments []*Expr
@@ -53,6 +49,20 @@ type (
 		Operator string
 	}
 
+	FuncExpr struct {
+		FuncSign *KindExpr
+		Body     *Stmt
+	}
+
+	StructExpr struct {
+		Kind       *KindExpr
+		Properties []*StructProperty
+	}
+
+	ArrayExpr struct {
+		Items []*Expr
+	}
+
 	IdentifierLiteral struct {
 		Name string
 	}
@@ -68,7 +78,15 @@ type (
 	NullLiteral struct {
 	}
 
+	SelfLiteral struct {
+	}
+
 	StringLiteral struct {
 		Value string
 	}
 )
+
+type StructProperty struct {
+	Name  *Expr
+	Value *Expr
+}
