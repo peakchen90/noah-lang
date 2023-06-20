@@ -47,3 +47,9 @@ type Argument struct {
 	Rest bool
 	Position
 }
+
+type EachVisitor struct {
+	Value  *Identifier
+	Key    *Identifier
+	Target *Expr
+}

@@ -10,7 +10,7 @@ import (
 func (p *Parser) parseExpr() *ast.Expr {
 	if p.isKeyword("fn") {
 		return p.parseFuncExpr()
-	} else if p.isToken(lexer.TTIdentifier) {
+	} else if p.isToken(lexer.TTConst) {
 		value := p.current.Value
 		if value == "true" || value == "false" {
 			return p.parseBooleanExpr()
@@ -19,6 +19,7 @@ func (p *Parser) parseExpr() *ast.Expr {
 		} else if value == "self" {
 			return p.parseSelfExpr()
 		}
+	} else if p.isToken(lexer.TTIdentifier) {
 		return p.parseMaybeMemberExpr()
 	}
 
@@ -35,7 +36,7 @@ func (p *Parser) parseExpr() *ast.Expr {
 		p.unexpected()
 	}
 
-	return nil
+	return nil // NEVER
 }
 
 func (p *Parser) parseFuncExpr() *ast.Expr {
@@ -52,7 +53,7 @@ func (p *Parser) parseStructExpr() *ast.Expr {
 
 	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
 		p.expect(lexer.TTIdentifier)
-		name := p.parseIdentifierExpr()
+		name := p.parseIdentifierExpr(nil)
 
 		p.consume(lexer.TTColon, true)
 		value := p.parseExpr()
@@ -153,10 +154,13 @@ func (p *Parser) parseNumberExpr() *ast.Expr {
 	return &expr
 }
 
-func (p *Parser) parseIdentifierExpr() *ast.Expr {
+func (p *Parser) parseIdentifierExpr(token *lexer.Token) *ast.Expr {
+	if token == nil {
+		token = p.current
+	}
 	expr := ast.Expr{
-		Node:     &ast.IdentifierLiteral{Name: p.current.Value},
-		Position: p.current.Position,
+		Node:     &ast.IdentifierLiteral{Name: token.Value},
+		Position: token.Position,
 	}
 	p.nextToken()
 	return &expr

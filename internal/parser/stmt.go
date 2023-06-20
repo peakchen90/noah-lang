@@ -69,15 +69,11 @@ func (p *Parser) parseStmt() *ast.Stmt {
 		if p.lexer.LookNext() == ':' {
 			p.nextToken()
 			p.consume(lexer.TTColon, true)
-			token := p.consume(lexer.TTKeyword, true)
-
-			switch token.Value {
-			case "for":
+			if p.isKeyword("for") {
 				stmt = p.parseForStmt(maybeLabel)
-			default:
+			} else {
 				p.unexpected()
 			}
-
 		} else {
 			stmt = p.parseExprStmt()
 		}
@@ -161,7 +157,7 @@ func (p *Parser) parseFuncDecl(pubToken *lexer.Token) *ast.Stmt {
 
 	funcDecl := &ast.FuncDecl{
 		Name:     NewIdentifier(nameToken),
-		FuncSign: funcSign,
+		FuncKind: funcSign,
 		Body:     p.parseBlockStmt(),
 		Pubic:    pubToken != nil,
 	}
@@ -385,37 +381,159 @@ func (p *Parser) parseEnumDecl(pubToken *lexer.Token) *ast.Stmt {
 
 func (p *Parser) parseIfStmt() *ast.Stmt {
 	stmt := ast.Stmt{}
+	stmt.Start = p.current.Start
+	p.nextToken()
 
+	hasParentheses := p.consume(lexer.TTParenL, false) != nil // `(`
+	condition := p.parseExpr()
+
+	if hasParentheses {
+		p.consume(lexer.TTParenR, true) // `)`
+	}
+
+	var alternate *ast.Stmt
+
+	consequent := p.parseBlockStmt()
+	if p.isKeyword("else") {
+		p.nextToken()
+		if p.isKeyword("if") {
+			alternate = p.parseIfStmt()
+		} else {
+			alternate = p.parseBlockStmt()
+		}
+	}
+
+	stmt.Node = &ast.IfStmt{
+		Condition:  condition,
+		Consequent: consequent,
+		Alternate:  alternate,
+	}
+	stmt.End = p.lexer.LastToken.End
 	return &stmt
 }
 
 func (p *Parser) parseForStmt(labelToken *lexer.Token) *ast.Stmt {
 	stmt := ast.Stmt{}
+	stmt.Start = p.current.Start
+	p.nextToken()
 
+	var label *ast.Identifier
+	var init *ast.Stmt
+	var test *ast.Expr
+	var update *ast.Expr
+	var eachVisitor *ast.EachVisitor
+
+	if labelToken != nil {
+		label = NewIdentifier(labelToken)
+	}
+
+	hasParentheses := p.consume(lexer.TTParenL, false) != nil // `(`
+
+	if p.isToken(lexer.TTIdentifier) {
+		headToken := p.current
+		p.nextToken()
+
+		if p.isToken(lexer.TTComma) || p.isToken(lexer.TTColon) { // for value, key: target {}
+			var key *ast.Identifier
+			if p.isToken(lexer.TTComma) {
+				p.nextToken()
+				key = NewIdentifier(p.consume(lexer.TTIdentifier, true))
+			}
+
+			p.consume(lexer.TTColon, true)
+
+			eachVisitor = &ast.EachVisitor{
+				Value:  NewIdentifier(headToken),
+				Key:    key,
+				Target: p.parseExpr(),
+			}
+		} else { // for value {}
+			test = p.parseIdentifierExpr(headToken)
+		}
+	} else if p.isKeyword("let") || p.isKeyword("const") { // for (init; test; update) {}
+		init = p.parseVarDecl(len(p.current.Value) == 5, nil)
+		p.consume(lexer.TTSemi, true)
+		if !p.isToken(lexer.TTSemi) {
+			test = p.parseExpr()
+		}
+		p.consume(lexer.TTSemi, true)
+		if !p.isToken(lexer.TTParenR) && !p.isToken(lexer.TTBraceL) {
+			update = p.parseExpr()
+		}
+	} else if !p.isToken(lexer.TTBraceL) { // for test {}
+		test = p.parseExpr()
+	}
+
+	if hasParentheses {
+		p.consume(lexer.TTParenR, true) // `)`
+	}
+
+	body := p.parseBlockStmt()
+
+	stmt.Node = &ast.ForStmt{
+		Label:       label,
+		Init:        init,
+		Test:        test,
+		Update:      update,
+		EachVisitor: eachVisitor,
+		Body:        body,
+	}
+	stmt.End = p.lexer.LastToken.End
 	return &stmt
 }
 
 func (p *Parser) parseReturnStmt() *ast.Stmt {
 	stmt := ast.Stmt{}
 	stmt.Start = p.current.Start
-
 	p.nextToken()
-	if !p.isToken(lexer.TTSemi) && !p.lexer.SeenNewline {
 
+	var argument *ast.Expr
+	if !p.isToken(lexer.TTSemi) && !p.lexer.SeenNewline {
+		argument = p.parseExpr()
 	}
 
+	stmt.Node = &ast.ReturnStmt{
+		Argument: argument,
+	}
+	stmt.End = p.lexer.LastToken.End
 	return &stmt
 }
 
 func (p *Parser) parseBreakStmt() *ast.Stmt {
 	stmt := ast.Stmt{}
+	stmt.Start = p.current.Start
+	p.nextToken()
 
+	var label *ast.Identifier
+	if p.isToken(lexer.TTIdentifier) {
+		label = NewIdentifier(p.current)
+		p.nextToken()
+	}
+
+	stmt.Node = &ast.BreakStmt{
+		Label: label,
+	}
+
+	stmt.End = p.lexer.LastToken.End
 	return &stmt
 }
 
 func (p *Parser) parseContinueStmt() *ast.Stmt {
 	stmt := ast.Stmt{}
+	stmt.Start = p.current.Start
+	p.nextToken()
 
+	var label *ast.Identifier
+	if p.isToken(lexer.TTIdentifier) {
+		label = NewIdentifier(p.current)
+		p.nextToken()
+	}
+
+	stmt.Node = &ast.ContinueStmt{
+		Label: label,
+	}
+
+	stmt.End = p.lexer.LastToken.End
 	return &stmt
 }
 

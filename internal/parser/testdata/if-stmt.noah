@@ -1,17 +1,17 @@
 if true {}
 
 if true {
-
+    let a = 1;
 } else {
-
+    let b = 2;
 }
 
-if true {
-
-} else if true {
-
-} else if true {
-
+if (true) {
+    let a = 1;
+} else if (true) {
+    let b = 2;
+} else if (true) {
+    let c = 3;
 }
 
 if true {

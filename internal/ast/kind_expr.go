@@ -10,7 +10,7 @@ func (*TypeBool) isKindExpr()     {}
 func (*TypeAny) isKindExpr()      {}
 func (*TypeArray) isKindExpr()    {}
 func (*TypeId) isKindExpr()       {}
-func (*TypeFuncSign) isKindExpr() {}
+func (*TypeFuncKind) isKindExpr() {}
 
 type (
 	TypeNumber struct{}
@@ -34,9 +34,9 @@ type (
 		Name string
 	}
 
-	TypeFuncSign struct {
+	TypeFuncKind struct {
 		Arguments []*Argument
-		Kind      *KindExpr
+		Return    *KindExpr
 	}
 )
 

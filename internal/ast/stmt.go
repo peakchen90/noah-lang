@@ -24,7 +24,7 @@ type (
 	FuncDecl struct {
 		Name     *Identifier
 		Impl     *KindIdentifier
-		FuncSign *KindExpr
+		FuncKind *KindExpr
 		Body     *Stmt
 		Pubic    bool
 	}
@@ -56,10 +56,12 @@ type (
 	}
 
 	ForStmt struct {
-		Label     *Identifier
-		Init      *Stmt
-		Condition *Expr
-		Update    *Stmt
+		Label       *Identifier
+		Init        *Stmt
+		Test        *Expr
+		Update      *Expr
+		EachVisitor *EachVisitor
+		Body        *Stmt
 	}
 
 	ForOfStmt struct {

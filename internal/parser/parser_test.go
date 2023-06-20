@@ -11,8 +11,8 @@ let a = 1
 const b: str = "a"
 let c []num = [1, 2]
 let d [2]str
-let e [..]num
-let f [..]num = [1]
+let e []num
+let f []num = [1]
 	`,
 	`
 type A {
@@ -43,7 +43,7 @@ type D: B {}
 	`
 fn a() {}
 
-fn b(a: str, ..b: [..]num) -> bool {
+fn b(a: str, ...b: []num) -> bool {
 	return true
 }
 	`,

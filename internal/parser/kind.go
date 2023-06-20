@@ -45,7 +45,7 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 			Len:  Len,
 		}
 		kindExpr.End = kind.End
-	} else if p.isKeyword("fn") { // fn(..arg: [..]T) -> T
+	} else if p.isKeyword("fn") { // fn(...arg: []T) -> T
 		kindExpr = *p.parseFuncSignExpr(p.current.Start)
 	} else {
 		p.unexpected()
@@ -64,7 +64,7 @@ func (p *Parser) parseFuncSignExpr(start int) *ast.KindExpr {
 	var lastRestToken *lexer.Token
 	for !p.isEnd() && !p.isToken(lexer.TTParenR) {
 		if lastRestToken != nil {
-			p.unexpectedPos(lastRestToken.Start, "Can only use '..' as the final argument")
+			p.unexpectedPos(lastRestToken.Start, "Can only use '...' as the final argument")
 		}
 
 		restToken := p.consume(lexer.TTRest, false)
@@ -100,9 +100,9 @@ func (p *Parser) parseFuncSignExpr(start int) *ast.KindExpr {
 		kind = p.parseKindExpr()
 	}
 
-	kindExpr.Node = &ast.TypeFuncSign{
+	kindExpr.Node = &ast.TypeFuncKind{
 		Arguments: args,
-		Kind:      kind,
+		Return:    kind,
 	}
 	if kind != nil {
 		end = kind.End
