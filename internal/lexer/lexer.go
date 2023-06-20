@@ -44,6 +44,8 @@ func (l *Lexer) Next() *Token {
 			token = l.readAsString(false)
 		case '`':
 			token = l.readAsString(true)
+		case '\'':
+			token = l.readAsChar()
 		case '=':
 			if l.Look(1) == '=' {
 				l.index += 2
@@ -75,7 +77,10 @@ func (l *Lexer) Next() *Token {
 			l.index++
 			token = l.createToken(TTRem, l.index-1, l.index)
 		case '<':
-			if l.Look(1) == '=' {
+			if l.Look(1) == '-' {
+				l.index += 2
+				token = l.createToken(TTExtendSym, l.index-2, l.index)
+			} else if l.Look(1) == '=' {
 				l.index += 2
 				token = l.createToken(TTLe, l.index-2, l.index)
 			} else {
@@ -337,6 +342,50 @@ func (l *Lexer) readAsString(raw bool) *Token {
 	if raw {
 		token.Flag = "raw"
 	}
+	return token
+}
+
+func (l *Lexer) readAsChar() *Token {
+	start := l.index
+	value := ""
+	l.index++
+
+	// escape char
+	if l.Look(0) == '\\' {
+		l.index++
+		switch l.Look(0) {
+		case 'a':
+			value = "\a"
+		case 'b':
+			value = "\b"
+		case 'f':
+			value = "\f"
+		case 'n':
+			value = "\n"
+		case 'r':
+			value = "\r"
+		case 't':
+			value = "\t"
+		case 'v':
+			value = "\v"
+		case '?':
+			value = string(rune(63))
+		default:
+			value = string(l.Look(0))
+		}
+	} else {
+		value = string(l.Look(0))
+	}
+
+	l.index++
+	if l.Look(0) != '\'' {
+		l.unexpected(start, "Invalid char literal")
+	}
+
+	token := l.createToken(TTChar, start, l.index)
+	token.Value = value
+
+	l.index++
 	return token
 }
 

@@ -24,7 +24,9 @@ const (
 	TTIdentifier                  // 标识符
 	TTNumber                      // 数字字面量
 	TTString                      // 字符串字面量
+	TTChar                        // 字符字面量
 	TTReturnSym                   // ->
+	TTExtendSym                   // <-
 	TTParenL                      // (
 	TTParenR                      // )
 	TTBracketL                    // [
@@ -67,8 +69,10 @@ var tokenMetaTable = [...]TokenMeta{
 	TTIdentifier: {TTIdentifier, "TTIdentifier", "", -1, false},
 	TTNumber:     {TTNumber, "TTNumber", "", -1, false},
 	TTString:     {TTString, "TTString", "", -1, false},
+	TTChar:       {TTChar, "TTChar", "", -1, false},
 	TTConst:      {TTConst, "TTConst", "", -1, false},
 	TTReturnSym:  {TTReturnSym, "TTReturnSym", "->", -1, false},
+	TTExtendSym:  {TTExtendSym, "TTExtendSym", "<-", -1, false},
 	TTParenL:     {TTParenL, "TTParenL", "(", -1, true},
 	TTParenR:     {TTParenR, "TTParenR", ")", -1, false},
 	TTBracketL:   {TTBracketL, "TTBracketL", "[", -1, true},

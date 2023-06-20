@@ -10,6 +10,7 @@ func (*TypeBool) isKindExpr()     {}
 func (*TypeAny) isKindExpr()      {}
 func (*TypeArray) isKindExpr()    {}
 func (*TypeId) isKindExpr()       {}
+func (*TypeMember) isKindExpr()   {}
 func (*TypeFuncKind) isKindExpr() {}
 
 type (
@@ -31,7 +32,12 @@ type (
 	}
 
 	TypeId struct {
-		Name string
+		Name *KindIdentifier
+	}
+
+	TypeMember struct {
+		Parent *KindExpr
+		Id     *KindExpr
 	}
 
 	TypeFuncKind struct {

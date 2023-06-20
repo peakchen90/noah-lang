@@ -23,7 +23,7 @@ type (
 
 	FuncDecl struct {
 		Name     *Identifier
-		Impl     *KindIdentifier
+		Impl     *KindExpr
 		FuncKind *KindExpr
 		Body     *Stmt
 		Pubic    bool

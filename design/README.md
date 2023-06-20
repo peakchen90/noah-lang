@@ -42,7 +42,7 @@ interface Man {
 }
 
 // 定义一个 `Student` 结构体，继承 `Person` 的属性和实现的方法
-struct Student extends Person {
+struct Student <- Person {
     grade: num
 }
 ```
@@ -203,7 +203,7 @@ for i < arr.len() {
 }
 
 // 无限循环，可通过 `break` 或 `continue` 跳出循环
-for {
+label: for {
     break
     continue
 }
@@ -220,14 +220,14 @@ interface Man {
 struct Person: Man {}
 
 // 必须实现 `say()` 方法
-fn Person say() -> str {
+fn Person: say () -> str {
     return "Person: " + self.name
 }
 
 struct Student: Man {}
 
 // 必须实现 `say()` 方法
-fn Student say() -> str {
+fn Student: say() -> str {
     return "Student: " + self.name
 }
 ```
@@ -235,7 +235,7 @@ fn Student say() -> str {
 **`interface` 继承**
 
 ```noah
-interface Woman extends Man {
+interface Woman <- Man {
     fn eat(n: num)
 }
 
@@ -244,12 +244,12 @@ struct Alice: Woman {
 }
 
 // 必须实现 `say()` 方法
-fn Alice say() -> str {
+fn Alice: say() -> str {
     return "Woman: " + self.name
 }
 
 // 必须实现 `eat()` 方法
-fn Alice eat(n: num) {
+fn Alice: eat(n: num) {
     self.weight = self.weight + n
 }
 ```
@@ -258,7 +258,7 @@ fn Alice eat(n: num) {
 
 ```noah
 // 作为函数参数
-fn Person hello(m: Man) {
+fn Person: hello(m: Man) {
     m.say()
 }
 

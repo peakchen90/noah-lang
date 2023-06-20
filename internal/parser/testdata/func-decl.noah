@@ -1,9 +1,14 @@
 fn a() {
 }
 
-fn A b(a: num) -> str {
+fn A: b(a: num) -> str {
+    self.a = 3
+    return "a";
 }
 
 fn c(a: num, ...b: []str) -> []str {
     let a = 1;
+}
+
+fn A.B: walk() {
 }

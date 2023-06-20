@@ -19,14 +19,17 @@ func (p *Parser) parseMaybeBinaryExpr(precedence int8) *ast.Expr {
 		return p.parseBinaryExprPrecedence(expr, precedence)
 	}
 
-	return p.parseBinaryExprPrecedence(p.parseMaybeUnaryExpr(precedence), precedence)
+	left := p.parseMaybeUnaryExpr(precedence)
+	return p.parseBinaryExprPrecedence(left, precedence)
 }
 
 func (p *Parser) parseMaybeUnaryExpr(precedence int8) *ast.Expr {
 	if precedence < p.current.Precedence {
-		if p.isToken(lexer.TTBitNot) || p.isToken(lexer.TTLogicNot) {
-			operator := p.current.Value
+		switch p.current.Type {
+		case lexer.TTBitNot, lexer.TTLogicNot, lexer.TTSub, lexer.TTPlus:
+			operator := p.current.Text
 			start := p.current.Start
+			p.nextToken()
 			argument := p.parseExpr()
 			return &ast.Expr{
 				Node: &ast.UnaryExpr{
@@ -43,12 +46,9 @@ func (p *Parser) parseMaybeUnaryExpr(precedence int8) *ast.Expr {
 }
 
 func (p *Parser) parseBinaryExprPrecedence(left *ast.Expr, precedence int8) *ast.Expr {
-	// 当前 token 拥有更高优先级
-	if precedence < p.current.Precedence {
-		// TODO validate operator
-
+	if precedence < p.current.Precedence || (p.isAssignToken() && precedence == p.current.Precedence) {
 		nextPrecedence := p.current.Precedence
-		operator := p.current.Value
+		operator := p.current.Text
 		p.nextToken()
 
 		// 解析可能更高优先级的右侧表达式，如: `1 + 2 * 3` 将解析 `2 * 3` 作为右值
@@ -72,7 +72,7 @@ func (p *Parser) parseBinaryExprPrecedence(left *ast.Expr, precedence int8) *ast
 	return left
 }
 
-// 解析一个原子表达式，如: `foo()`, `3.14`, `foo`, `var2 = expr`, `true`, `"str"`, `fn() {}`, `A{}`
+// 解析一个原子表达式，如: `foo()`, `3.14`, `a.b`, `var2 = expr`, `true`, `"str"`, `fn() {}`, `A{}`
 func (p *Parser) parseAtomExpr() *ast.Expr {
 	if p.isKeyword("fn") {
 		return p.parseFuncExpr()
@@ -85,24 +85,15 @@ func (p *Parser) parseAtomExpr() *ast.Expr {
 		} else if value == "self" {
 			return p.parseSelfExpr()
 		}
-	} else if p.isToken(lexer.TTIdentifier) {
-		left := p.parseMaybeMemberExpr()
-
-		switch p.current.Type {
-		case lexer.TTParenL:
-			return p.parseCallExpr(left)
-		case lexer.TTAssign:
-			return p.parseAssignExpr(left)
-		case lexer.TTBraceL:
-			return p.parseStructExpr(left)
-		default:
-			return left
-		}
+	} else if p.consume(lexer.TTIdentifier, false) != nil {
+		return p.parseMaybeChainExpr(NewIdentifierExpr(p.lexer.LastToken))
 	}
 
 	switch p.current.Type {
 	case lexer.TTString:
 		return p.parseStringExpr()
+	case lexer.TTChar:
+		return p.parseCharExpr()
 	case lexer.TTNumber:
 		return p.parseNumberExpr()
 	case lexer.TTBraceL:
@@ -117,15 +108,25 @@ func (p *Parser) parseAtomExpr() *ast.Expr {
 }
 
 func (p *Parser) parseFuncExpr() *ast.Expr {
-	expr := ast.Expr{}
+	start := p.current.Start
+	p.nextToken()
+	funcKind := p.parseFuncKindExpr(start)
+	body := p.parseBlockStmt()
 
-	return &expr
+	return &ast.Expr{
+		Node:     &ast.FuncExpr{FuncKind: funcKind, Body: body},
+		Position: ast.Position{Start: start, End: body.End},
+	}
 }
 
 func (p *Parser) parseStructExpr(ctor *ast.Expr) *ast.Expr {
 	properties := make([]*ast.StructProperty, 0, helper.DefaultCap)
 	start := p.current.Start
-	p.nextToken() // skip `{`
+	if ctor != nil {
+		start = ctor.Start
+	}
+
+	p.consume(lexer.TTBraceL, true) // `{`
 
 	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
 		p.expect(lexer.TTIdentifier)
@@ -144,22 +145,18 @@ func (p *Parser) parseStructExpr(ctor *ast.Expr) *ast.Expr {
 		}
 	}
 
-	if !p.isToken(lexer.TTBraceR) {
-		p.unexpected()
-	}
+	p.consume(lexer.TTBraceR, true)
 
-	expr := ast.Expr{
+	return &ast.Expr{
 		Node:     &ast.StructExpr{Ctor: ctor, Properties: properties},
-		Position: ast.Position{Start: start, End: p.current.End},
+		Position: ast.Position{Start: start, End: p.lexer.LastToken.End},
 	}
-	p.nextToken() // skip `}`
-	return &expr
 }
 
 func (p *Parser) parseArrayExpr() *ast.Expr {
 	items := make([]*ast.Expr, 0, helper.DefaultCap)
 	start := p.current.Start
-	p.nextToken() // skip `[`
+	p.consume(lexer.TTBracketL, true) // `[`
 
 	for !p.isEnd() && !p.isToken(lexer.TTBracketR) {
 		items = append(items, p.parseExpr())
@@ -168,16 +165,12 @@ func (p *Parser) parseArrayExpr() *ast.Expr {
 		}
 	}
 
-	if !p.isToken(lexer.TTBracketR) {
-		p.unexpected()
-	}
+	p.consume(lexer.TTBracketR, true) // `]`
 
-	expr := ast.Expr{
+	return &ast.Expr{
 		Node:     &ast.ArrayExpr{Items: items},
-		Position: ast.Position{Start: start, End: p.current.End},
+		Position: ast.Position{Start: start, End: p.lexer.LastToken.End},
 	}
-	p.nextToken() // skip `]`
-	return &expr
 }
 
 func (p *Parser) parseBooleanExpr() *ast.Expr {
@@ -216,6 +209,15 @@ func (p *Parser) parseStringExpr() *ast.Expr {
 	return &expr
 }
 
+func (p *Parser) parseCharExpr() *ast.Expr {
+	expr := ast.Expr{
+		Node:     &ast.CharLiteral{Value: rune(p.current.Value[0])},
+		Position: p.current.Position,
+	}
+	p.nextToken()
+	return &expr
+}
+
 func (p *Parser) parseNumberExpr() *ast.Expr {
 	value, err := strconv.ParseFloat(p.current.Value, 64)
 	if err != nil {
@@ -242,35 +244,72 @@ func (p *Parser) parseIdentifierExpr(token *lexer.Token) *ast.Expr {
 	return &expr
 }
 
-// a.b.c.d
-func (p *Parser) parseMaybeMemberExpr() *ast.Expr {
-	object := NewIdentifierExpr(p.consume(lexer.TTIdentifier, true))
-
-	for p.consume(lexer.TTDot, false) != nil {
+// 解析可能的链式调用表达式，如：`expr.b.c`, `expr[n]`, `expr()`
+func (p *Parser) parseMaybeChainExpr(parent *ast.Expr) *ast.Expr {
+	if p.isToken(lexer.TTDot) { // `.`
+		p.nextToken()
 		property := NewIdentifierExpr(p.consume(lexer.TTIdentifier, true))
-		object = &ast.Expr{
+		memberExpr := &ast.Expr{
 			Node: &ast.MemberExpr{
-				Object:   object,
+				Object:   parent,
 				Property: property,
+				Computed: false,
 			},
 			Position: ast.Position{
-				Start: object.Start,
+				Start: parent.Start,
 				End:   property.End,
 			},
 		}
+		return p.parseMaybeChainExpr(memberExpr)
+	} else if p.isToken(lexer.TTBracketL) { // `[`
+		p.nextToken()
+		property := p.parseExpr()
+		p.consume(lexer.TTBracketR, true)
+
+		computedMemberExpr := &ast.Expr{
+			Node: &ast.MemberExpr{
+				Object:   parent,
+				Property: property,
+				Computed: true,
+			},
+			Position: ast.Position{
+				Start: parent.Start,
+				End:   p.lexer.LastToken.End,
+			},
+		}
+		return p.parseMaybeChainExpr(computedMemberExpr)
+	} else if p.isToken(lexer.TTParenL) { // `(`
+		callExpr := p.parseCallExpr(parent)
+		return p.parseMaybeChainExpr(callExpr)
+	} else if p.isToken(lexer.TTBraceL) { // `{`
+		structExpr := p.parseStructExpr(parent)
+		return p.parseMaybeChainExpr(structExpr)
 	}
 
-	return object
+	return parent
 }
 
 func (p *Parser) parseCallExpr(callee *ast.Expr) *ast.Expr {
-	// TODO
-	expr := ast.Expr{}
-	return &expr
-}
+	p.nextToken()
+	arguments := make([]*ast.Expr, 0, helper.DefaultCap)
 
-func (p *Parser) parseAssignExpr(left *ast.Expr) *ast.Expr {
-	// TODO
-	expr := ast.Expr{}
-	return &expr
+	for !p.isToken(lexer.TTParenR) {
+		arguments = append(arguments, p.parseExpr())
+		if p.consume(lexer.TTComma, false) == nil {
+			break
+		}
+	}
+
+	p.consume(lexer.TTParenR, true)
+
+	return &ast.Expr{
+		Node: &ast.CallExpr{
+			Callee:    callee,
+			Arguments: arguments,
+		},
+		Position: ast.Position{
+			Start: callee.Start,
+			End:   p.lexer.LastToken.End,
+		},
+	}
 }

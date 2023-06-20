@@ -10,6 +10,27 @@ b == 3
 
 a > 1
 
-b < 2 + 3
+b < 2 + ~3
 
-a && b
+a && !b
+
+c().d().e
+
+a[1 + 1].b
+
+a.b(1, c().d)
+
+u.a = b = User.A{
+    name: "foo",
+    age: 123
+}
+
+a = fn() {
+    return b;
+}
+
+a(fn(a: str, ...b: []bool) -> num {
+    return -1 + 2.0;
+})
+
+b(P{ a: 1, b: "xx" })

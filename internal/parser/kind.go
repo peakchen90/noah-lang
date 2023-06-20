@@ -7,10 +7,14 @@ import (
 )
 
 func (p *Parser) parseKindExpr() *ast.KindExpr {
-	kindExpr := ast.KindExpr{}
+	kindExpr := &ast.KindExpr{}
 
 	if p.isToken(lexer.TTIdentifier) { // type alias
-		switch p.current.Value {
+		token := p.current
+		kindExpr.Position = token.Position
+		p.nextToken()
+
+		switch token.Value {
 		case "num":
 			kindExpr.Node = &ast.TypeNumber{}
 		case "byte":
@@ -24,11 +28,9 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 		case "any":
 			kindExpr.Node = &ast.TypeAny{}
 		default:
-			kindExpr.Node = &ast.TypeId{Name: p.current.Value}
+			kindExpr.Node = &ast.TypeId{Name: NewKindIdentifier(token)}
+			return p.parseChainKindExpr(kindExpr)
 		}
-
-		kindExpr.Position = p.current.Position
-		p.nextToken()
 	} else if p.isToken(lexer.TTBracketL) {
 		kindExpr.Start = p.current.Start
 		p.nextToken()
@@ -46,15 +48,38 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 		}
 		kindExpr.End = kind.End
 	} else if p.isKeyword("fn") { // fn(...arg: []T) -> T
-		kindExpr = *p.parseFuncSignExpr(p.current.Start)
+		kindExpr = p.parseFuncKindExpr(p.current.Start)
 	} else {
 		p.unexpected()
 	}
 
-	return &kindExpr
+	return kindExpr
 }
 
-func (p *Parser) parseFuncSignExpr(start int) *ast.KindExpr {
+func (p *Parser) parseChainKindExpr(parent *ast.KindExpr) *ast.KindExpr {
+	if p.consume(lexer.TTDot, false) != nil {
+		id := NewKindIdentifier(p.consume(lexer.TTIdentifier, true))
+		idKindExpr := &ast.KindExpr{
+			Node:     &ast.TypeId{Name: id},
+			Position: id.Position,
+		}
+		nextParent := &ast.KindExpr{
+			Node: &ast.TypeMember{
+				Parent: parent,
+				Id:     idKindExpr,
+			},
+			Position: ast.Position{
+				Start: parent.Start,
+				End:   id.End,
+			},
+		}
+		return p.parseChainKindExpr(nextParent)
+	}
+
+	return parent
+}
+
+func (p *Parser) parseFuncKindExpr(start int) *ast.KindExpr {
 	p.consume(lexer.TTParenL, true)
 	kindExpr := &ast.KindExpr{}
 	kindExpr.Start = start
@@ -126,7 +151,7 @@ func (p *Parser) parseKindProps(isFunc bool) []*ast.KindProperty {
 			}
 			pair.Name = NewIdentifier(p.current)
 			p.nextToken()
-			pair.Kind = p.parseFuncSignExpr(start)
+			pair.Kind = p.parseFuncKindExpr(start)
 		} else if !isFunc {
 			token := p.consume(lexer.TTIdentifier, true)
 			pair.Name = NewIdentifier(token)

@@ -9,10 +9,10 @@ var parserFixtures = [...]string{
 	`
 let a = 1
 const b: str = "a"
-let c []num = [1, 2]
-let d [2]str
-let e []num
-let f []num = [1]
+let c: []num = [1, 2]
+let d: [2]str
+let e: []num
+let f: []num = [1]
 	`,
 	`
 type A {
@@ -99,10 +99,20 @@ func TestParser(t *testing.T) {
 	}
 
 	for _, file := range files {
-		file.IsDir()
+		if file.IsDir() {
+			continue
+		}
+
+		code, err := os.ReadFile("testdata/" + file.Name())
+		if err != nil {
+			panic(err)
+		}
+
+		NewParser(string(code))
+
 	}
 
-	for _, fixture := range parserFixtures {
-		NewParser(fixture)
-	}
+	//for _, fixture := range parserFixtures {
+	//	NewParser(fixture)
+	//}
 }

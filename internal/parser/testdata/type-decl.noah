@@ -17,10 +17,17 @@ interface Man {
     fn go(...args: []str);
 }
 
+interface Man2 <- Man {
+}
+
 pub interface Cindy {
     fn walk() -> [2]num;
 }
 
-struct Student: Man extends Person {
+struct Student <- Person.A: Man.B {
+    grade: num
+}
+
+struct Student2 <- Student {
     grade: num
 }

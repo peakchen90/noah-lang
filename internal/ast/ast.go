@@ -48,6 +48,11 @@ type Argument struct {
 	Position
 }
 
+type StructProperty struct {
+	Name  *Expr
+	Value *Expr
+}
+
 type EachVisitor struct {
 	Value  *Identifier
 	Key    *Identifier
