@@ -6,5 +6,5 @@ let b2 = `
 `
 pub let c: []num = [1, 2]
 let d: [2]str
-pub const e: [..]num
-let f: [..]num = [1]
+pub const e: []num
+let f: []num = [1]

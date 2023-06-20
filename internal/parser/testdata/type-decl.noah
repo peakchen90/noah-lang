@@ -1,6 +1,6 @@
 type TypeNum = num
 
-pub type Vec = [..]char
+pub type Vec = []char
 
 pub struct Person {
     name: str
@@ -14,7 +14,7 @@ enum Color {
 
 interface Man {
     fn say(a: num) -> str,
-    fn go(..args: [..]str);
+    fn go(...args: []str);
 }
 
 pub interface Cindy {

@@ -33,34 +33,18 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 		kindExpr.Start = p.current.Start
 		p.nextToken()
 
-		switch p.current.Type {
-		case lexer.TTRest: // [..]T
-			p.nextToken()
-			p.consume(lexer.TTBracketR, true)
-			kind := p.parseKindExpr()
-			kindExpr.Node = &ast.TypeVectorArray{
-				Kind: kind,
-			}
-			kindExpr.End = kind.End
-		case lexer.TTBracketR: // []T
-			p.nextToken()
-			kind := p.parseKindExpr()
-			kindExpr.Node = &ast.TypeArray{
-				Kind: kind,
-				Len:  nil,
-			}
-			kindExpr.End = kind.End
-		default: // [n]T
-			expr := p.parseExpr()
-			p.nextToken()
-			p.consume(lexer.TTBracketR, true)
-			kind := p.parseKindExpr()
-			kindExpr.Node = &ast.TypeArray{
-				Kind: kind,
-				Len:  expr,
-			}
-			kindExpr.End = kind.End
+		var Len *ast.Expr
+		if p.isToken(lexer.TTNumber) { // [n]T
+			Len = p.parseNumberExpr()
 		}
+
+		p.consume(lexer.TTBracketR, true)
+		kind := p.parseKindExpr()
+		kindExpr.Node = &ast.TypeArray{
+			Kind: kind,
+			Len:  Len,
+		}
+		kindExpr.End = kind.End
 	} else if p.isKeyword("fn") { // fn(..arg: [..]T) -> T
 		kindExpr = *p.parseFuncSignExpr(p.current.Start)
 	} else {

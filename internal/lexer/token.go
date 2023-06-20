@@ -31,7 +31,7 @@ const (
 	TTBracketR                    // ]
 	TTBraceL                      // {
 	TTBraceR                      // }
-	TTRest                        // ..
+	TTRest                        // ...
 	TTSemi                        // ;
 	TTColon                       // :
 	TTComma                       // ,
@@ -75,7 +75,7 @@ var tokenMetaTable = [...]TokenMeta{
 	TTBracketR:   {TTBracketR, "TTBracketR", "]", -1, true},
 	TTBraceL:     {TTBraceL, "TTBraceL", "{", -1, true},
 	TTBraceR:     {TTBraceR, "TTBraceR", "}", -1, true},
-	TTRest:       {TTRest, "TTRest", "..", -1, true},
+	TTRest:       {TTRest, "TTRest", "...", -1, true},
 	TTSemi:       {TTSemi, "TTSemi", ";", -1, true},
 	TTColon:      {TTColon, "TTColon", ":", -1, true},
 	TTComma:      {TTComma, "TTComma", ",", -1, true},

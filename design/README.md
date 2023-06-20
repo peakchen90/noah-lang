@@ -10,7 +10,7 @@
 - `str`: 字符串类型（默认值: `""`）
 - `bool`: 布尔类型（默认值: `false`）
 - `[n]T` : 数组类型，如：`[3]str`、`[]num` 等（默认值: `null`）
-- `[..]T` : 可变长数组类型，如：`[..]str`、`[..]num` 等（默认值: `null`）
+- `[]T` : 可变长数组类型，如：`[]str`、`[]num` 等（默认值: `null`）
 - `any`: 动态类型（默认值: `null`）
 
 **自定义类型**:
@@ -114,7 +114,7 @@ arr4[2].age = 18
 ## 可变长数组
 
 ```noah
-let arr: [..]num = [1]
+let arr: []num = [1]
 
 arr.push(2) // arr == [1, 2]
 arr.unshift(3) // arr == [3, 1, 2]
@@ -129,7 +129,7 @@ fn foo(name: str) -> bool {
 }
 
 // 为 `Person` 结构体实现一个名为 `foo` 的方法，方法内部可以使用 `self` 关键字指向结构体的实例 
-fn Person foo(..name: [..]str) -> str {
+fn Person foo(...name: []str) -> str {
     return self.name
 }
 
@@ -142,7 +142,7 @@ fn main() {
 **剩余参数**：
 
 ```noah
-fn add(..nums: [..]num) -> num {
+fn add(...nums: []num) -> num {
     let sum = 0
     for n: nums {
         sum = sum + n

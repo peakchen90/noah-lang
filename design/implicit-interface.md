@@ -32,12 +32,12 @@ type :[Array] {
 
 ```noah
 type :[VectorArray] extends [Array] {
-    push(..item: [..]T)
+    push(...items: []T)
     pop() -> T
-    unshift(..item: [..]T)
+    unshift(...items: []T)
     shift() -> T
-    splice(index: num, len: num, ..item: [..]T) -> [..]T
-    slice(start: num, end: num) -> [..]T
+    splice(index: num, len: num, ...items: []T) -> []T
+    slice(start: num, end: num) -> []T
 }
 ```
 
@@ -47,8 +47,8 @@ type :[VectorArray] extends [Array] {
 type :[String] {
     len() -> num
     clone() -> []T
-    split(str) -> [..]str
-    toChars -> [..]T
+    split(str) -> []str
+    toChars -> []T
     toUpperCase() -> str
     toLowerCase() -> str
     trim() -> str
