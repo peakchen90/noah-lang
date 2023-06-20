@@ -77,12 +77,10 @@ func (p *Parser) parseStmt() *ast.Stmt {
 		} else {
 			stmt = p.parseExprStmt()
 		}
-	case lexer.TTBraceL:
-		stmt = p.parseBlockStmt()
-	case lexer.TTParenL:
-		stmt = p.parseExprStmt()
+	//case lexer.TTBraceL:
+	//	stmt = p.parseBlockStmt()
 	default:
-		p.unexpected()
+		stmt = p.parseExprStmt()
 	}
 
 	tailSemiCount := 0
