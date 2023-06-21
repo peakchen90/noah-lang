@@ -12,13 +12,14 @@ type OpType = uint8
 const (
 	OpNone = 0b00000000
 
-	OpBinary       = 0b00000001
-	OpBinaryAssign = 0b00000011
-	OpBinaryType   = 0b00000101
+	OpBinary       = 0b00001111
+	OpBinaryNormal = 0b00000001
+	OpBinaryAssign = 0b00000010
+	OpBinaryType   = 0b00000100
 
-	OpUnary       = 0b00010000
-	OpUnaryPrefix = 0b00110000
-	OpUnarySuffix = 0b01010000
+	OpUnary       = 0b11110000
+	OpUnaryPrefix = 0b00010000
+	OpUnarySuffix = 0b00100000
 )
 
 type TokenMeta struct {
@@ -105,23 +106,23 @@ var tokenMetaTable = [43]TokenMeta{
 
 	// binary operator (precedence 第二位为 1)
 	TTAssign:   {TTAssign, "TTAssign", "=", 2, OpBinaryAssign, true},
-	TTLogicOr:  {TTLogicOr, "TTLogicOr", "||", 3, OpBinary, true},
-	TTLogicAnd: {TTLogicAnd, "TTLogicAnd", "&&", 4, OpBinary, true},
-	TTBitOr:    {TTBitOr, "TTBitOr", "|", 5, OpBinary, true},
-	TTBitXor:   {TTBitXor, "TTBitXor", "^", 6, OpBinary, true},
-	TTBitAnd:   {TTBitAnd, "TTBitAnd", "&", 7, OpBinary, true},
-	TTEq:       {TTEq, "TTEq", "==", 8, OpBinary, true},
-	TTNe:       {TTNe, "TTNe", "!=", 8, OpBinary, true},
-	TTLt:       {TTLt, "TTLt", "<", 9, OpBinary, true},
-	TTLe:       {TTLe, "TTLe", "<=", 9, OpBinary, true},
-	TTGt:       {TTGt, "TTGt", ">", 9, OpBinary, true},
-	TTGe:       {TTGe, "TTGe", ">=", 9, OpBinary, true},
+	TTLogicOr:  {TTLogicOr, "TTLogicOr", "||", 3, OpBinaryNormal, true},
+	TTLogicAnd: {TTLogicAnd, "TTLogicAnd", "&&", 4, OpBinaryNormal, true},
+	TTBitOr:    {TTBitOr, "TTBitOr", "|", 5, OpBinaryNormal, true},
+	TTBitXor:   {TTBitXor, "TTBitXor", "^", 6, OpBinaryNormal, true},
+	TTBitAnd:   {TTBitAnd, "TTBitAnd", "&", 7, OpBinaryNormal, true},
+	TTEq:       {TTEq, "TTEq", "==", 8, OpBinaryNormal, true},
+	TTNe:       {TTNe, "TTNe", "!=", 8, OpBinaryNormal, true},
+	TTLt:       {TTLt, "TTLt", "<", 9, OpBinaryNormal, true},
+	TTLe:       {TTLe, "TTLe", "<=", 9, OpBinaryNormal, true},
+	TTGt:       {TTGt, "TTGt", ">", 9, OpBinaryNormal, true},
+	TTGe:       {TTGe, "TTGe", ">=", 9, OpBinaryNormal, true},
 	TTIsOp:     {TTIsOp, "TTIsOp", "is", 9, OpBinaryType, false},
-	TTPlus:     {TTPlus, "TTPlus", "+", 11, OpBinary, true},
-	TTSub:      {TTSub, "TTSub", "-", 11, OpBinary, true},
-	TTMul:      {TTMul, "TTMul", "*", 12, OpBinary, true},
-	TTDiv:      {TTDiv, "TTDiv", "/", 12, OpBinary, true},
-	TTRem:      {TTRem, "TTRem", "%", 12, OpBinary, true},
+	TTPlus:     {TTPlus, "TTPlus", "+", 11, OpBinaryNormal, true},
+	TTSub:      {TTSub, "TTSub", "-", 11, OpBinaryNormal, true},
+	TTMul:      {TTMul, "TTMul", "*", 12, OpBinaryNormal, true},
+	TTDiv:      {TTDiv, "TTDiv", "/", 12, OpBinaryNormal, true},
+	TTRem:      {TTRem, "TTRem", "%", 12, OpBinaryNormal, true},
 
 	// unary operator (precedence 第二位为 1)
 	TTUnaryPlus: {TTUnaryPlus, "TTUnaryPlus", "+", 14, OpUnaryPrefix, true},

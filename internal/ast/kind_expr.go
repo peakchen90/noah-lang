@@ -36,8 +36,8 @@ type (
 	}
 
 	TypeMember struct {
-		Parent *KindExpr
-		Id     *KindExpr
+		Left  *KindExpr
+		Right *KindExpr
 	}
 
 	TypeFuncKind struct {

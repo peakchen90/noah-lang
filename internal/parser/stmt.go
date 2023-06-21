@@ -148,7 +148,7 @@ func (p *Parser) parseFuncDecl(pubToken *lexer.Token) *ast.Stmt {
 	var impl *ast.KindExpr
 
 	if !p.isToken(lexer.TTParenL) {
-		impl = p.parseChainKindExpr(&ast.KindExpr{
+		impl = p.parseMaybeChainKindExpr(&ast.KindExpr{
 			Node:     &ast.TypeId{Name: NewKindIdentifier(firstToken)},
 			Position: firstToken.Position,
 		})

@@ -402,11 +402,6 @@ func (l *Lexer) readAsNumber() *Token {
 	consumeNum := true
 	value := strings.Builder{}
 
-	if l.Look(0) == '-' {
-		value.WriteByte('-')
-		l.index++
-	}
-
 	for l.checkIndex() {
 		ch := l.Look(0)
 		if ch >= '0' && ch <= '9' {

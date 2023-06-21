@@ -29,7 +29,7 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 			kindExpr.Node = &ast.TypeAny{}
 		default:
 			kindExpr.Node = &ast.TypeId{Name: NewKindIdentifier(token)}
-			return p.parseChainKindExpr(kindExpr)
+			return p.parseMaybeChainKindExpr(kindExpr)
 		}
 	} else if p.isToken(lexer.TTBracketL) {
 		kindExpr.Start = p.current.Start
@@ -56,27 +56,21 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 	return kindExpr
 }
 
-func (p *Parser) parseChainKindExpr(parent *ast.KindExpr) *ast.KindExpr {
+func (p *Parser) parseMaybeChainKindExpr(left *ast.KindExpr) *ast.KindExpr {
 	if p.consume(lexer.TTDot, false) != nil {
 		id := NewKindIdentifier(p.consume(lexer.TTIdentifier, true))
-		idKindExpr := &ast.KindExpr{
+		right := &ast.KindExpr{
 			Node:     &ast.TypeId{Name: id},
 			Position: id.Position,
 		}
-		nextParent := &ast.KindExpr{
-			Node: &ast.TypeMember{
-				Parent: parent,
-				Id:     idKindExpr,
-			},
-			Position: ast.Position{
-				Start: parent.Start,
-				End:   id.End,
-			},
+		nextLeft := &ast.KindExpr{
+			Node:     &ast.TypeMember{Left: left, Right: right},
+			Position: ast.Position{Start: left.Start, End: id.End},
 		}
-		return p.parseChainKindExpr(nextParent)
+		return p.parseMaybeChainKindExpr(nextLeft)
 	}
 
-	return parent
+	return left
 }
 
 func (p *Parser) parseFuncKindExpr(start int) *ast.KindExpr {
