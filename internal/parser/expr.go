@@ -26,20 +26,39 @@ func (p *Parser) parseMaybeBinaryExpr(precedence int8) *ast.Expr {
 func (p *Parser) parseMaybeUnaryExpr(precedence int8) *ast.Expr {
 	op := p.current
 
-	if op.OpType&lexer.OpUnary > 0 && precedence < op.Precedence {
+	if op.OpType&lexer.OpUnaryPrefix > 0 && precedence < op.Precedence {
 		p.nextToken()
-		argument := p.parseExpr()
+		argument := p.parseMaybePostfixUnaryExpr(p.parseMaybeBinaryExpr(op.Precedence), op.Precedence)
 		return &ast.Expr{
 			Node: &ast.UnaryExpr{
 				Argument: argument,
 				Operator: op.Text,
-				Prefix:   op.OpType&lexer.OpUnaryPrefix > 0,
+				Prefix:   true,
 			},
 			Position: ast.Position{Start: op.Start, End: argument.End},
 		}
 	}
 
-	return p.parseAtomExpr()
+	return p.parseMaybePostfixUnaryExpr(p.parseAtomExpr(), precedence)
+}
+
+// maybe postfix operator, only once
+func (p *Parser) parseMaybePostfixUnaryExpr(left *ast.Expr, precedence int8) *ast.Expr {
+	op := p.current
+
+	if op.OpType&lexer.OpUnaryPostfix > 0 && precedence < op.Precedence {
+		p.nextToken()
+		return &ast.Expr{
+			Node: &ast.UnaryExpr{
+				Argument: left,
+				Operator: op.Text,
+				Prefix:   false,
+			},
+			Position: ast.Position{Start: left.Start, End: op.End},
+		}
+	}
+
+	return left
 }
 
 func (p *Parser) parseBinaryExprPrecedence(left *ast.Expr, precedence int8) *ast.Expr {

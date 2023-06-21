@@ -85,7 +85,7 @@ func TestLexer(t *testing.T) {
 		lexer := NewLexer([]rune(item.Text))
 
 		switch item.Type {
-		case TTUnaryPlus, TTUnarySub:
+		case TTPrefixPlus, TTPrefixSub, TTPrefixInc, TTPrefixDec:
 			lexer.allowExpr = true
 		default:
 			lexer.allowExpr = false

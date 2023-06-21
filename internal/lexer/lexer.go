@@ -55,33 +55,74 @@ func (l *Lexer) Next() *Token {
 				token = l.createToken(TTAssign, l.index-1, l.index)
 			}
 		case '+':
-			if l.allowExpr {
-				l.index++
-				token = l.createToken(TTUnaryPlus, l.index-1, l.index)
+			if l.Look(1) == '=' {
+				l.index += 2
+				token = l.createToken(TTPlusAssign, l.index-2, l.index)
+			} else if l.allowExpr {
+				if l.Look(1) == '+' {
+					l.index += 2
+					token = l.createToken(TTPrefixInc, l.index-2, l.index)
+				} else {
+					l.index++
+					token = l.createToken(TTPrefixPlus, l.index-1, l.index)
+				}
 			} else {
-				l.index++
-				token = l.createToken(TTPlus, l.index-1, l.index)
+				if l.Look(1) == '+' {
+					l.index += 2
+					token = l.createToken(TTPostfixInc, l.index-2, l.index)
+				} else {
+					l.index++
+					token = l.createToken(TTPlus, l.index-1, l.index)
+				}
 			}
 		case '-':
-			if l.Look(1) == '>' {
+			if l.Look(1) == '=' {
+				l.index += 2
+				token = l.createToken(TTSubAssign, l.index-2, l.index)
+			} else if l.Look(1) == '>' {
 				l.index += 2
 				token = l.createToken(TTReturnSym, l.index-2, l.index)
 			} else if l.allowExpr {
-				l.index++
-				token = l.createToken(TTUnarySub, l.index-1, l.index)
+				if l.Look(1) == '-' {
+					l.index += 2
+					token = l.createToken(TTPrefixDec, l.index-2, l.index)
+				} else {
+					l.index++
+					token = l.createToken(TTPrefixSub, l.index-1, l.index)
+				}
 			} else {
-				l.index++
-				token = l.createToken(TTSub, l.index-1, l.index)
+				if l.Look(1) == '-' {
+					l.index += 2
+					token = l.createToken(TTPostfixDec, l.index-2, l.index)
+				} else {
+					l.index++
+					token = l.createToken(TTSub, l.index-1, l.index)
+				}
 			}
 		case '*':
-			l.index++
-			token = l.createToken(TTMul, l.index-1, l.index)
+			if l.Look(1) == '=' {
+				l.index += 2
+				token = l.createToken(TTMulAssign, l.index-2, l.index)
+			} else {
+				l.index++
+				token = l.createToken(TTMul, l.index-1, l.index)
+			}
 		case '/':
-			l.index++
-			token = l.createToken(TTDiv, l.index-1, l.index)
+			if l.Look(1) == '=' {
+				l.index += 2
+				token = l.createToken(TTDivAssign, l.index-2, l.index)
+			} else {
+				l.index++
+				token = l.createToken(TTDiv, l.index-1, l.index)
+			}
 		case '%':
-			l.index++
-			token = l.createToken(TTRem, l.index-1, l.index)
+			if l.Look(1) == '=' {
+				l.index += 2
+				token = l.createToken(TTRemAssign, l.index-2, l.index)
+			} else {
+				l.index++
+				token = l.createToken(TTRem, l.index-1, l.index)
+			}
 		case '<':
 			if l.Look(1) == '-' {
 				l.index += 2
@@ -89,6 +130,14 @@ func (l *Lexer) Next() *Token {
 			} else if l.Look(1) == '=' {
 				l.index += 2
 				token = l.createToken(TTLe, l.index-2, l.index)
+			} else if l.Look(1) == '<' {
+				if l.Look(2) == '=' {
+					l.index += 3
+					token = l.createToken(TTBitLeftShiftAssign, l.index-3, l.index)
+				} else {
+					l.index += 2
+					token = l.createToken(TTBitLeftShift, l.index-2, l.index)
+				}
 			} else {
 				l.index++
 				token = l.createToken(TTLt, l.index-1, l.index)
@@ -97,6 +146,14 @@ func (l *Lexer) Next() *Token {
 			if l.Look(1) == '=' {
 				l.index += 2
 				token = l.createToken(TTGe, l.index-2, l.index)
+			} else if l.Look(1) == '>' {
+				if l.Look(2) == '=' {
+					l.index += 3
+					token = l.createToken(TTBitRightShiftAssign, l.index-3, l.index)
+				} else {
+					l.index += 2
+					token = l.createToken(TTBitRightShift, l.index-2, l.index)
+				}
 			} else {
 				l.index++
 				token = l.createToken(TTGt, l.index-1, l.index)
@@ -105,6 +162,9 @@ func (l *Lexer) Next() *Token {
 			if l.Look(1) == '&' {
 				l.index += 2
 				token = l.createToken(TTLogicAnd, l.index-2, l.index)
+			} else if l.Look(1) == '=' {
+				l.index += 2
+				token = l.createToken(TTBitAndAssign, l.index-2, l.index)
 			} else {
 				l.index++
 				token = l.createToken(TTBitAnd, l.index-1, l.index)
@@ -113,6 +173,9 @@ func (l *Lexer) Next() *Token {
 			if l.Look(1) == '|' {
 				l.index += 2
 				token = l.createToken(TTLogicOr, l.index-2, l.index)
+			} else if l.Look(1) == '=' {
+				l.index += 2
+				token = l.createToken(TTBitOrAssign, l.index-2, l.index)
 			} else {
 				l.index++
 				token = l.createToken(TTBitOr, l.index-1, l.index)
@@ -129,8 +192,13 @@ func (l *Lexer) Next() *Token {
 			l.index++
 			token = l.createToken(TTBitNot, l.index-1, l.index)
 		case '^':
-			l.index++
-			token = l.createToken(TTBitXor, l.index-1, l.index)
+			if l.Look(1) == '=' {
+				l.index += 2
+				token = l.createToken(TTBitXorAssign, l.index-2, l.index)
+			} else {
+				l.index++
+				token = l.createToken(TTBitXor, l.index-1, l.index)
+			}
 		case '(':
 			l.index++
 			token = l.createToken(TTParenL, l.index-1, l.index)
