@@ -110,8 +110,8 @@ var tokenMetaTable = [...]TokenMeta{
 	TTBitNot:   {TTBitNot, "TTBitNot", "~", 15, true},
 	TTBitXor:   {TTBitXor, "TTBitXor", "^", 7, true},
 
-	TTUnaryPlus: {TTUnaryPlus, "TTUnaryPlus", "+ ", 14, true},
-	TTUnarySub:  {TTUnarySub, "TTUnarySub", "- ", 14, true},
+	TTUnaryPlus: {TTUnaryPlus, "TTUnaryPlus", "+", 14, true},
+	TTUnarySub:  {TTUnarySub, "TTUnarySub", "-", 14, true},
 }
 
 type Token struct {

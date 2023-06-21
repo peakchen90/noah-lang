@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -91,6 +90,6 @@ func TestLexer(t *testing.T) {
 		token := lexer.Next()
 		assert.Equal(t, item.Type, token.Type, "Token type")
 		assert.Equal(t, 0, token.Start, "Token position start")
-		assert.Equal(t, len(strings.Trim(item.Text, " ")), token.End, "Token position end")
+		assert.Equal(t, len(item.Text), token.End, "Token position end")
 	}
 }
