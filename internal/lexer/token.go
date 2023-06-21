@@ -40,26 +40,28 @@ const (
 
 	// operator
 
-	TTAssign   // =
-	TTPlus     // +
-	TTSub      // -
-	TTMul      // *
-	TTDiv      // /
-	TTRem      // %
-	TTLt       // <
-	TTLe       // <=
-	TTGt       // >
-	TTGe       // >=
-	TTEq       // ==
-	TTNe       // !=
-	TTLogicAnd // &&
-	TTLogicOr  // ||
-	TTLogicNot // !
-	TTBitAnd   // &
-	TTBitOr    // |
-	TTBitNot   // ~
-	TTBitXor   // ^
-	TTDot      // .
+	TTAssign    // =
+	TTPlus      // +
+	TTSub       // -
+	TTMul       // *
+	TTDiv       // /
+	TTRem       // %
+	TTLt        // <
+	TTLe        // <=
+	TTGt        // >
+	TTGe        // >=
+	TTEq        // ==
+	TTNe        // !=
+	TTLogicAnd  // &&
+	TTLogicOr   // ||
+	TTLogicNot  // !
+	TTBitAnd    // &
+	TTBitOr     // |
+	TTBitNot    // ~
+	TTBitXor    // ^
+	TTDot       // .
+	TTUnaryPlus // +
+	TTUnarySub  // -
 )
 
 var tokenMetaTable = [...]TokenMeta{
@@ -76,13 +78,14 @@ var tokenMetaTable = [...]TokenMeta{
 	TTParenL:     {TTParenL, "TTParenL", "(", -1, true},
 	TTParenR:     {TTParenR, "TTParenR", ")", -1, false},
 	TTBracketL:   {TTBracketL, "TTBracketL", "[", -1, true},
-	TTBracketR:   {TTBracketR, "TTBracketR", "]", -1, true},
+	TTBracketR:   {TTBracketR, "TTBracketR", "]", -1, false},
 	TTBraceL:     {TTBraceL, "TTBraceL", "{", -1, true},
-	TTBraceR:     {TTBraceR, "TTBraceR", "}", -1, true},
-	TTRest:       {TTRest, "TTRest", "...", -1, true},
+	TTBraceR:     {TTBraceR, "TTBraceR", "}", -1, false},
+	TTRest:       {TTRest, "TTRest", "...", -1, false},
 	TTSemi:       {TTSemi, "TTSemi", ";", -1, true},
 	TTColon:      {TTColon, "TTColon", ":", -1, true},
 	TTComma:      {TTComma, "TTComma", ",", -1, true},
+	TTDot:        {TTDot, "TTDot", ".", -1, true},
 
 	// operator
 	// precedence see: https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
@@ -106,7 +109,9 @@ var tokenMetaTable = [...]TokenMeta{
 	TTBitOr:    {TTBitOr, "TTBitOr", "|", 6, true},
 	TTBitNot:   {TTBitNot, "TTBitNot", "~", 15, true},
 	TTBitXor:   {TTBitXor, "TTBitXor", "^", 7, true},
-	TTDot:      {TTDot, "TTDot", ".", 18, true},
+
+	TTUnaryPlus: {TTUnaryPlus, "TTUnaryPlus", "+ ", 14, true},
+	TTUnarySub:  {TTUnarySub, "TTUnarySub", "- ", 14, true},
 }
 
 type Token struct {

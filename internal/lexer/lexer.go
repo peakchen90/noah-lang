@@ -55,14 +55,20 @@ func (l *Lexer) Next() *Token {
 				token = l.createToken(TTAssign, l.index-1, l.index)
 			}
 		case '+':
-			l.index++
-			token = l.createToken(TTPlus, l.index-1, l.index)
+			if l.allowExpr {
+				l.index++
+				token = l.createToken(TTUnaryPlus, l.index-1, l.index)
+			} else {
+				l.index++
+				token = l.createToken(TTPlus, l.index-1, l.index)
+			}
 		case '-':
 			if l.Look(1) == '>' {
 				l.index += 2
 				token = l.createToken(TTReturnSym, l.index-2, l.index)
 			} else if l.allowExpr {
-				token = l.readAsNumber()
+				l.index++
+				token = l.createToken(TTUnarySub, l.index-1, l.index)
 			} else {
 				l.index++
 				token = l.createToken(TTSub, l.index-1, l.index)
@@ -452,6 +458,9 @@ func (l *Lexer) readAsIdentifier() *Token {
 
 	if IsKeyword(valueStr) {
 		token = l.createToken(TTKeyword, start, l.index)
+		if valueStr == "return" {
+			l.allowExpr = true
+		}
 	} else if IsConstant(valueStr) {
 		token = l.createToken(TTConst, start, l.index)
 	} else {

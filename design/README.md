@@ -275,9 +275,9 @@ man = Woman{}
 
 ```noah
 fn hello(value: any) {
-    if type(value) == str {
+    if value is str {
     
-    } else if type(value) == num {
+    } else if value is num {
     
     } 
 }

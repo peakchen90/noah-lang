@@ -114,24 +114,13 @@
         }
     },
     {
-        "input": "-12.3",
+        "input": "12.3",
         "output": {
             "type": "TTNumber",
-            "value": "-12.3",
+            "value": "12.3",
             "position": [
                 0,
-                5
-            ]
-        }
-    },
-    {
-        "input": "-12.3",
-        "output": {
-            "type": "TTNumber",
-            "value": "-12.3",
-            "position": [
-                0,
-                5
+                4
             ]
         }
     },
