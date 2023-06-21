@@ -119,7 +119,7 @@ func (p *Parser) parseUseStmt(pubToken *lexer.Token) *ast.Stmt {
 
 	var local *ast.Identifier
 
-	if p.consumeKeyword("as", false) != nil {
+	if p.consume(lexer.TTAsOp, false) != nil {
 		local = NewIdentifier(p.consume(lexer.TTIdentifier, true))
 		stmt.End = local.End
 	}

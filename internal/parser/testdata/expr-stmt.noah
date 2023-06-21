@@ -36,3 +36,5 @@ a(fn(a: str, ...b: []bool) -> num {
 })
 
 b(P{ a: 1, b: "xx" })
+
+let a: num = 'a' as num

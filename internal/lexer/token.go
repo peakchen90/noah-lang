@@ -86,6 +86,7 @@ const (
 	TTMul           // *
 	TTDiv           // /
 	TTRem           // %
+	TTAsOp          // `as`
 
 	TTPrefixPlus // + ...
 	TTPrefixSub  // - ...
@@ -98,7 +99,7 @@ const (
 )
 
 // precedence see: https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
-var tokenMetaTable = [59]TokenMeta{
+var tokenMetaTable = [60]TokenMeta{
 	TTEof:        {TTEof, "TTEof", "", -1, OpNone, false},
 	TTComment:    {TTComment, "TTComment", "", -1, OpNone, false},
 	TTKeyword:    {TTKeyword, "TTKeyword", "", -1, OpNone, false},
@@ -153,6 +154,7 @@ var tokenMetaTable = [59]TokenMeta{
 	TTMul:           {TTMul, "TTMul", "*", 12, OpBinaryLTR, true},
 	TTDiv:           {TTDiv, "TTDiv", "/", 12, OpBinaryLTR, true},
 	TTRem:           {TTRem, "TTRem", "%", 12, OpBinaryLTR, true},
+	TTAsOp:          {TTAsOp, "TTAsOp", "as", 13, OpBinaryLTR | OpBinaryType, false},
 
 	// unary operator
 	TTPrefixPlus: {TTPrefixPlus, "TTPrefixPlus", "+", 14, OpUnaryPrefix, true},

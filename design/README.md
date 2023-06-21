@@ -297,6 +297,12 @@ fn hello(value: any) {
 }
 ```
 
+**类型转换**
+
+```noah
+let a: num = 'a' as num
+```
+
 ## 模块
 
 ### 定义模块

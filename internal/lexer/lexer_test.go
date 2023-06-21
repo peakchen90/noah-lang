@@ -60,6 +60,8 @@ func TestLexer(t *testing.T) {
 		token := NewLexer([]rune(item)).Next()
 		if item == "is" {
 			assert.Equal(t, TTIsOp, token.Type, "Token type")
+		} else if item == "as" {
+			assert.Equal(t, TTAsOp, token.Type, "Token type")
 		} else {
 			assert.Equal(t, TTKeyword, token.Type, "Token type")
 		}

@@ -524,6 +524,8 @@ func (l *Lexer) readAsIdentifier() *Token {
 
 	if valueStr == "is" {
 		token = l.createToken(TTIsOp, start, l.index)
+	} else if valueStr == "as" {
+		token = l.createToken(TTAsOp, start, l.index)
 	} else if IsKeyword(valueStr) {
 		token = l.createToken(TTKeyword, start, l.index)
 		if valueStr == "return" {
