@@ -2,16 +2,17 @@ package ast
 
 type KE interface{ isKindExpr() }
 
-func (*TypeNumber) isKindExpr()   {}
-func (*TypeByte) isKindExpr()     {}
-func (*TypeChar) isKindExpr()     {}
-func (*TypeString) isKindExpr()   {}
-func (*TypeBool) isKindExpr()     {}
-func (*TypeAny) isKindExpr()      {}
-func (*TypeArray) isKindExpr()    {}
-func (*TypeId) isKindExpr()       {}
-func (*TypeMember) isKindExpr()   {}
-func (*TypeFuncKind) isKindExpr() {}
+func (*TypeNumber) isKindExpr()     {}
+func (*TypeByte) isKindExpr()       {}
+func (*TypeChar) isKindExpr()       {}
+func (*TypeString) isKindExpr()     {}
+func (*TypeBool) isKindExpr()       {}
+func (*TypeAny) isKindExpr()        {}
+func (*TypeArray) isKindExpr()      {}
+func (*TypeId) isKindExpr()         {}
+func (*TypeMember) isKindExpr()     {}
+func (*TypeFuncKind) isKindExpr()   {}
+func (*TypeStructKind) isKindExpr() {}
 
 type (
 	TypeNumber struct{}
@@ -44,8 +45,9 @@ type (
 		Arguments []*Argument
 		Return    *KindExpr
 	}
-)
 
-func (t *TypeArray) IsVector() bool {
-	return t.Len == nil
-}
+	TypeStructKind struct {
+		Extends    []*KindExpr
+		Properties []*KindProperty
+	}
+)

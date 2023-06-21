@@ -38,3 +38,7 @@ a(fn(a: str, ...b: []bool) -> num {
 b(P{ a: 1, b: "xx" })
 
 let a: num = 'a' as num
+let f: fn()
+let f: fn(a: num, ...b: []any) -> str
+let b: struct { a: num }
+let c: struct <- a.B, struct{} { b: str; x: []any }

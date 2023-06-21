@@ -287,17 +287,8 @@ func (p *Parser) parseStructDecl(pubToken *lexer.Token) *ast.Stmt {
 	name := NewKindIdentifier(p.current)
 	p.nextToken()
 
-	// extends
-	extends := make([]*ast.KindExpr, 0, helper.SmallCap)
-	if p.consume(lexer.TTExtendSym, false) != nil {
-		p.expect(lexer.TTIdentifier)
-		for p.isToken(lexer.TTIdentifier) {
-			extends = append(extends, p.parseKindExpr())
-			if p.consume(lexer.TTComma, false) == nil {
-				break
-			}
-		}
-	}
+	// maybe with extends
+	extends := p.parseStructExtends()
 
 	// `{`
 	p.consume(lexer.TTBraceL, true)

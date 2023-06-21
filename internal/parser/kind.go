@@ -48,7 +48,11 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 		}
 		kindExpr.End = kind.End
 	} else if p.isKeyword("fn") { // fn(...arg: []T) -> T
-		kindExpr = p.parseFuncKindExpr(p.current.Start)
+		start := p.current.Start
+		p.nextToken()
+		kindExpr = p.parseFuncKindExpr(start)
+	} else if p.isKeyword("struct") { // struct{ a: num }
+		kindExpr = p.parseStructKindExpr()
 	} else {
 		p.unexpected()
 	}
@@ -131,6 +135,27 @@ func (p *Parser) parseFuncKindExpr(start int) *ast.KindExpr {
 	return kindExpr
 }
 
+func (p *Parser) parseStructKindExpr() *ast.KindExpr {
+	kindExpr := &ast.KindExpr{}
+	kindExpr.Start = p.current.Start
+	p.nextToken() // skip `struct`
+
+	// maybe with extends
+	extends := p.parseStructExtends()
+
+	// `{`
+	p.consume(lexer.TTBraceL, true)
+	properties := p.parseKindProperties(false, false)
+	p.consume(lexer.TTBraceR, true)
+
+	kindExpr.Node = &ast.TypeStructKind{
+		Extends:    extends,
+		Properties: properties,
+	}
+	kindExpr.End = p.lexer.LastToken.End
+	return kindExpr
+}
+
 func (p *Parser) parseKindProperties(isFunc bool, hideFnWord bool) []*ast.KindProperty {
 	properties := make([]*ast.KindProperty, 0, helper.DefaultCap)
 
@@ -182,4 +207,23 @@ func (p *Parser) parseEnumItems() []*ast.KindIdentifier {
 	}
 
 	return items
+}
+
+func (p *Parser) parseStructExtends() []*ast.KindExpr {
+	extends := make([]*ast.KindExpr, 0, helper.SmallCap)
+
+	if p.consume(lexer.TTExtendSym, false) != nil {
+		for (p.isToken(lexer.TTIdentifier) && !IsReservedType(p.current.Value)) || p.isKeyword("struct") {
+			extends = append(extends, p.parseKindExpr())
+			if p.consume(lexer.TTComma, false) == nil {
+				break
+			}
+		}
+
+		if len(extends) == 0 {
+			p.unexpected()
+		}
+	}
+
+	return extends
 }
