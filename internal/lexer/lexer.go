@@ -456,7 +456,9 @@ func (l *Lexer) readAsIdentifier() *Token {
 	valueStr := value.String()
 	var token *Token
 
-	if IsKeyword(valueStr) {
+	if valueStr == "is" {
+		token = l.createToken(TTIsOp, start, l.index)
+	} else if IsKeyword(valueStr) {
 		token = l.createToken(TTKeyword, start, l.index)
 		if valueStr == "return" {
 			l.allowExpr = true

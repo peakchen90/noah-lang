@@ -58,7 +58,11 @@ func TestLexer(t *testing.T) {
 	// 关键字
 	for _, item := range Keywords {
 		token := NewLexer([]rune(item)).Next()
-		assert.Equal(t, TTKeyword, token.Type, "Token type")
+		if item == "is" {
+			assert.Equal(t, TTIsOp, token.Type, "Token type")
+		} else {
+			assert.Equal(t, TTKeyword, token.Type, "Token type")
+		}
 		assert.Equal(t, item, token.Value, "Token value")
 		assert.Equal(t, 0, token.Start, "Token position start")
 		assert.Equal(t, len(item), token.End, "Token position end")

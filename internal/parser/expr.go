@@ -24,21 +24,18 @@ func (p *Parser) parseMaybeBinaryExpr(precedence int8) *ast.Expr {
 }
 
 func (p *Parser) parseMaybeUnaryExpr(precedence int8) *ast.Expr {
-	if precedence < p.current.Precedence {
-		switch p.current.Type {
-		case lexer.TTBitNot, lexer.TTLogicNot, lexer.TTUnaryPlus, lexer.TTUnarySub:
-			operator := p.current.Text
-			start := p.current.Start
-			p.nextToken()
-			argument := p.parseExpr()
-			return &ast.Expr{
-				Node: &ast.UnaryExpr{
-					Argument: argument,
-					Operator: operator,
-					Prefix:   true,
-				},
-				Position: ast.Position{Start: start, End: argument.End},
-			}
+	op := p.current
+
+	if op.OpType&lexer.OpUnary > 0 && precedence < op.Precedence {
+		p.nextToken()
+		argument := p.parseExpr()
+		return &ast.Expr{
+			Node: &ast.UnaryExpr{
+				Argument: argument,
+				Operator: op.Text,
+				Prefix:   op.OpType&lexer.OpUnaryPrefix > 0,
+			},
+			Position: ast.Position{Start: op.Start, End: argument.End},
 		}
 	}
 
@@ -46,22 +43,37 @@ func (p *Parser) parseMaybeUnaryExpr(precedence int8) *ast.Expr {
 }
 
 func (p *Parser) parseBinaryExprPrecedence(left *ast.Expr, precedence int8) *ast.Expr {
-	if precedence < p.current.Precedence || (p.isAssignToken() && precedence == p.current.Precedence) {
-		nextPrecedence := p.current.Precedence
-		operator := p.current.Text
+	op := p.current
+
+	if op.OpType&lexer.OpBinary > 0 && (precedence < op.Precedence || (op.OpType&lexer.OpBinaryAssign > 0 && precedence == op.Precedence)) {
+		nextPrecedence := op.Precedence
+		operator := op.Text
 		p.nextToken()
 
-		// 解析可能更高优先级的右侧表达式，如: `1 + 2 * 3` 将解析 `2 * 3` 作为右值
-		maybeHigherPrecedenceExpr := p.parseMaybeBinaryExpr(nextPrecedence)
-		right := p.parseBinaryExprPrecedence(maybeHigherPrecedenceExpr, nextPrecedence)
+		var node *ast.Expr
 
-		node := &ast.Expr{
-			Node: &ast.BinaryExpr{
-				Left:     left,
-				Right:    right,
-				Operator: operator,
-			},
-			Position: ast.Position{Start: left.Start, End: right.End},
+		if op.OpType&lexer.OpBinaryType > 0 {
+			right := p.parseKindExpr()
+			node = &ast.Expr{
+				Node: &ast.BinaryTypeExpr{
+					Left:     left,
+					Right:    right,
+					Operator: operator,
+				},
+				Position: ast.Position{Start: left.Start, End: right.End},
+			}
+		} else {
+			// 解析可能更高优先级的右侧表达式，如: `1 + 2 * 3` 将解析 `2 * 3` 作为右值
+			maybeHigherPrecedenceExpr := p.parseMaybeBinaryExpr(nextPrecedence)
+			right := p.parseBinaryExprPrecedence(maybeHigherPrecedenceExpr, nextPrecedence)
+			node = &ast.Expr{
+				Node: &ast.BinaryExpr{
+					Left:     left,
+					Right:    right,
+					Operator: operator,
+				},
+				Position: ast.Position{Start: left.Start, End: right.End},
+			}
 		}
 
 		// 将已经解析的二元表达式作为左值，然后递归解析后面可能的同等优先级或低优先级的表达式作为右值

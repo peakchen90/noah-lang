@@ -7,11 +7,26 @@ import (
 
 type TokenType = uint8
 
+type OpType = uint8
+
+const (
+	OpNone = 0b00000000
+
+	OpBinary       = 0b00000001
+	OpBinaryAssign = 0b00000011
+	OpBinaryType   = 0b00000101
+
+	OpUnary       = 0b00010000
+	OpUnaryPrefix = 0b00110000
+	OpUnarySuffix = 0b01010000
+)
+
 type TokenMeta struct {
 	Type       TokenType
 	Name       string
 	Text       string
 	Precedence int8
+	OpType     OpType
 	AllowExpr  bool
 }
 
@@ -37,81 +52,82 @@ const (
 	TTSemi                        // ;
 	TTColon                       // :
 	TTComma                       // ,
+	TTDot                         // .
 
-	// operator
+	TTAssign   // =
+	TTLogicOr  // ||
+	TTLogicAnd // &&
+	TTBitOr    // |
+	TTBitXor   // ^
+	TTBitAnd   // &
+	TTEq       // ==
+	TTNe       // !=
+	TTLt       // <
+	TTLe       // <=
+	TTGt       // >
+	TTGe       // >=
+	TTIsOp     // `is`
+	TTPlus     // +
+	TTSub      // -
+	TTMul      // *
+	TTDiv      // /
+	TTRem      // %
 
-	TTAssign    // =
-	TTPlus      // +
-	TTSub       // -
-	TTMul       // *
-	TTDiv       // /
-	TTRem       // %
-	TTLt        // <
-	TTLe        // <=
-	TTGt        // >
-	TTGe        // >=
-	TTEq        // ==
-	TTNe        // !=
-	TTLogicAnd  // &&
-	TTLogicOr   // ||
-	TTLogicNot  // !
-	TTBitAnd    // &
-	TTBitOr     // |
-	TTBitNot    // ~
-	TTBitXor    // ^
-	TTDot       // .
 	TTUnaryPlus // +
 	TTUnarySub  // -
+	TTLogicNot  // !
+	TTBitNot    // ~
 )
 
-var tokenMetaTable = [...]TokenMeta{
-	TTEof:        {TTEof, "TTEof", "", -1, false},
-	TTComment:    {TTComment, "TTComment", "", -1, false},
-	TTKeyword:    {TTKeyword, "TTKeyword", "", -1, false},
-	TTIdentifier: {TTIdentifier, "TTIdentifier", "", -1, false},
-	TTNumber:     {TTNumber, "TTNumber", "", -1, false},
-	TTString:     {TTString, "TTString", "", -1, false},
-	TTChar:       {TTChar, "TTChar", "", -1, false},
-	TTConst:      {TTConst, "TTConst", "", -1, false},
-	TTReturnSym:  {TTReturnSym, "TTReturnSym", "->", -1, false},
-	TTExtendSym:  {TTExtendSym, "TTExtendSym", "<-", -1, false},
-	TTParenL:     {TTParenL, "TTParenL", "(", -1, true},
-	TTParenR:     {TTParenR, "TTParenR", ")", -1, false},
-	TTBracketL:   {TTBracketL, "TTBracketL", "[", -1, true},
-	TTBracketR:   {TTBracketR, "TTBracketR", "]", -1, false},
-	TTBraceL:     {TTBraceL, "TTBraceL", "{", -1, true},
-	TTBraceR:     {TTBraceR, "TTBraceR", "}", -1, false},
-	TTRest:       {TTRest, "TTRest", "...", -1, false},
-	TTSemi:       {TTSemi, "TTSemi", ";", -1, true},
-	TTColon:      {TTColon, "TTColon", ":", -1, true},
-	TTComma:      {TTComma, "TTComma", ",", -1, true},
-	TTDot:        {TTDot, "TTDot", ".", -1, true},
+// precedence see: https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
+var tokenMetaTable = [43]TokenMeta{
+	TTEof:        {TTEof, "TTEof", "", -1, OpNone, false},
+	TTComment:    {TTComment, "TTComment", "", -1, OpNone, false},
+	TTKeyword:    {TTKeyword, "TTKeyword", "", -1, OpNone, false},
+	TTIdentifier: {TTIdentifier, "TTIdentifier", "", -1, OpNone, false},
+	TTNumber:     {TTNumber, "TTNumber", "", -1, OpNone, false},
+	TTString:     {TTString, "TTString", "", -1, OpNone, false},
+	TTChar:       {TTChar, "TTChar", "", -1, OpNone, false},
+	TTConst:      {TTConst, "TTConst", "", -1, OpNone, false},
+	TTReturnSym:  {TTReturnSym, "TTReturnSym", "->", -1, OpNone, false},
+	TTExtendSym:  {TTExtendSym, "TTExtendSym", "<-", -1, OpNone, false},
+	TTParenL:     {TTParenL, "TTParenL", "(", -1, OpNone, true},
+	TTParenR:     {TTParenR, "TTParenR", ")", -1, OpNone, false},
+	TTBracketL:   {TTBracketL, "TTBracketL", "[", -1, OpNone, true},
+	TTBracketR:   {TTBracketR, "TTBracketR", "]", -1, OpNone, false},
+	TTBraceL:     {TTBraceL, "TTBraceL", "{", -1, OpNone, true},
+	TTBraceR:     {TTBraceR, "TTBraceR", "}", -1, OpNone, false},
+	TTRest:       {TTRest, "TTRest", "...", -1, OpNone, false},
+	TTSemi:       {TTSemi, "TTSemi", ";", -1, OpNone, true},
+	TTColon:      {TTColon, "TTColon", ":", -1, OpNone, true},
+	TTComma:      {TTComma, "TTComma", ",", -1, OpNone, true},
+	TTDot:        {TTDot, "TTDot", ".", -1, OpNone, true},
 
-	// operator
-	// precedence see: https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
+	// binary operator (precedence 第二位为 1)
+	TTAssign:   {TTAssign, "TTAssign", "=", 2, OpBinaryAssign, true},
+	TTLogicOr:  {TTLogicOr, "TTLogicOr", "||", 3, OpBinary, true},
+	TTLogicAnd: {TTLogicAnd, "TTLogicAnd", "&&", 4, OpBinary, true},
+	TTBitOr:    {TTBitOr, "TTBitOr", "|", 5, OpBinary, true},
+	TTBitXor:   {TTBitXor, "TTBitXor", "^", 6, OpBinary, true},
+	TTBitAnd:   {TTBitAnd, "TTBitAnd", "&", 7, OpBinary, true},
+	TTEq:       {TTEq, "TTEq", "==", 8, OpBinary, true},
+	TTNe:       {TTNe, "TTNe", "!=", 8, OpBinary, true},
+	TTLt:       {TTLt, "TTLt", "<", 9, OpBinary, true},
+	TTLe:       {TTLe, "TTLe", "<=", 9, OpBinary, true},
+	TTGt:       {TTGt, "TTGt", ">", 9, OpBinary, true},
+	TTGe:       {TTGe, "TTGe", ">=", 9, OpBinary, true},
+	TTIsOp:     {TTIsOp, "TTIsOp", "is", 9, OpBinaryType, false},
+	TTPlus:     {TTPlus, "TTPlus", "+", 11, OpBinary, true},
+	TTSub:      {TTSub, "TTSub", "-", 11, OpBinary, true},
+	TTMul:      {TTMul, "TTMul", "*", 12, OpBinary, true},
+	TTDiv:      {TTDiv, "TTDiv", "/", 12, OpBinary, true},
+	TTRem:      {TTRem, "TTRem", "%", 12, OpBinary, true},
 
-	TTAssign:   {TTAssign, "TTAssign", "=", 2, true},
-	TTPlus:     {TTPlus, "TTPlus", "+", 12, true},
-	TTSub:      {TTSub, "TTSub", "-", 12, true},
-	TTMul:      {TTMul, "TTMul", "*", 13, true},
-	TTDiv:      {TTDiv, "TTDiv", "/", 13, true},
-	TTRem:      {TTRem, "TTRem", "%", 13, true},
-	TTLt:       {TTLt, "TTLt", "<", 10, true},
-	TTLe:       {TTLe, "TTLe", "<=", 10, true},
-	TTGt:       {TTGt, "TTGt", ">", 10, true},
-	TTGe:       {TTGe, "TTGe", ">=", 10, true},
-	TTEq:       {TTEq, "TTEq", "==", 9, true},
-	TTNe:       {TTNe, "TTNe", "!=", 9, true},
-	TTLogicAnd: {TTLogicAnd, "TTLogicAnd", "&&", 5, true},
-	TTLogicOr:  {TTLogicOr, "TTLogicOr", "||", 4, true},
-	TTLogicNot: {TTLogicNot, "TTLogicNot", "!", 15, true},
-	TTBitAnd:   {TTBitAnd, "TTBitAnd", "&", 8, true},
-	TTBitOr:    {TTBitOr, "TTBitOr", "|", 6, true},
-	TTBitNot:   {TTBitNot, "TTBitNot", "~", 15, true},
-	TTBitXor:   {TTBitXor, "TTBitXor", "^", 7, true},
-
-	TTUnaryPlus: {TTUnaryPlus, "TTUnaryPlus", "+", 14, true},
-	TTUnarySub:  {TTUnarySub, "TTUnarySub", "-", 14, true},
+	// unary operator (precedence 第二位为 1)
+	TTUnaryPlus: {TTUnaryPlus, "TTUnaryPlus", "+", 14, OpUnaryPrefix, true},
+	TTUnarySub:  {TTUnarySub, "TTUnarySub", "-", 14, OpUnaryPrefix, true},
+	TTLogicNot:  {TTLogicNot, "TTLogicNot", "!", 14, OpUnaryPrefix, true},
+	TTBitNot:    {TTBitNot, "TTBitNot", "~", 14, OpUnaryPrefix, true},
 }
 
 type Token struct {

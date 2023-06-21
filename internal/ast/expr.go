@@ -6,6 +6,7 @@ type E interface{ isExpr() }
 func (*CallExpr) isExpr()          {}
 func (*MemberExpr) isExpr()        {}
 func (*BinaryExpr) isExpr()        {}
+func (*BinaryTypeExpr) isExpr()    {}
 func (*UnaryExpr) isExpr()         {}
 func (*FuncExpr) isExpr()          {}
 func (*StructExpr) isExpr()        {}
@@ -34,6 +35,12 @@ type (
 	BinaryExpr struct {
 		Left     *Expr
 		Right    *Expr
+		Operator string
+	}
+
+	BinaryTypeExpr struct {
+		Left     *Expr
+		Right    *KindExpr
 		Operator string
 	}
 

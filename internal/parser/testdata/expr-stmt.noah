@@ -29,6 +29,8 @@ a = fn() {
     return b;
 }
 
+a is str
+
 a(fn(a: str, ...b: []bool) -> num {
     return -1 + 2.0;
 })
