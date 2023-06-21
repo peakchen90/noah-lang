@@ -98,11 +98,6 @@ func (p *Parser) isToken(tokenType lexer.TokenType) bool {
 	return p.current.Type == tokenType
 }
 
-// 判断当前是否为赋值 token
-func (p *Parser) isAssignToken() bool {
-	return p.current.Type == lexer.TTAssign
-}
-
 // 判断当前是否是指定名称的关键字
 func (p *Parser) isKeyword(name string) bool {
 	if p.isToken(lexer.TTKeyword) && p.current.Value == name {

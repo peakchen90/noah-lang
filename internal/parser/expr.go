@@ -45,7 +45,7 @@ func (p *Parser) parseMaybeUnaryExpr(precedence int8) *ast.Expr {
 func (p *Parser) parseBinaryExprPrecedence(left *ast.Expr, precedence int8) *ast.Expr {
 	op := p.current
 
-	if op.OpType&lexer.OpBinary > 0 && (precedence < op.Precedence || (op.OpType&lexer.OpBinaryAssign > 0 && precedence == op.Precedence)) {
+	if (op.OpType&lexer.OpBinaryLTR > 0 && precedence < op.Precedence) || (op.OpType&lexer.OpBinaryRTL > 0 && precedence <= op.Precedence) {
 		nextPrecedence := op.Precedence
 		operator := op.Text
 		p.nextToken()

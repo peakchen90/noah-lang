@@ -77,8 +77,6 @@ func (p *Parser) parseStmt() *ast.Stmt {
 		} else {
 			stmt = p.parseExprStmt()
 		}
-	//case lexer.TTBraceL:
-	//	stmt = p.parseBlockStmt()
 	default:
 		stmt = p.parseExprStmt()
 	}
