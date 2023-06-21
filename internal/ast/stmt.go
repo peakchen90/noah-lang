@@ -3,30 +3,37 @@ package ast
 // S statements
 type S interface{ isStmt() }
 
-func (*ImportDecl) isStmt()   {}
-func (*FuncDecl) isStmt()     {}
-func (*VarDecl) isStmt()      {}
-func (*BlockStmt) isStmt()    {}
-func (*ReturnStmt) isStmt()   {}
-func (*ExprStmt) isStmt()     {}
-func (*IfStmt) isStmt()       {}
-func (*ForStmt) isStmt()      {}
-func (*ForOfStmt) isStmt()    {}
-func (*BreakStmt) isStmt()    {}
-func (*ContinueStmt) isStmt() {}
+func (*ModuleDecl) isStmt()     {}
+func (*FuncDecl) isStmt()       {}
+func (*ImplStructDecl) isStmt() {}
+func (*VarDecl) isStmt()        {}
+func (*BlockStmt) isStmt()      {}
+func (*ReturnStmt) isStmt()     {}
+func (*ExprStmt) isStmt()       {}
+func (*IfStmt) isStmt()         {}
+func (*ForStmt) isStmt()        {}
+func (*ForOfStmt) isStmt()      {}
+func (*BreakStmt) isStmt()      {}
+func (*ContinueStmt) isStmt()   {}
 
 type (
-	ImportDecl struct {
-		Source string
+	ModuleDecl struct {
+		Source *Expr
 		Local  *Identifier
+		Pubic  bool
 	}
 
 	FuncDecl struct {
 		Name     *Identifier
-		Impl     *KindExpr
 		FuncKind *KindExpr
 		Body     *Stmt
 		Pubic    bool
+	}
+
+	ImplStructDecl struct {
+		Target    *KindExpr
+		Interface *KindExpr
+		Body      []*Stmt
 	}
 
 	VarDecl struct {

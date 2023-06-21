@@ -9,7 +9,7 @@ var Keywords = [...]string{
 	// 逻辑控制
 	"if", "else", "for", "return", "break", "continue",
 	// 其他修饰符
-	"pub", "import", "as", "is",
+	"pub", "use", "impl", "as", "is",
 }
 
 // Constants 内置常量

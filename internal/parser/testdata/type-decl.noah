@@ -1,33 +1,44 @@
-type TypeNum = num
-
 pub type Vec = []char
-
-pub struct Person {
-    name: str
-    age: num
-}
 
 enum Color {
     Red,
     Green,
 }
 
-interface Man {
-    fn say(a: num) -> str,
-    fn go(...args: []str);
+pub interface Person {
+    say() -> str
 }
 
-interface Man2 <- Man {
+pub struct Man {
+    name: str
 }
 
-pub interface Cindy {
-    fn walk() -> [2]num;
+pub struct Woman {
+    nick: str
 }
 
-struct Student <- Person.A: Man.B {
-    grade: num
+impl (Person) Man {
+    pub fn say() {
+        return "Man: " + self.name
+    }
 }
 
-struct Student2 <- Student {
-    grade: num
+impl (a.Person) b.Woman {
+    pub fn say() {
+        return "Woman: " + self.nick
+    }
+}
+
+impl c.Woman {
+    pub fn say() {
+        return "Woman: " + self.nick
+    }
+}
+
+struct OldMan <- Man {
+    age: num
+}
+
+struct Student <- a.Man, b.Woman {
+    scores: []num
 }

@@ -131,20 +131,18 @@ func (p *Parser) parseFuncKindExpr(start int) *ast.KindExpr {
 	return kindExpr
 }
 
-func (p *Parser) parseKindProps(isFunc bool) []*ast.KindProperty {
+func (p *Parser) parseKindProperties(isFunc bool, hideFnWord bool) []*ast.KindProperty {
 	properties := make([]*ast.KindProperty, 0, helper.DefaultCap)
 
 	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
 		pair := &ast.KindProperty{}
 
-		if isFunc && p.isKeyword("fn") {
+		if isFunc {
 			start := p.current.Start
-			p.nextToken()
-			if !p.isToken(lexer.TTIdentifier) {
-				p.unexpectedMissing("function name")
+			if !hideFnWord {
+				p.consumeKeyword("fn", true)
 			}
-			pair.Name = NewIdentifier(p.current)
-			p.nextToken()
+			pair.Name = NewIdentifier(p.consume(lexer.TTIdentifier, true))
 			pair.Kind = p.parseFuncKindExpr(start)
 		} else if !isFunc {
 			token := p.consume(lexer.TTIdentifier, true)

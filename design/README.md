@@ -71,8 +71,10 @@ let s2 = Person{ name: "noah" } // { name: "noah", age: 0 }
 
 let s3: Person = { name: "noah" } // { name: "noah", age: 0 }
 
-// 修改 `age` 属性值
-s3.age = 22
+fn main() {
+    // 修改 `age` 属性值
+    s3.age = 22
+}
 ```
 
 **枚举类型**：
@@ -104,23 +106,29 @@ let arr4: [3]Person = [
 //      null
 //  ]
 
-// 修改第 3 个元素的值
-arr4[2] = { name: "noah", age: 28 }
-
-// 修改第 3 个元素的值的 `age` 属性
-arr4[2].age = 18
+fn main() {
+    // 修改第 3 个元素的值
+    arr4[2] = { name: "noah", age: 28 }
+    
+    // 修改第 3 个元素的值的 `age` 属性
+    arr4[2].age = 18
+}
 ```
 
 ## 可变长数组
 
 ```noah
-let arr: []num = [1]
-
-arr.push(2) // arr == [1, 2]
-arr.unshift(3) // arr == [3, 1, 2]
+fn main() {
+    let arr: []num = [1]
+    
+    arr.push(2) // arr == [1, 2]
+    arr.unshift(3) // arr == [3, 1, 2]
+}
 ```
 
 ## 函数
+
+除 **定义变量**、**定义类型**、**定义函数** 外，其他语句必须放在函数里执行，`main` 函数会程序的入口。
 
 ```noah
 // 声明一个名为 `foo` 的函数，入参 `name` 的类型是字符串，返回值是布尔类型
@@ -144,8 +152,8 @@ fn main() {
 ```noah
 fn add(...nums: []num) -> num {
     let sum = 0
-    for n: nums {
-        sum = sum + n
+    for v: nums {
+        sum += v
     }
     return sum
 }
@@ -158,120 +166,126 @@ fn main() {
 
 ## 内存引用
 
-在函数参数传递及赋值语句中，除**字符串、数组、可变长数组、结构体**是传递内存地址引用外，其他类型都是传递值的拷贝
+在函数参数传递及赋值语句中，除**数组、可变长数组、结构体、函数引用**是传递内存地址引用外，其他类型都是传递值的拷贝
 
 ## 逻辑控制
 
 **函数返回**：
 
 ```noah
-return // 空返回
-return "abc" // 返回字符串
+fn main() {
+    return // 空返回
+    return "abc" // 返回字符串
+}
 ```
 
 **条件控制**：
 
 ```noah
-if expr1 {
-    // do something
-} else if expr2 {
-    // do something
-} else {
-    // do something
+fn main() {
+    if expr1 {
+        // do something
+    } else if expr2 {
+        // do something
+    } else {
+        // do something
+    }
 }
 ```
 
 **循环**：
 
 ```noah
-let arr: []num = [1, 2, 3]
-
-// 遍历数组的元素及索引
-for item, index: arr {
-    println(item, index)
-}
-
-// 包含初始值声明、条件、更新语句的循环
-for let i = 0; i < arr.len(); i = i + 1 {
-    println(arr[i], i)
-}
-
-// 仅有条件的循环
-let i = 0;
-for i < arr.len() {
-    i = i + 1
-}
-
-// 无限循环，可通过 `break` 或 `continue` 跳出循环
-label: for {
-    break
-    continue
+fn main() {
+    let arr: []num = [1, 2, 3]
+    
+    // 遍历数组的元素及索引
+    for item, index: arr {
+        println(item, index)
+    }
+    
+    // 包含初始值声明、条件、更新语句的循环
+    for let i = 0; i < arr.len(); i = i + 1 {
+        println(arr[i], i)
+    }
+    
+    // 仅有条件的循环
+    let i = 0;
+    for i < arr.len() {
+        i = i + 1
+    }
+    
+    // 无限循环，可通过 `break` 或 `continue` 跳出循环
+    label: for {
+        break
+        continue
+    }
 }
 ```
 
 ## 多态
 
 ```noah
-interface Man {
-    fn say() -> str
+pub interface Person {
+    say() -> str
 }
 
-// 结构体 `Person` 实现 `Man` 接口
-struct Person: Man {}
-
-// 必须实现 `say()` 方法
-fn Person: say () -> str {
-    return "Person: " + self.name
+pub struct Man {
+    name: str
 }
 
-struct Student: Man {}
+pub struct Woman {
+    nick: str
+}
 
-// 必须实现 `say()` 方法
-fn Student: say() -> str {
-    return "Student: " + self.name
+impl (Person) Man {
+    pub fn say() {
+        return "Man: " + self.name
+    }
+}
+
+impl (Person) Woman {
+    pub fn say() {
+        return "Woman: " + self.nick
+    }
 }
 ```
 
-**`interface` 继承**
+**`strcut` 继承**
 
 ```noah
-interface Woman <- Man {
-    fn eat(n: num)
+struct OldMan <- Man {
+    age: num
 }
 
-struct Alice: Woman {
-    weight: num
-}
-
-// 必须实现 `say()` 方法
-fn Alice: say() -> str {
-    return "Woman: " + self.name
-}
-
-// 必须实现 `eat()` 方法
-fn Alice: eat(n: num) {
-    self.weight = self.weight + n
+struct Student <- Man, Woman {
+    scores: []num
 }
 ```
 
-**使用多态**：
+**使用结构体**：
 
 ```noah
 // 作为函数参数
-fn Person: hello(m: Man) {
-    m.say()
+fn hello(p: Person) {
+    p.say() // return str
 }
 
-let w = Woman{}
-hello(w)
-
-// 作为变量类型
-let man: Man
-man = Person{}
-man = Woman{}
+fn main() {
+    let s = Student{}
+    s.scores
+    s.name
+    s.nick
+    
+    // 作为变量类型
+    let p: Persion
+    p = Man{}
+    p = Woman{}
+    hello(p)
+}
 ```
 
-**动态类型**
+## 动态类型
 
 ```noah
 fn hello(value: any) {
@@ -287,9 +301,10 @@ fn hello(value: any) {
 
 ### 定义模块
 
-同一个文件夹的所有变量、类型都同属一个模块。模块内的变量、类型可以互相访问，但是对外部模块来说这些变量及类型默认都是私有的，可通过 `pub` 向外部暴露
+同一个文件的变量、类型都同属一个模块。模块内的变量、类型可以互相访问，但是对外部模块来说这些变量及类型默认都是私有的，可通过 `pub`
+向外部暴露
 
-`foo.noah`
+`lib/foo.noah`
 
 ```noah
 var abc = 123 // private
@@ -302,12 +317,14 @@ pub struct Person {
 }
 ```
 
-`sub/foo.noah`
+`lib/bar.noah`
 
 ```noah
-import ".." as entry
+use "foo"
+pub use "foo" as foo2 // re-export
 
-let n = entry.abc // 123 (from `foo.noah`)
+let n1 = foo.PI // 3.14159 (from `lib/foo.noah`)
+type P = foo2.Person
 
 pub fn say() -> str {
     return "Hello World"
@@ -317,25 +334,20 @@ pub fn say() -> str {
 `main.noah`
 
 ```noah
-import "sub" as sub
+use "lib/bar"
 
-let n = abc // 123 (from `foo.noah`)
+let n = bar.foo2.PI // 3.14159 (from `lib/foo.noah`)
 
 fn main() {
-    let s = sub.say()
+    let s = bar.say() // (from `lib/bar.noah`)    
 }
 ```
 
-**全局模块(模块名以 `mod:` 开始)**:
+**三方模块(模块名以 `moduleName:` 开始)**:
 
 ```noah
-// 导入标准库模块
-import "mod:std/numbers" as numbers
-numbers.toNum("1.2") // 1.2
-
-// 引用第三方模块
-import "mod:github.com/foo/bar" as third
-third.xxx
+use "std:numbers" // 导入标准库模块
+use "third:lib/foo" // 导入三方库模块
 ```
 
 ## 其他

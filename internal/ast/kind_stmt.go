@@ -14,15 +14,13 @@ type (
 
 	TypeInterfaceDecl struct {
 		Name       *KindIdentifier
-		Extends    *KindExpr
 		Properties []*KindProperty
 		Pubic      bool
 	}
 
 	TypeStructDecl struct {
 		Name       *KindIdentifier
-		Impl       *KindExpr
-		Extends    *KindExpr
+		Extends    []*KindExpr
 		Properties []*KindProperty
 		Pubic      bool
 	}

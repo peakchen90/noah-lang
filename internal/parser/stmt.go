@@ -18,12 +18,14 @@ func (p *Parser) parseStmt() *ast.Stmt {
 			p.expect(lexer.TTKeyword)
 
 			switch p.current.Value {
+			case "use":
+				stmt = p.parseUseStmt(pubToken)
 			case "fn":
 				stmt = p.parseFuncDecl(pubToken)
 			case "let":
-				stmt = p.parseVarDecl(false, pubToken)
+				stmt = p.parseVarDecl(pubToken, false)
 			case "const":
-				stmt = p.parseVarDecl(true, pubToken)
+				stmt = p.parseVarDecl(pubToken, true)
 			case "type":
 				stmt = p.parseTypeDecl(pubToken)
 			case "interface":
@@ -35,14 +37,14 @@ func (p *Parser) parseStmt() *ast.Stmt {
 			default:
 				p.unexpected()
 			}
-		case "import":
-			stmt = p.parseImportStmt()
+		case "use":
+			stmt = p.parseUseStmt(nil)
 		case "fn":
 			stmt = p.parseFuncDecl(nil)
 		case "let":
-			stmt = p.parseVarDecl(false, nil)
+			stmt = p.parseVarDecl(nil, false)
 		case "const":
-			stmt = p.parseVarDecl(true, nil)
+			stmt = p.parseVarDecl(nil, true)
 		case "type":
 			stmt = p.parseTypeDecl(nil)
 		case "interface":
@@ -51,6 +53,8 @@ func (p *Parser) parseStmt() *ast.Stmt {
 			stmt = p.parseStructDecl(nil)
 		case "enum":
 			stmt = p.parseEnumDecl(nil)
+		case "impl":
+			stmt = p.parseImplStructDecl()
 		case "if":
 			stmt = p.parseIfStmt()
 		case "for":
@@ -96,37 +100,37 @@ func (p *Parser) parseStmt() *ast.Stmt {
 	return stmt
 }
 
-func (p *Parser) parseImportStmt() *ast.Stmt {
-	stmt := ast.Stmt{}
-	stmt.Start = p.current.Start
-	p.nextToken()
+func (p *Parser) parseUseStmt(pubToken *lexer.Token) *ast.Stmt {
+	stmt := &ast.Stmt{}
+	if pubToken != nil {
+		stmt.Start = pubToken.Start
+	} else {
+		stmt.Start = p.current.Start
+	}
+
+	p.nextToken() // skip `use`
 
 	// source
 	if !p.isToken(lexer.TTString) {
-		p.unexpectedMissing("import source")
+		p.unexpectedMissing("source")
 	}
-	source := p.current.Value
-	p.nextToken()
+	source := p.parseAtomExpr()
+	stmt.End = source.End
 
-	// as
-	if p.consumeKeyword("as", false) == nil {
-		p.unexpectedMissing("keyword `as`")
+	var local *ast.Identifier
+
+	if p.consumeKeyword("as", false) != nil {
+		local = NewIdentifier(p.consume(lexer.TTIdentifier, true))
+		stmt.End = local.End
 	}
 
-	// localName
-	if !p.isToken(lexer.TTIdentifier) {
-		p.unexpectedMissing("local name")
-	}
-	local := NewIdentifier(p.current)
-	p.nextToken()
-
-	stmt.Node = &ast.ImportDecl{
+	stmt.Node = &ast.ModuleDecl{
 		Source: source,
 		Local:  local,
+		Pubic:  pubToken != nil,
 	}
-	stmt.End = local.End
 
-	return &stmt
+	return stmt
 }
 
 func (p *Parser) parseFuncDecl(pubToken *lexer.Token) *ast.Stmt {
@@ -136,34 +140,12 @@ func (p *Parser) parseFuncDecl(pubToken *lexer.Token) *ast.Stmt {
 	} else {
 		stmt.Start = p.current.Start
 	}
-	p.nextToken()
+	p.nextToken() // skip `fn`
 
-	firstToken := p.consume(lexer.TTIdentifier, false)
-	if firstToken == nil {
-		p.unexpectedMissing("function name")
-	}
-
-	var impl *ast.KindExpr
-
-	if !p.isToken(lexer.TTParenL) {
-		impl = p.parseMaybeChainKindExpr(&ast.KindExpr{
-			Node:     &ast.TypeId{Name: NewKindIdentifier(firstToken)},
-			Position: firstToken.Position,
-		})
-		p.consume(lexer.TTColon, true)
-	}
-
-	nameToken := p.consume(lexer.TTIdentifier, false)
-	if nameToken == nil {
-		nameToken = firstToken
-		firstToken = nil
-	}
-
+	nameToken := p.consume(lexer.TTIdentifier, true)
 	funcKind := p.parseFuncKindExpr(stmt.Start)
-
 	funcDecl := &ast.FuncDecl{
 		Name:     NewIdentifier(nameToken),
-		Impl:     impl,
 		FuncKind: funcKind,
 		Body:     p.parseBlockStmt(),
 		Pubic:    pubToken != nil,
@@ -175,7 +157,7 @@ func (p *Parser) parseFuncDecl(pubToken *lexer.Token) *ast.Stmt {
 	return stmt
 }
 
-func (p *Parser) parseVarDecl(isConst bool, pubToken *lexer.Token) *ast.Stmt {
+func (p *Parser) parseVarDecl(pubToken *lexer.Token, isConst bool) *ast.Stmt {
 	stmt := &ast.Stmt{}
 	if pubToken != nil {
 		stmt.Start = pubToken.Start
@@ -272,21 +254,13 @@ func (p *Parser) parseInterfaceDecl(pubToken *lexer.Token) *ast.Stmt {
 	name := NewKindIdentifier(p.current)
 	p.nextToken()
 
-	// extends
-	var Extends *ast.KindExpr
-	if p.consume(lexer.TTExtendSym, false) != nil {
-		p.expect(lexer.TTIdentifier)
-		Extends = p.parseKindExpr()
-	}
-
 	// `{`
 	p.consume(lexer.TTBraceL, true)
-	properties := p.parseKindProps(true)
+	properties := p.parseKindProperties(true, true)
 	p.consume(lexer.TTBraceR, true)
 
 	stmt.Node = &ast.TypeInterfaceDecl{
 		Name:       name,
-		Extends:    Extends,
 		Properties: properties,
 		Pubic:      pubToken != nil,
 	}
@@ -314,27 +288,24 @@ func (p *Parser) parseStructDecl(pubToken *lexer.Token) *ast.Stmt {
 	p.nextToken()
 
 	// extends
-	var extends *ast.KindExpr
+	extends := make([]*ast.KindExpr, 0, helper.SmallCap)
 	if p.consume(lexer.TTExtendSym, false) != nil {
 		p.expect(lexer.TTIdentifier)
-		extends = p.parseKindExpr()
-	}
-
-	// impl
-	var impl *ast.KindExpr
-	if p.consume(lexer.TTColon, false) != nil {
-		p.expect(lexer.TTIdentifier)
-		impl = p.parseKindExpr()
+		for p.isToken(lexer.TTIdentifier) {
+			extends = append(extends, p.parseKindExpr())
+			if p.consume(lexer.TTComma, false) == nil {
+				break
+			}
+		}
 	}
 
 	// `{`
 	p.consume(lexer.TTBraceL, true)
-	properties := p.parseKindProps(false)
+	properties := p.parseKindProperties(false, false)
 	p.consume(lexer.TTBraceR, true)
 
 	stmt.Node = &ast.TypeStructDecl{
 		Name:       name,
-		Impl:       impl,
 		Extends:    extends,
 		Properties: properties,
 		Pubic:      pubToken != nil,
@@ -371,6 +342,51 @@ func (p *Parser) parseEnumDecl(pubToken *lexer.Token) *ast.Stmt {
 		Name:  name,
 		Items: items,
 		Pubic: pubToken != nil,
+	}
+	stmt.End = p.lexer.LastToken.End
+	return stmt
+}
+
+func (p *Parser) parseImplStructDecl() *ast.Stmt {
+	stmt := &ast.Stmt{}
+	stmt.Start = p.current.Start
+	p.nextToken()
+
+	var Interface *ast.KindExpr
+	// maybe with interface
+	if p.consume(lexer.TTParenL, false) != nil {
+		p.expect(lexer.TTIdentifier)
+		Interface = p.parseKindExpr()
+		p.consume(lexer.TTParenR, true)
+	}
+
+	p.expect(lexer.TTIdentifier)
+	target := p.parseKindExpr()
+
+	body := make([]*ast.Stmt, 0, helper.DefaultCap)
+
+	p.consume(lexer.TTBraceL, true)
+	for !p.isToken(lexer.TTBraceR) {
+		var pubToken *lexer.Token
+		if p.isKeyword("pub") {
+			pubToken = p.current
+			p.nextToken()
+		}
+		if p.isKeyword("fn") {
+			body = append(body, p.parseFuncDecl(pubToken))
+			for p.consume(lexer.TTSemi, false) != nil {
+				// remove semis
+			}
+		} else {
+			p.unexpected()
+		}
+	}
+	p.consume(lexer.TTBraceR, true)
+
+	stmt.Node = &ast.ImplStructDecl{
+		Target:    target,
+		Interface: Interface,
+		Body:      body,
 	}
 	stmt.End = p.lexer.LastToken.End
 	return stmt
@@ -448,7 +464,7 @@ func (p *Parser) parseForStmt(labelToken *lexer.Token) *ast.Stmt {
 			test = p.parseIdentifierExpr(headToken)
 		}
 	} else if p.isKeyword("let") || p.isKeyword("const") { // for (init; test; update) {}
-		init = p.parseVarDecl(len(p.current.Value) == 5, nil)
+		init = p.parseVarDecl(nil, len(p.current.Value) == 5)
 		p.consume(lexer.TTSemi, true)
 		if !p.isToken(lexer.TTSemi) {
 			test = p.parseExpr()

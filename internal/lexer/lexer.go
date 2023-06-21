@@ -299,12 +299,15 @@ func (l *Lexer) skipComment() {
 		for l.checkIndex() && l.Look(0) != '\n' {
 			l.index++
 		}
-		l.index++
 		l.skipSpace()
 		l.skipComment()
 	} else if l.Look(0) == '/' && l.Look(1) == '*' {
 		l.index += 2
 		for l.checkIndex() && !(l.Look(0) == '*' && l.Look(1) == '/') {
+			ch := l.Look(0)
+			if ch == '\r' || ch == '\n' {
+				l.SeenNewline = true
+			}
 			l.index++
 		}
 		l.index += 2
