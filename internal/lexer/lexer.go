@@ -58,7 +58,7 @@ func (l *Lexer) Next() *Token {
 			if l.Look(1) == '=' {
 				l.index += 2
 				token = l.createToken(TTPlusAssign, l.index-2, l.index)
-			} else if l.allowExpr {
+			} else if l.allowExpr || l.SeenNewline {
 				if l.Look(1) == '+' {
 					l.index += 2
 					token = l.createToken(TTPrefixInc, l.index-2, l.index)
@@ -82,7 +82,7 @@ func (l *Lexer) Next() *Token {
 			} else if l.Look(1) == '>' {
 				l.index += 2
 				token = l.createToken(TTReturnSym, l.index-2, l.index)
-			} else if l.allowExpr {
+			} else if l.allowExpr || l.SeenNewline {
 				if l.Look(1) == '-' {
 					l.index += 2
 					token = l.createToken(TTPrefixDec, l.index-2, l.index)

@@ -83,15 +83,15 @@ func (p *Parser) parseBinaryExprPrecedence(left *ast.Expr, precedence int8) *ast
 			}
 		} else {
 			// 解析可能更高优先级的右侧表达式，如: `1 + 2 * 3` 将解析 `2 * 3` 作为右值
-			maybeHigherPrecedenceExpr := p.parseMaybeBinaryExpr(nextPrecedence)
-			right := p.parseBinaryExprPrecedence(maybeHigherPrecedenceExpr, nextPrecedence)
+			nextExpr := p.parseMaybeBinaryExpr(nextPrecedence)
+			maybeHigherPrecedenceExpr := p.parseBinaryExprPrecedence(nextExpr, nextPrecedence)
 			node = &ast.Expr{
 				Node: &ast.BinaryExpr{
 					Left:     left,
-					Right:    right,
+					Right:    maybeHigherPrecedenceExpr,
 					Operator: operator,
 				},
-				Position: ast.Position{Start: left.Start, End: right.End},
+				Position: ast.Position{Start: left.Start, End: maybeHigherPrecedenceExpr.End},
 			}
 		}
 
