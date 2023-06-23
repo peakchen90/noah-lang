@@ -59,20 +59,20 @@ func (p *Parser) revertLastToken() {
 	}
 }
 
-func (p *Parser) unexpectedPos(index int, msg string) {
+func (p *Parser) UnexpectedPos(index int, msg string) {
 	line, column := helper.PrintErrorFrame(p.source, index, msg)
 	panic(fmt.Sprintf("%s (%d:%d)", msg, line, column))
 }
 
 func (p *Parser) unexpectedToken(expectHint string, receiveToken *lexer.Token) {
-	p.unexpectedPos(
+	p.UnexpectedPos(
 		receiveToken.Start,
 		fmt.Sprintf("Expected %s, found %s", expectHint, receiveToken.String()),
 	)
 }
 
 func (p *Parser) unexpectedMissing(missingHint string) {
-	p.unexpectedPos(p.lexer.LastToken.End, fmt.Sprintf("Missing %s", missingHint))
+	p.UnexpectedPos(p.lexer.LastToken.End, fmt.Sprintf("Missing %s", missingHint))
 }
 
 func (p *Parser) unexpected() {
@@ -88,7 +88,7 @@ func (p *Parser) unexpected() {
 		message = "unexpected token " + token.String()
 	}
 
-	p.unexpectedPos(token.Start, message)
+	p.UnexpectedPos(token.Start, message)
 }
 
 // 判断当前是否为指定 token 类型

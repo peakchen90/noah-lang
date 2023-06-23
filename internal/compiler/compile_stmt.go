@@ -118,9 +118,8 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target Kind, isPrecompile b
 		}
 
 		if target != nil {
-			if target.getImpl().getFunc(name) != nil {
-				// TODO
-				panic("duplicate method " + name)
+			if target.getImpl().hasFunc(name) {
+				m.unexpectedPos(node.Name.Start, "Duplicate key: "+name)
 			}
 			target.getImpl().addFunc(value)
 		} else {
@@ -145,22 +144,24 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target Kind, isPrecompile b
 func (m *Module) compileImplDecl(node *ast.ImplDecl, isPrecompile bool) {
 	target := m.compileKindExpr(node.Target)
 	m.scopes.push()
-	m.putSelfKind("self", target)
+	m.putSelfKind(target)
 
 	switch target.(type) {
 	case *TInterface:
-		// TODO
-		panic("can not impl interface")
+		m.unexpectedPos(node.Target.Start, "Cannot implements for interface type")
 	case *TAny:
-		// TODO
-		panic("can not impl any")
+		m.unexpectedPos(node.Target.Start, "Cannot implements for any type")
+	case *TSelf:
+		m.unexpectedPos(node.Target.Start, "Cannot implements for self type")
 	}
 
-	impls := make(map[string]*FuncValue)
+	implValues := make(map[string]*FuncValue)
+	implDecls := make(map[string]*ast.Stmt)
 	for _, stmt := range node.Body {
 		val := m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), target, isPrecompile)
 		if isPrecompile {
-			impls[val.Name] = val
+			implValues[val.Name] = val
+			implDecls[val.Name] = stmt
 		}
 	}
 
@@ -170,22 +171,19 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl, isPrecompile bool) {
 			if ok {
 				t.Refers = append(t.Refers, target)
 				for key, kind := range t.Properties {
-					if impls[key] == nil {
-						// TODO
-						panic("missing func: " + key)
+					if implValues[key] == nil {
+						m.unexpectedPos(node.Target.Start, "No implement method: "+key)
 					}
-					if !compareKind(kind, impls[key].Kind, true) {
-						// TODO
-						panic("can math func sign: " + key)
+					if !compareKind(kind, implValues[key].Kind, true) {
+						// TODO panic
+						m.unexpectedPos(implDecls[key].Start, "Unable to match interface method signature: "+key)
 					}
 				}
 			} else {
 				if t == nil {
-					// TODO
-					panic("can not found: " + getKindExprId(node.Interface))
+					m.unexpectedPos(node.Interface.Start, "Cannot found: "+getKindExprId(node.Interface))
 				}
-				// TODO
-				panic("unexpected kind")
+				m.unexpectedPos(node.Interface.Start, "Expect be an interface type")
 			}
 		}
 	}
@@ -214,7 +212,6 @@ func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 
 func (m *Module) compileTAliasDecl(node *ast.TAliasDecl) {
 	kind := &TCustom{
-		Id:   getNextTypeId(),
 		Kind: m.compileKindExpr(node.Kind),
 		Impl: newImpl(),
 	}
@@ -226,27 +223,24 @@ func (m *Module) compileTAliasDecl(node *ast.TAliasDecl) {
 }
 
 func (m *Module) compileTInterfaceDecl(node *ast.TInterfaceDecl) {
-	props := make(map[string]Kind)
-
-	for _, pair := range node.Properties {
-		key := pair.Key.Name
-		_, has := props[key]
-		if has {
-			// TODO duplicate
-			panic("duplicate " + key)
-
-		} else if key[0] == '_' {
-			// TODO duplicate
-			panic("interface func can not private: " + key)
-		}
-		props[key] = m.compileKindExpr(pair.Kind)
-	}
-
 	kind := &TInterface{
-		Id:         getNextTypeId(),
-		Properties: props,
+		Properties: make(map[string]Kind),
 		Refers:     make([]Kind, 0, helper.DefaultCap),
 	}
+
+	m.scopes.push()
+	m.putSelfKind(kind)
+	for _, pair := range node.Properties {
+		key := pair.Key.Name
+		_, has := kind.Properties[key]
+		if has {
+			m.unexpectedPos(pair.Key.Start, "Duplicate key: "+key)
+		} else if key[0] == '_' {
+			m.unexpectedPos(pair.Key.Start, "Should not be private method: "+key)
+		}
+		kind.Properties[key] = m.compileKindExpr(pair.Kind)
+	}
+	m.scopes.pop()
 
 	m.putKind(node.Name, kind, true)
 	if node.Pub {
@@ -267,17 +261,16 @@ func (m *Module) compileTEnumDecl(node *ast.TEnumDecl) {
 	choices := make(map[string]int)
 
 	for i, item := range node.Choices {
-		choiceName := item.Name
-		_, has := choices[choiceName]
+		name := item.Name
+		_, has := choices[name]
 		if has {
 			// TODO
-			panic("duplicate " + choiceName)
+			m.unexpectedPos(item.Start, "Duplicate item: "+name)
 		}
-		choices[choiceName] = i
+		choices[name] = i
 	}
 
 	kind := &TEnum{
-		Id:      getNextTypeId(),
 		Choices: choices,
 	}
 

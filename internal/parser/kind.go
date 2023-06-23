@@ -27,20 +27,12 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 			kindExpr.Node = &ast.TBool{}
 		case "any":
 			kindExpr.Node = &ast.TAny{}
+		case "self":
+			kindExpr.Node = &ast.TSelf{}
 		default:
 			kindExpr.Node = &ast.TIdentifier{Name: newKindIdentifier(token)}
 			return p.parseMaybeChainKindExpr(kindExpr)
 		}
-	} else if p.isToken(lexer.TTConst) {
-		switch p.current.Value {
-		case "self":
-			kindExpr.Node = &ast.TSelf{}
-		default:
-			p.unexpected()
-		}
-
-		kindExpr.Position = p.current.Position
-		p.nextToken()
 	} else if p.isToken(lexer.TTBracketL) {
 		kindExpr.Start = p.current.Start
 		p.nextToken()
@@ -99,7 +91,7 @@ func (p *Parser) parseFuncKindExpr(start int) *ast.KindExpr {
 	var lastRestToken *lexer.Token
 	for !p.isEnd() && !p.isToken(lexer.TTParenR) {
 		if lastRestToken != nil {
-			p.unexpectedPos(lastRestToken.Start, "Can only use '...' as the final argument")
+			p.UnexpectedPos(lastRestToken.Start, "Can only use '...' as the final argument")
 		}
 
 		restToken := p.consume(lexer.TTRest, false)

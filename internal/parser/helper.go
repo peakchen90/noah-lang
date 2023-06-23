@@ -31,7 +31,7 @@ func newIdentifierExpr(token *lexer.Token) *ast.Expr {
 func newNumberExpr(token *lexer.Token, parser *Parser) *ast.Expr {
 	value, err := strconv.ParseFloat(token.Value, 64)
 	if err != nil {
-		parser.unexpectedPos(token.Start, err.Error())
+		parser.UnexpectedPos(token.Start, err.Error())
 	}
 	return &ast.Expr{
 		Node:     &ast.NumberLiteral{Value: value},

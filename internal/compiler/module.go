@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"errors"
 	"github.com/peakchen90/noah-lang/internal/ast"
 	"github.com/peakchen90/noah-lang/internal/helper"
 	"github.com/peakchen90/noah-lang/internal/parser"
@@ -12,6 +13,7 @@ import (
 type Module struct {
 	Ast         *ast.File
 	compiler    *Compiler
+	parser      *parser.Parser
 	packageName string
 	moduleId    string
 	exports     *Scope
@@ -19,11 +21,14 @@ type Module struct {
 }
 
 func NewModule(compiler *Compiler, code string, packageName string, moduleId string) *Module {
+	p := parser.NewParser(code)
+
 	return &Module{
 		compiler:    compiler,
+		parser:      p,
 		packageName: packageName,
 		moduleId:    moduleId,
-		Ast:         parser.NewParser(code).Parse(),
+		Ast:         p.Parse(),
 		exports: &Scope{
 			value: make(map[string]Value),
 			kind:  make(map[string]Kind),
@@ -42,8 +47,7 @@ func (m *Module) putValue(name *ast.Identifier, scope Value, isPanic bool) {
 	if last != nil {
 		if last.has(name.Name) {
 			if isPanic {
-				// TODO
-				panic("exist: " + name.Name)
+				m.unexpectedPos(name.Start, "Identifier has already been declared: "+name.Name)
 			}
 		}
 
@@ -56,8 +60,7 @@ func (m *Module) putModule(name *ast.Identifier, scope Value, isPanic bool) {
 	if last != nil {
 		if last.has(name.Name) {
 			if isPanic {
-				// TODO
-				panic("exist: " + name.Name)
+				m.unexpectedPos(name.Start, "Identifier has already been declared: "+name.Name)
 			}
 		}
 
@@ -70,8 +73,7 @@ func (m *Module) putKind(name *ast.Identifier, scope Kind, isPanic bool) {
 	if last != nil {
 		if last.has(name.Name) {
 			if isPanic {
-				// TODO
-				panic("exist: " + name.Name)
+				m.unexpectedPos(name.Start, "Identifier has already been declared: "+name.Name)
 			}
 		}
 
@@ -79,10 +81,10 @@ func (m *Module) putKind(name *ast.Identifier, scope Kind, isPanic bool) {
 	}
 }
 
-func (m *Module) putSelfKind(name string, scope Kind) {
+func (m *Module) putSelfKind(scope Kind) {
 	last := m.scopes.last()
 	if last != nil {
-		last.setKind(name, scope)
+		last.setKind("self", scope)
 	}
 }
 
@@ -95,32 +97,30 @@ func (m *Module) findValue(name *ast.Identifier, isPanic bool) Value {
 	}
 
 	if isPanic {
-		// TODO
-		panic("can not found: " + name.Name)
+		m.unexpectedPos(name.Start, name.Name+" is not defined")
 	}
 
 	return nil
 }
 
-func (m *Module) findIdentifierKind(kindExpr *ast.KindExpr, isPanic bool) Kind {
-	node, ok := kindExpr.Node.(*ast.TIdentifier)
-	if !ok {
-		panic("Internal Err")
-	}
-
+func (m *Module) findKind(name string) (Kind, error) {
 	for i := m.scopes.size() - 1; i >= 0; i-- {
-		scope := m.scopes.stack[i].getKind(node.Name.Name)
+		scope := m.scopes.stack[i].getKind(name)
 		if scope != nil {
-			return scope
+			return scope, nil
 		}
 	}
+	return nil, errors.New(name + " is not found")
+}
 
-	if isPanic {
-		// TODO
-		panic("can not found: " + node.Name.Name)
+func (m *Module) findIdentifierKind(name *ast.Identifier, isPanic bool) Kind {
+	kind, err := m.findKind(name.Name)
+
+	if err != nil && isPanic {
+		m.unexpectedPos(name.Start, name.Name+" is not found")
 	}
 
-	return nil
+	return kind
 }
 
 func (m *Module) findMemberKind(kindExpr *ast.KindExpr, module *Module, isPanic bool) Kind {
@@ -162,15 +162,29 @@ outer:
 			module = value.Module
 			builder.WriteByte('.')
 		} else {
-			kind = module.findIdentifierKind(item, isPanic)
+			kind = module.findIdentifierKind(node.Name, isPanic)
 		}
 	}
 
 	if kind == nil {
 		if isPanic {
-			// TODO
-			panic("can not found: " + builder.String())
+			m.unexpectedPos(kindExpr.Start, builder.String()+" is not found")
 		}
+	}
+
+	return kind
+}
+
+func (m *Module) findSelfKind(kindExpr *ast.KindExpr, isPanic bool) Kind {
+	_, ok := kindExpr.Node.(*ast.TSelf)
+	if !ok {
+		panic("Internal Err")
+	}
+
+	kind, err := m.findKind("self")
+
+	if err != nil && isPanic {
+		m.unexpectedPos(kindExpr.Start, "Cannot use self here")
 	}
 
 	return kind
@@ -184,8 +198,7 @@ func (m *Module) findModule(name *ast.Identifier, isPanic bool) *ModuleValue {
 	}
 
 	if isPanic {
-		// TODO
-		panic("can not found: " + name.Name)
+		m.unexpectedPos(name.Start, name.Name+" is not found")
 	}
 
 	return nil
@@ -199,8 +212,7 @@ func (m *Module) findFunc(name *ast.Identifier, isPanic bool) *FuncValue {
 	}
 
 	if isPanic {
-		// TODO
-		panic("can not found: " + name.Name)
+		m.unexpectedPos(name.Start, name.Name+" is not found")
 	}
 
 	return nil
@@ -214,9 +226,12 @@ func (m *Module) findVar(name *ast.Identifier, isPanic bool) *VarValue {
 	}
 
 	if isPanic {
-		// TODO
-		panic("can not found: " + name.Name)
+		m.unexpectedPos(name.Start, name.Name+" is not found")
 	}
 
 	return nil
+}
+
+func (m *Module) unexpectedPos(index int, msg string) {
+	m.parser.UnexpectedPos(index, msg)
 }

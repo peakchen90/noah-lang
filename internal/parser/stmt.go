@@ -178,7 +178,7 @@ func (p *Parser) parseVarDecl(pubToken *lexer.Token, isConst bool) *ast.Stmt {
 		p.unexpectedMissing("variable name")
 	}
 	if isReservedType(token.Value) {
-		p.unexpectedPos(token.Start, "Reserved type cannot be used: "+token.Value)
+		p.UnexpectedPos(token.Start, "Reserved type cannot be used: "+token.Value)
 	}
 	id := newIdentifier(token)
 
@@ -220,7 +220,7 @@ func (p *Parser) parseTypeDecl(pubToken *lexer.Token) *ast.Stmt {
 		p.unexpectedMissing("type name")
 	}
 	if isReservedType(p.current.Value) {
-		p.unexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
+		p.UnexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
 	}
 	name := newKindIdentifier(p.current)
 	p.consumeVarId(true)
@@ -250,7 +250,7 @@ func (p *Parser) parseInterfaceDecl(pubToken *lexer.Token) *ast.Stmt {
 		p.unexpectedMissing("interface name")
 	}
 	if isReservedType(p.current.Value) {
-		p.unexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
+		p.UnexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
 	}
 	name := newKindIdentifier(p.current)
 	p.consumeVarId(true)
@@ -282,7 +282,7 @@ func (p *Parser) parseStructDecl(pubToken *lexer.Token) *ast.Stmt {
 
 	nameToken := p.consumeVarId(true)
 	if isReservedType(nameToken.Value) {
-		p.unexpectedPos(nameToken.Start, "Reserved type cannot be used: "+nameToken.Value)
+		p.UnexpectedPos(nameToken.Start, "Reserved type cannot be used: "+nameToken.Value)
 	}
 
 	stmt.Node = &ast.TStructDecl{
@@ -308,7 +308,7 @@ func (p *Parser) parseEnumDecl(pubToken *lexer.Token) *ast.Stmt {
 		p.unexpectedMissing("enum name")
 	}
 	if isReservedType(p.current.Value) {
-		p.unexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
+		p.UnexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
 	}
 	name := newKindIdentifier(p.current)
 	p.consumeVarId(true)

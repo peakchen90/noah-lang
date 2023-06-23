@@ -5,6 +5,140 @@ import (
 	"strings"
 )
 
+func compareKind(expected Kind, received Kind, isMatch bool) bool {
+	if expected == nil && received == nil {
+		return true
+	}
+
+	_, ok := received.(*TAny)
+	if ok {
+		return true
+	}
+
+	switch expected.(type) {
+	case *TNumber:
+		_, ok = received.(*TNumber)
+		return ok
+	case *TByte:
+		_, ok = received.(*TByte)
+		return ok
+	case *TChar:
+		_, ok = received.(*TChar)
+		return ok
+	case *TString:
+		_, ok = received.(*TString)
+		return ok
+	case *TBool:
+		_, ok = received.(*TBool)
+		return ok
+	case *TAny:
+		return true
+	case *TSelf:
+		return false
+	case *TArray:
+		r, ok := received.(*TArray)
+		if !ok {
+			return false
+		}
+
+		e := expected.(*TArray)
+		return e.Len == r.Len && compareKind(e.Kind, r.Kind, isMatch)
+	case *TFunc:
+		r, ok := received.(*TFunc)
+		if !ok {
+			return false
+		}
+		e := expected.(*TFunc)
+
+		if isMatch {
+			if e.RestArgument != r.RestArgument || len(e.Arguments) != len(r.Arguments) {
+				return false
+			}
+
+			for i, arg := range e.Arguments {
+				if !compareKind(arg, r.Arguments[i], isMatch) {
+					return false
+				}
+			}
+			return compareKind(e.Return, r.Return, isMatch)
+		} else {
+			return r == e
+		}
+	case *TStruct:
+		r, ok := received.(*TStruct)
+		if !ok {
+			return false
+		}
+		e := expected.(*TStruct)
+
+		if isMatch {
+			// TODO think about extends
+
+			if len(e.Properties) != len(r.Properties) {
+				return false
+			}
+			for key, kind := range e.Properties {
+				if !compareKind(kind, r.Properties[key], isMatch) {
+					return false
+				}
+			}
+			return true
+		} else {
+			return r == e
+		}
+	case *TInterface:
+		r, ok := received.(*TInterface)
+		if !ok {
+			return false
+		}
+		e := expected.(*TInterface)
+
+		if isMatch {
+			if len(e.Properties) != len(r.Properties) {
+				return false
+			}
+			for key, kind := range e.Properties {
+				if !compareKind(kind, r.Properties[key], isMatch) {
+					return false
+				}
+			}
+			return true
+		} else {
+			return r == e
+		}
+	case *TEnum:
+		r, ok := received.(*TEnum)
+		if !ok {
+			return false
+		}
+		e := expected.(*TEnum)
+
+		if isMatch {
+			if len(e.Choices) != len(r.Choices) {
+				return false
+			}
+			for i, v := range e.Choices {
+				if v != r.Choices[i] {
+					return false
+				}
+			}
+			return true
+		} else {
+			return r == e
+		}
+	case *TCustom:
+		e := expected.(*TCustom)
+		if isMatch {
+			return compareKind(e.Kind, received, true)
+		} else {
+			r, ok := received.(*TCustom)
+			return ok && r == e
+		}
+	}
+
+	return false
+}
+
 func getKindExprId(expr *ast.KindExpr) string {
 	if expr == nil {
 		return ""

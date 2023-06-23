@@ -28,12 +28,13 @@ func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) Kind {
 	case *ast.TAny:
 		kind = &TAny{}
 	case *ast.TSelf:
-		kind = m.findIdentifierKind(kindExpr, true)
+		kind = &TSelf{Kind: m.findSelfKind(kindExpr, true)}
 	case *ast.TArray:
 		node := node.(*ast.TArray)
 		kind = m.compileArrayKind(node)
 	case *ast.TIdentifier:
-		kind = m.findIdentifierKind(kindExpr, true)
+		node := node.(*ast.TIdentifier)
+		kind = m.findIdentifierKind(node.Name, true)
 	case *ast.TMemberKind:
 		kind = m.findMemberKind(kindExpr, nil, true)
 	case *ast.TFuncKind:
@@ -53,8 +54,7 @@ func (m *Module) compileArrayKind(t *ast.TArray) Kind {
 	if t.Len != nil {
 		rawVal := t.Len.Node.(*ast.NumberLiteral).Value
 		if rawVal < 0 || math.Floor(rawVal) != rawVal {
-			// TODO unexpected len
-			panic("unexpected len")
+			m.unexpectedPos(t.Len.Start, "Expect be a positive integer")
 		}
 		size = int(rawVal)
 	}
@@ -75,15 +75,13 @@ func (m *Module) compileFuncKind(t *ast.TFuncKind) Kind {
 			if i == len(t.Arguments)-1 {
 				rest = true
 			} else {
-				// TODO unexpected rest arg
-				panic("unexpected rest arg")
+				m.unexpectedPos(arg.Start, "The rest arguments should be placed last")
 			}
 		}
 		arguments = append(arguments, m.compileKindExpr(arg.Kind))
 	}
 
 	return &TFunc{
-		Id:           getNextTypeId(),
 		Arguments:    arguments,
 		Return:       m.compileKindExpr(t.Return),
 		RestArgument: rest,
@@ -95,14 +93,13 @@ func (m *Module) compileStructKind(t *ast.TStructKind) Kind {
 	extends := make([]Kind, 0, helper.SmallCap)
 	props := make(map[string]Kind)
 
-	for _, item := range t.Properties {
-		key := item.Key.Name
+	for _, pair := range t.Properties {
+		key := pair.Key.Name
 		_, has := props[key]
 		if has {
-			// TODO duplicate
-			panic("duplicate " + key)
+			m.unexpectedPos(pair.Start, "Duplicate key: "+key)
 		}
-		props[key] = m.compileKindExpr(item.Kind)
+		props[key] = m.compileKindExpr(pair.Kind)
 	}
 
 	for _, item := range t.Extends {
@@ -110,7 +107,6 @@ func (m *Module) compileStructKind(t *ast.TStructKind) Kind {
 	}
 
 	return &TStruct{
-		Id:         getNextTypeId(),
 		Extends:    extends,
 		Properties: props,
 		Impl:       newImpl(),
