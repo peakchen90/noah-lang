@@ -13,7 +13,7 @@ func (*StructExpr) isExpr()        {}
 func (*ArrayExpr) isExpr()         {}
 func (*IdentifierLiteral) isExpr() {}
 func (*NumberLiteral) isExpr()     {}
-func (*BooleanLiteral) isExpr()    {}
+func (*BoolLiteral) isExpr()       {}
 func (*NullLiteral) isExpr()       {}
 func (*SelfLiteral) isExpr()       {}
 func (*StringLiteral) isExpr()     {}
@@ -72,7 +72,7 @@ type (
 		Value float64
 	}
 
-	BooleanLiteral struct {
+	BoolLiteral struct {
 		Value bool
 	}
 

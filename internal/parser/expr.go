@@ -24,18 +24,18 @@ func (p *Parser) parseMaybeBinaryExpr(precedence int8) *ast.Expr {
 }
 
 func (p *Parser) parseMaybeUnaryExpr(precedence int8) *ast.Expr {
-	op := p.current
+	token := p.current
 
-	if op.OpType&lexer.OpUnaryPrefix > 0 && precedence < op.Precedence {
+	if token.OpType.IsOpUnaryPrefix() && precedence < token.Precedence {
 		p.nextToken()
-		argument := p.parseMaybePostfixUnaryExpr(p.parseMaybeBinaryExpr(op.Precedence), op.Precedence)
+		argument := p.parseMaybePostfixUnaryExpr(p.parseMaybeBinaryExpr(token.Precedence), token.Precedence)
 		return &ast.Expr{
 			Node: &ast.UnaryExpr{
 				Argument: argument,
-				Operator: op.Text,
+				Operator: token.Text,
 				Prefix:   true,
 			},
-			Position: ast.Position{Start: op.Start, End: argument.End},
+			Position: ast.Position{Start: token.Start, End: argument.End},
 		}
 	}
 
@@ -44,17 +44,17 @@ func (p *Parser) parseMaybeUnaryExpr(precedence int8) *ast.Expr {
 
 // maybe postfix operator, only once
 func (p *Parser) parseMaybePostfixUnaryExpr(left *ast.Expr, precedence int8) *ast.Expr {
-	op := p.current
+	token := p.current
 
-	if op.OpType&lexer.OpUnaryPostfix > 0 && precedence < op.Precedence {
+	if token.OpType.IsOpUnaryPostfix() && precedence < token.Precedence {
 		p.nextToken()
 		return &ast.Expr{
 			Node: &ast.UnaryExpr{
 				Argument: left,
-				Operator: op.Text,
+				Operator: token.Text,
 				Prefix:   false,
 			},
-			Position: ast.Position{Start: left.Start, End: op.End},
+			Position: ast.Position{Start: left.Start, End: token.End},
 		}
 	}
 
@@ -62,16 +62,16 @@ func (p *Parser) parseMaybePostfixUnaryExpr(left *ast.Expr, precedence int8) *as
 }
 
 func (p *Parser) parseBinaryExprPrecedence(left *ast.Expr, precedence int8) *ast.Expr {
-	op := p.current
+	token := p.current
 
-	if (op.OpType&lexer.OpBinaryLTR > 0 && precedence < op.Precedence) || (op.OpType&lexer.OpBinaryRTL > 0 && precedence <= op.Precedence) {
-		nextPrecedence := op.Precedence
-		operator := op.Text
+	if (token.OpType.IsOpBinaryLTR() && precedence < token.Precedence) || (token.OpType.IsOpBinaryRTL() && precedence <= token.Precedence) {
+		nextPrecedence := token.Precedence
+		operator := token.Text
 		p.nextToken()
 
 		var node *ast.Expr
 
-		if op.OpType&lexer.OpBinaryType > 0 {
+		if token.OpType.IsOpBinaryType() {
 			right := p.parseKindExpr()
 			node = &ast.Expr{
 				Node: &ast.BinaryTypeExpr{
@@ -117,7 +117,7 @@ func (p *Parser) parseAtomExpr() *ast.Expr {
 			return p.parseMaybeChainExpr(p.parseSelfExpr(), ChainTypeDot|ChainTypeStruct)
 		}
 	} else if p.consume(lexer.TTIdentifier, false) != nil {
-		return p.parseMaybeChainExpr(NewIdentifierExpr(p.lexer.LastToken), ChainTypeDot|ChainTypeComputed|ChainTypeCall|ChainTypeStruct)
+		return p.parseMaybeChainExpr(newIdentifierExpr(p.lexer.LastToken), ChainTypeDot|ChainTypeComputed|ChainTypeCall|ChainTypeStruct)
 	}
 
 	switch p.current.Type {
@@ -167,7 +167,7 @@ func (p *Parser) parseStructExpr(ctor *ast.Expr) *ast.Expr {
 		value := p.parseExpr()
 
 		properties = append(properties, &ast.StructProperty{
-			Name:  name,
+			Key:   name,
 			Value: value,
 		})
 
@@ -206,7 +206,7 @@ func (p *Parser) parseArrayExpr() *ast.Expr {
 
 func (p *Parser) parseBooleanExpr() *ast.Expr {
 	expr := ast.Expr{
-		Node:     &ast.BooleanLiteral{Value: len(p.current.Value) == 4},
+		Node:     &ast.BoolLiteral{Value: len(p.current.Value) == 4},
 		Position: p.current.Position,
 	}
 	p.nextToken()
@@ -279,7 +279,7 @@ func (p *Parser) parseIdentifierExpr(token *lexer.Token) *ast.Expr {
 func (p *Parser) parseMaybeChainExpr(parent *ast.Expr, chainType ChainType) *ast.Expr {
 	if (chainType&ChainTypeDot > 0) && p.isToken(lexer.TTDot) { // `.`
 		p.nextToken()
-		property := NewIdentifierExpr(p.consume(lexer.TTIdentifier, true))
+		property := newIdentifierExpr(p.consume(lexer.TTIdentifier, true))
 		memberExpr := &ast.Expr{
 			Node: &ast.MemberExpr{
 				Object:   parent,

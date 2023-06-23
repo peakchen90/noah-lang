@@ -1,17 +1,17 @@
 package parser
 
-// ReservedTypes 保留类型
+// 保留类型
 var reservedTypes = [...]string{
-	"num",
+	"number",
 	"byte",
 	"char",
-	"str",
+	"string",
 	"bool",
 	"any",
 }
 
-// IsReservedType 判断是否为保留类型
-func IsReservedType(value string) bool {
+// 判断是否为保留类型
+func isReservedType(value string) bool {
 	for _, item := range reservedTypes {
 		if item == value {
 			return true
@@ -20,7 +20,7 @@ func IsReservedType(value string) bool {
 	return false
 }
 
-type ChainType = uint8
+type ChainType uint8
 
 const (
 	ChainTypeDot      ChainType = 0b00001000

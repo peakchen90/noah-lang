@@ -5,22 +5,7 @@ import (
 	"github.com/peakchen90/noah-lang/internal/ast"
 )
 
-type TokenType = uint8
-
-type OpType = uint8
-
-const (
-	OpNone = 0b00000000
-
-	OpBinary     = 0b00001111
-	OpBinaryLTR  = 0b00000001 // left to right
-	OpBinaryRTL  = 0b00000010 // right to left
-	OpBinaryType = 0b00000100 // typeof value
-
-	OpUnary        = 0b11110000
-	OpUnaryPrefix  = 0b00010000
-	OpUnaryPostfix = 0b00100000
-)
+type TokenType uint8
 
 type TokenMeta struct {
 	Type       TokenType

@@ -526,12 +526,12 @@ func (l *Lexer) readAsIdentifier() *Token {
 		token = l.createToken(TTIsOp, start, l.index)
 	} else if valueStr == "as" {
 		token = l.createToken(TTAsOp, start, l.index)
-	} else if IsKeyword(valueStr) {
+	} else if isKeyword(valueStr) {
 		token = l.createToken(TTKeyword, start, l.index)
 		if valueStr == "return" {
 			l.allowExpr = true
 		}
-	} else if IsConstant(valueStr) {
+	} else if isBuiltInConstant(valueStr) {
 		token = l.createToken(TTConst, start, l.index)
 	} else {
 		token = l.createToken(TTIdentifier, start, l.index)

@@ -4,30 +4,30 @@
 
 **内置类型**:
 
-- `num`: 数字类型，64 位浮点型（默认值: `0`）
+- `number`: 数字类型，64 位浮点型（默认值: `0`）
 - `byte`: 无符号 8 位（默认值: `0`）
 - `char`: UTF-8 字符类型，32位（默认值: `0`）
-- `str`: 字符串类型（默认值: `""`）
+- `string`: 字符串类型（默认值: `""`）
 - `bool`: 布尔类型（默认值: `false`）
-- `[n]T` : 数组类型，如：`[3]str`、`[]num` 等（默认值: `null`）
-- `[]T` : 可变长数组类型，如：`[]str`、`[]num` 等（默认值: `null`）
+- `[n]T` : 数组类型，如：`[3]string`、`[]number` 等（默认值: `null`）
+- `[]T` : 可变长数组类型，如：`[]string`、`[]number` 等（默认值: `null`）
 - `any`: 动态类型（默认值: `null`）
 
 **自定义类型**:
 
-- `type T = T2` : 类型别名
+- `type T T2` : 声明自定义类型
 - `interface T {}`: 接口
-- `struct T {a: str, b: num}` : 结构体类型（默认值: `null`）
+- `struct T {a: string, b: number}` : 结构体类型（默认值: `null`）
 - `enum T {A, B}` : 枚举类型（默认值: `null`）
 
 ```noah
 // 定义数字类型的别名
-type TypeNum = num
+type TypeNum number
 
 // 定义结构体
 struct Person {
-    name: str
-    age: num
+    name: string
+    age: number
 }
 
 // 定义枚举类型
@@ -38,12 +38,12 @@ enum Color {
 
 // 定义接口
 interface Man {
-    fn say(a: num) -> str
+    fn say(a: number) -> string
 }
 
 // 定义一个 `Student` 结构体，继承 `Person` 的属性和实现的方法
 struct Student <- Person {
-    grade: num
+    grade: number
 }
 ```
 
@@ -53,10 +53,10 @@ struct Student <- Person {
 
 ```noah
 // 声明一个字符串类型的变量
-let hello: str = "hello world"
+let hello: string = "hello world"
 
 // 声明常量
-const PI: num = 3.14159
+const PI: number = 3.14159
 
 // 声明变量，可省略类型，系统会自动推断为布尔类型
 let flag = true
@@ -88,12 +88,12 @@ let e2 = Color.Red // Color.Red
 **数组类型**：
 
 ```noah
-let arr1: [3]num; // [0, 0, 0]
+let arr1: [3]number; // [0, 0, 0]
 
 // 有初始值时数组长度可省略
-let arr2: []str = ["a", "b", "c"] // ["a", "b", "c"]
+let arr2: []string = ["a", "b", "c"] // ["a", "b", "c"]
 
-let arr3: [3]num = [1, 2] // [1, 2, 0]
+let arr3: [3]number = [1, 2] // [1, 2, 0]
 
 // 结构体数组
 let arr4: [3]Person = [
@@ -119,7 +119,7 @@ fn main() {
 
 ```noah
 fn main() {
-    let arr: []num = [1]
+    let arr: []number = [1]
     
     arr.push(2) // arr == [1, 2]
     arr.unshift(3) // arr == [3, 1, 2]
@@ -132,12 +132,12 @@ fn main() {
 
 ```noah
 // 声明一个名为 `foo` 的函数，入参 `name` 的类型是字符串，返回值是布尔类型
-fn foo(name: str) -> bool {
+fn foo(name: string) -> bool {
     return true
 }
 
 // 为 `Person` 结构体实现一个名为 `foo` 的方法，方法内部可以使用 `self` 关键字指向结构体的实例 
-fn Person foo(...name: []str) -> str {
+fn Person foo(...name: []string) -> string {
     return self.name
 }
 
@@ -150,7 +150,7 @@ fn main() {
 **剩余参数**：
 
 ```noah
-fn add(...nums: []num) -> num {
+fn add(...nums: []number) -> number {
     let sum = 0
     for v: nums {
         sum += v
@@ -197,7 +197,7 @@ fn main() {
 
 ```noah
 fn main() {
-    let arr: []num = [1, 2, 3]
+    let arr: []number = [1, 2, 3]
     
     // 遍历数组的元素及索引
     for item, index: arr {
@@ -227,15 +227,15 @@ fn main() {
 
 ```noah
 pub interface Person {
-    say() -> str
+    say() -> string
 }
 
 pub struct Man {
-    name: str
+    name: string
 }
 
 pub struct Woman {
-    nick: str
+    nick: string
 }
 
 impl (Person) Man {
@@ -255,11 +255,11 @@ impl (Person) Woman {
 
 ```noah
 struct OldMan <- Man {
-    age: num
+    age: number
 }
 
 struct Student <- Man, Woman {
-    scores: []num
+    scores: []number
 }
 ```
 
@@ -268,7 +268,7 @@ struct Student <- Man, Woman {
 ```noah
 // 作为函数参数
 fn hello(p: Person) {
-    p.say() // return str
+    p.say() // return string
 }
 
 fn main() {
@@ -289,9 +289,9 @@ fn main() {
 
 ```noah
 fn hello(value: any) {
-    if value is str {
+    if value is string {
     
-    } else if value is num {
+    } else if value is number {
     
     } 
 }
@@ -300,7 +300,7 @@ fn hello(value: any) {
 **类型转换**
 
 ```noah
-let a: num = 'a' as num
+let a: number = 'a' as number
 ```
 
 ## 模块
@@ -319,7 +319,7 @@ pub const PI = 3.14159 // public
 
 // public struct
 pub struct Person {
-    name: str
+    name: string
 }
 ```
 
@@ -330,9 +330,9 @@ use "foo"
 pub use "foo" as foo2 // re-export
 
 let n1 = foo.PI // 3.14159 (from `lib/foo.noah`)
-type P = foo2.Person
+type P foo2.Person
 
-pub fn say() -> str {
+pub fn say() -> string {
     return "Hello World"
 }
 ```

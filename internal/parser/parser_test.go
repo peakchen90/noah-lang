@@ -8,16 +8,16 @@ import (
 var parserFixtures = [...]string{
 	`
 let a = 1
-const b: str = "a"
-let c: []num = [1, 2]
-let d: [2]str
-let e: []num
-let f: []num = [1]
+const b: string = "a"
+let c: []number = [1, 2]
+let d: [2]string
+let e: []number
+let f: []number = [1]
 	`,
 	`
 type A {
-	a: num
-	b: str
+	a: number
+	b: string
 }
 type B extends A {
 	c: bool
@@ -29,27 +29,27 @@ let c: C = C.B
 	`,
 	`
 interface A {
-	a: num
-	b(n: num) -> str
+	a: number
+	b(n: number) -> string
 }
 interface B extends A {
 	c()
 }
 type C: A,B {
-	d: str
+	d: string
 }
 type D: B {}
 	`,
 	`
 fn a() {}
 
-fn b(a: str, ...b: []num) -> bool {
+fn b(a: string, ...b: []number) -> bool {
 	return true
 }
 	`,
 	`
 type A {
-	a: num
+	a: number
 }
 
 fn A a() {
@@ -57,7 +57,7 @@ fn A a() {
 }
 	`,
 	`
-type A { a: num }
+type A { a: number }
 
 let a: A = { a: 1 }
 let b: A = { 2 }
@@ -74,7 +74,7 @@ if 1 + 1 == 2 {
 } 
 	`,
 	`
-let arr: [3]num
+let arr: [3]number
 for item, index: arr {
     println(item, index)
 }

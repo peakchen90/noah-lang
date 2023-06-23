@@ -29,16 +29,16 @@ a = fn() {
     return b;
 }
 
-a is str
+a is string
 
-a(fn(a: str, ...b: []bool) -> num {
+a(fn(a: string, ...b: []bool) -> number {
     return -1 + 2.0;
 })
 
 b(P{ a: 1, b: "xx" })
 
-let a: num = 'a' as num
+let a: number = 'a' as number
 let f: fn()
-let f: fn(a: num, ...b: []any) -> str
-let b: struct { a: num }
-let c: struct <- a.B, struct{} { b: str; x: []any }
+let f: fn(a: number, ...b: []any) -> string
+let b: struct { a: number }
+let c: struct <- a.B, struct{} { b: string; x: []any }

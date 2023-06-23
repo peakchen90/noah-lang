@@ -3,34 +3,39 @@ package ast
 // S statements
 type S interface{ isStmt() }
 
-func (*ModuleDecl) isStmt()     {}
-func (*FuncDecl) isStmt()       {}
-func (*ImplStructDecl) isStmt() {}
-func (*VarDecl) isStmt()        {}
-func (*BlockStmt) isStmt()      {}
-func (*ReturnStmt) isStmt()     {}
-func (*ExprStmt) isStmt()       {}
-func (*IfStmt) isStmt()         {}
-func (*ForStmt) isStmt()        {}
-func (*ForOfStmt) isStmt()      {}
-func (*BreakStmt) isStmt()      {}
-func (*ContinueStmt) isStmt()   {}
+func (*UseModuleStmt) isStmt() {}
+func (*FuncDecl) isStmt()      {}
+func (*ImplDecl) isStmt()      {}
+func (*VarDecl) isStmt()       {}
+func (*BlockStmt) isStmt()     {}
+func (*ReturnStmt) isStmt()    {}
+func (*ExprStmt) isStmt()      {}
+func (*IfStmt) isStmt()        {}
+func (*ForStmt) isStmt()       {}
+func (*BreakStmt) isStmt()     {}
+func (*ContinueStmt) isStmt()  {}
 
+func (*TypeAliasDecl) isStmt()     {}
+func (*TypeInterfaceDecl) isStmt() {}
+func (*TypeStructDecl) isStmt()    {}
+func (*TypeEnumDecl) isStmt()      {}
+
+/* statements */
 type (
-	ModuleDecl struct {
+	UseModuleStmt struct {
 		Source *Expr
 		Local  *Identifier
-		Pubic  bool
+		Pub    bool
 	}
 
 	FuncDecl struct {
-		Name     *Identifier
-		FuncKind *KindExpr
-		Body     *Stmt
-		Pubic    bool
+		Name *Identifier
+		Kind *KindExpr
+		Body *Stmt
+		Pub  bool
 	}
 
-	ImplStructDecl struct {
+	ImplDecl struct {
 		Target    *KindExpr
 		Interface *KindExpr
 		Body      []*Stmt
@@ -41,7 +46,7 @@ type (
 		Kind  *KindExpr
 		Init  *Expr
 		Const bool
-		Pubic bool
+		Pub   bool
 	}
 
 	BlockStmt struct {
@@ -71,18 +76,38 @@ type (
 		Body        *Stmt
 	}
 
-	ForOfStmt struct {
-		Label     *Identifier
-		IterIndex *Identifier
-		IterName  *Identifier
-		Target    *Expr
-	}
-
 	BreakStmt struct {
 		Label *Identifier
 	}
 
 	ContinueStmt struct {
 		Label *Identifier
+	}
+)
+
+/* kind decl */
+type (
+	TypeAliasDecl struct {
+		Name *KindIdentifier
+		Kind *KindExpr
+		Pub  bool
+	}
+
+	TypeInterfaceDecl struct {
+		Name       *KindIdentifier
+		Properties []*KindProperty
+		Pub        bool
+	}
+
+	TypeStructDecl struct {
+		Name *KindIdentifier
+		Kind *KindExpr
+		Pub  bool
+	}
+
+	TypeEnumDecl struct {
+		Name    *KindIdentifier
+		Choices []*KindIdentifier
+		Pub     bool
 	}
 )

@@ -56,7 +56,7 @@ func TestLexer(t *testing.T) {
 	}
 
 	// 关键字
-	for _, item := range Keywords {
+	for _, item := range keywords {
 		token := NewLexer([]rune(item)).Next()
 		if item == "is" {
 			assert.Equal(t, TTIsOp, token.Type, "Token type")
@@ -71,7 +71,7 @@ func TestLexer(t *testing.T) {
 	}
 
 	// 内置常量
-	for _, item := range Constants {
+	for _, item := range builtInConstants {
 		token := NewLexer([]rune(item)).Next()
 		assert.Equal(t, TTConst, token.Type, "Token type")
 		assert.Equal(t, item, token.Value, "Token value")

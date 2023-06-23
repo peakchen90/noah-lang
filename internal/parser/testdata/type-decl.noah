@@ -1,4 +1,4 @@
-pub type Vec = []char
+pub type Vec []char
 
 enum Color {
     Red,
@@ -6,15 +6,15 @@ enum Color {
 }
 
 pub interface Person {
-    say() -> str
+    say() -> string
 }
 
 pub struct Man {
-    name: str
+    name: string
 }
 
 pub struct Woman {
-    nick: str
+    nick: string
 }
 
 impl (Person) Man {
@@ -36,9 +36,9 @@ impl c.Woman {
 }
 
 struct OldMan <- Man {
-    age: num
+    age: number
 }
 
 struct Student <- a.Man, b.Woman {
-    scores: []num
+    scores: []number
 }

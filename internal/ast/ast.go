@@ -1,60 +1,63 @@
 package ast
 
+type (
+	File struct {
+		Body []*Stmt
+		Position
+	}
+
+	Stmt struct {
+		Node S
+		Position
+	}
+
+	Expr struct {
+		Node      E
+		InferKind KE
+		Position
+	}
+
+	KindExpr struct {
+		Node KE
+		Position
+	}
+
+	KindIdentifier struct {
+		Name string
+		Position
+	}
+
+	Identifier struct {
+		Name string
+		Position
+	}
+
+	KindProperty struct {
+		Key  *Identifier
+		Kind *KindExpr
+		Position
+	}
+
+	Argument struct {
+		Name *Identifier
+		Kind *KindExpr
+		Rest bool
+		Position
+	}
+
+	StructProperty struct {
+		Key   *Expr
+		Value *Expr
+	}
+
+	EachVisitor struct {
+		Key    *Identifier
+		Value  *Identifier
+		Target *Expr
+	}
+)
+
 type Position struct {
 	Start int
 	End   int
-}
-
-type Identifier struct {
-	Name string
-	Position
-}
-
-type File struct {
-	Body []*Stmt
-	Position
-}
-
-type Stmt struct {
-	Node S
-	Position
-}
-
-type Expr struct {
-	Node E
-	Position
-}
-
-type KindExpr struct {
-	Node KE
-	Position
-}
-
-type KindIdentifier struct {
-	Name string
-	Position
-}
-
-type KindProperty struct {
-	Name *Identifier
-	Kind *KindExpr
-	Position
-}
-
-type Argument struct {
-	Name *Identifier
-	Kind *KindExpr
-	Rest bool
-	Position
-}
-
-type StructProperty struct {
-	Name  *Expr
-	Value *Expr
-}
-
-type EachVisitor struct {
-	Value  *Identifier
-	Key    *Identifier
-	Target *Expr
 }

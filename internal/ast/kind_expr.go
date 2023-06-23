@@ -1,5 +1,7 @@
 package ast
 
+import "github.com/peakchen90/noah-lang/internal/helper"
+
 type KE interface{ isKindExpr() }
 
 func (*TypeNumber) isKindExpr()     {}
@@ -9,8 +11,8 @@ func (*TypeString) isKindExpr()     {}
 func (*TypeBool) isKindExpr()       {}
 func (*TypeAny) isKindExpr()        {}
 func (*TypeArray) isKindExpr()      {}
-func (*TypeId) isKindExpr()         {}
-func (*TypeMember) isKindExpr()     {}
+func (*TypeIdentifier) isKindExpr() {}
+func (*TypeMemberKind) isKindExpr() {}
 func (*TypeFuncKind) isKindExpr()   {}
 func (*TypeStructKind) isKindExpr() {}
 
@@ -32,11 +34,11 @@ type (
 		Len  *Expr
 	}
 
-	TypeId struct {
+	TypeIdentifier struct {
 		Name *KindIdentifier
 	}
 
-	TypeMember struct {
+	TypeMemberKind struct {
 		Left  *KindExpr
 		Right *KindExpr
 	}
@@ -51,3 +53,21 @@ type (
 		Properties []*KindProperty
 	}
 )
+
+func (t *TypeMemberKind) ToMemberIds() []string {
+	members := make([]string, 0, helper.SmallCap)
+
+	left, ok := t.Left.Node.(*TypeMemberKind)
+	if ok {
+		for _, s := range left.ToMemberIds() {
+			members = append(members, s)
+		}
+
+	} else {
+		members = append(members, t.Left.Node.(*TypeIdentifier).Name.Name)
+	}
+
+	members = append(members, t.Right.Node.(*TypeIdentifier).Name.Name)
+
+	return members
+}

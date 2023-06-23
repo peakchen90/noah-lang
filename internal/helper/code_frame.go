@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-type codeFrameLevel = uint8
+type codeFrameLevel uint8
 
 const (
-	codeFrameWarn codeFrameLevel = iota + 1
+	codeFrameWarn codeFrameLevel = iota
 	codeFrameError
 )
 

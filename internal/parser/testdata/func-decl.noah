@@ -1,12 +1,12 @@
 fn a() {
 }
 
-fn b(a: num) -> str {
+fn b(a: number) -> string {
     self.a = 3
     return "a";
 }
 
-fn c(a: num, ...b: []str) -> []str {
+fn c(a: number, ...b: []string) -> []string {
     let a = 1;
 }
 

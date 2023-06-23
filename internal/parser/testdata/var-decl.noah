@@ -2,19 +2,19 @@ let a = 1
 
 let c: char = 'x'
 
-const b: str = "a"
+const b: string = "a"
 
 let b2 = `
     hello
     world
 `
 
-pub let c: []num = [1, 2]
+pub let c: []number = [1, 2]
 
-let d: [2]str
+let d: [2]string
 
-pub const e: []num
+pub const e: []number
 
-let f: []num = [1]
+let f: []number = [1]
 
 let g: A.B;

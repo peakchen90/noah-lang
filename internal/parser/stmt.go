@@ -19,7 +19,7 @@ func (p *Parser) parseStmt() *ast.Stmt {
 
 			switch p.current.Value {
 			case "use":
-				stmt = p.parseUseStmt(pubToken)
+				stmt = p.parseUseModuleStmt(pubToken)
 			case "fn":
 				stmt = p.parseFuncDecl(pubToken)
 			case "let":
@@ -38,7 +38,7 @@ func (p *Parser) parseStmt() *ast.Stmt {
 				p.unexpected()
 			}
 		case "use":
-			stmt = p.parseUseStmt(nil)
+			stmt = p.parseUseModuleStmt(nil)
 		case "fn":
 			stmt = p.parseFuncDecl(nil)
 		case "let":
@@ -54,7 +54,7 @@ func (p *Parser) parseStmt() *ast.Stmt {
 		case "enum":
 			stmt = p.parseEnumDecl(nil)
 		case "impl":
-			stmt = p.parseImplStructDecl()
+			stmt = p.parseImplDecl()
 		case "if":
 			stmt = p.parseIfStmt()
 		case "for":
@@ -100,7 +100,7 @@ func (p *Parser) parseStmt() *ast.Stmt {
 	return stmt
 }
 
-func (p *Parser) parseUseStmt(pubToken *lexer.Token) *ast.Stmt {
+func (p *Parser) parseUseModuleStmt(pubToken *lexer.Token) *ast.Stmt {
 	stmt := &ast.Stmt{}
 	if pubToken != nil {
 		stmt.Start = pubToken.Start
@@ -120,14 +120,14 @@ func (p *Parser) parseUseStmt(pubToken *lexer.Token) *ast.Stmt {
 	var local *ast.Identifier
 
 	if p.consume(lexer.TTAsOp, false) != nil {
-		local = NewIdentifier(p.consume(lexer.TTIdentifier, true))
+		local = newIdentifier(p.consume(lexer.TTIdentifier, true))
 		stmt.End = local.End
 	}
 
-	stmt.Node = &ast.ModuleDecl{
+	stmt.Node = &ast.UseModuleStmt{
 		Source: source,
 		Local:  local,
-		Pubic:  pubToken != nil,
+		Pub:    pubToken != nil,
 	}
 
 	return stmt
@@ -145,10 +145,10 @@ func (p *Parser) parseFuncDecl(pubToken *lexer.Token) *ast.Stmt {
 	nameToken := p.consume(lexer.TTIdentifier, true)
 	funcKind := p.parseFuncKindExpr(stmt.Start)
 	funcDecl := &ast.FuncDecl{
-		Name:     NewIdentifier(nameToken),
-		FuncKind: funcKind,
-		Body:     p.parseBlockStmt(),
-		Pubic:    pubToken != nil,
+		Name: newIdentifier(nameToken),
+		Kind: funcKind,
+		Body: p.parseBlockStmt(),
+		Pub:  pubToken != nil,
 	}
 
 	stmt.Node = funcDecl
@@ -171,10 +171,10 @@ func (p *Parser) parseVarDecl(pubToken *lexer.Token, isConst bool) *ast.Stmt {
 	if token == nil {
 		p.unexpectedMissing("variable name")
 	}
-	if IsReservedType(token.Value) {
+	if isReservedType(token.Value) {
 		p.unexpectedPos(token.Start, "Reserved type cannot be used: "+token.Value)
 	}
-	id := NewIdentifier(token)
+	id := newIdentifier(token)
 
 	// maybe kind
 	var kind *ast.KindExpr
@@ -195,7 +195,7 @@ func (p *Parser) parseVarDecl(pubToken *lexer.Token, isConst bool) *ast.Stmt {
 		Kind:  kind,
 		Init:  init,
 		Const: isConst,
-		Pubic: pubToken != nil,
+		Pub:   pubToken != nil,
 	}
 
 	return stmt
@@ -213,23 +213,18 @@ func (p *Parser) parseTypeDecl(pubToken *lexer.Token) *ast.Stmt {
 	if !p.isToken(lexer.TTIdentifier) {
 		p.unexpectedMissing("type name")
 	}
-	if IsReservedType(p.current.Value) {
+	if isReservedType(p.current.Value) {
 		p.unexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
 	}
-	name := NewKindIdentifier(p.current)
-	p.nextToken()
-
-	if !p.isToken(lexer.TTAssign) {
-		p.unexpectedMissing("=")
-	}
+	name := newKindIdentifier(p.current)
 	p.nextToken()
 
 	// alias T
 	kind := p.parseKindExpr()
 	stmt.Node = &ast.TypeAliasDecl{
-		Name:  name,
-		Kind:  kind,
-		Pubic: pubToken != nil,
+		Name: name,
+		Kind: kind,
+		Pub:  pubToken != nil,
 	}
 	stmt.End = kind.End
 	return stmt
@@ -248,10 +243,10 @@ func (p *Parser) parseInterfaceDecl(pubToken *lexer.Token) *ast.Stmt {
 	if !p.isToken(lexer.TTIdentifier) {
 		p.unexpectedMissing("interface name")
 	}
-	if IsReservedType(p.current.Value) {
+	if isReservedType(p.current.Value) {
 		p.unexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
 	}
-	name := NewKindIdentifier(p.current)
+	name := newKindIdentifier(p.current)
 	p.nextToken()
 
 	// `{`
@@ -262,7 +257,7 @@ func (p *Parser) parseInterfaceDecl(pubToken *lexer.Token) *ast.Stmt {
 	stmt.Node = &ast.TypeInterfaceDecl{
 		Name:       name,
 		Properties: properties,
-		Pubic:      pubToken != nil,
+		Pub:        pubToken != nil,
 	}
 	stmt.End = p.lexer.LastToken.End
 	return stmt
@@ -275,31 +270,19 @@ func (p *Parser) parseStructDecl(pubToken *lexer.Token) *ast.Stmt {
 	} else {
 		stmt.Start = p.current.Start
 	}
-	p.nextToken()
 
-	// name
-	if !p.isToken(lexer.TTIdentifier) {
-		p.unexpectedMissing("struct name")
+	start := p.current.Start
+	p.nextToken() // skip `struct`
+
+	nameToken := p.consume(lexer.TTIdentifier, true)
+	if isReservedType(nameToken.Value) {
+		p.unexpectedPos(nameToken.Start, "Reserved type cannot be used: "+nameToken.Value)
 	}
-	if IsReservedType(p.current.Value) {
-		p.unexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
-	}
-	name := NewKindIdentifier(p.current)
-	p.nextToken()
-
-	// maybe with extends
-	extends := p.parseStructExtends()
-
-	// `{`
-	p.consume(lexer.TTBraceL, true)
-	properties := p.parseKindProperties(false, false)
-	p.consume(lexer.TTBraceR, true)
 
 	stmt.Node = &ast.TypeStructDecl{
-		Name:       name,
-		Extends:    extends,
-		Properties: properties,
-		Pubic:      pubToken != nil,
+		Name: newKindIdentifier(nameToken),
+		Kind: p.parseStructKindExpr(start),
+		Pub:  pubToken != nil,
 	}
 	stmt.End = p.lexer.LastToken.End
 	return stmt
@@ -318,27 +301,27 @@ func (p *Parser) parseEnumDecl(pubToken *lexer.Token) *ast.Stmt {
 	if !p.isToken(lexer.TTIdentifier) {
 		p.unexpectedMissing("enum name")
 	}
-	if IsReservedType(p.current.Value) {
+	if isReservedType(p.current.Value) {
 		p.unexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
 	}
-	name := NewKindIdentifier(p.current)
+	name := newKindIdentifier(p.current)
 	p.nextToken()
 
 	// `{`
 	p.consume(lexer.TTBraceL, true)
-	items := p.parseEnumItems()
+	choices := p.parseEnumItems()
 	p.consume(lexer.TTBraceR, true)
 
 	stmt.Node = &ast.TypeEnumDecl{
-		Name:  name,
-		Items: items,
-		Pubic: pubToken != nil,
+		Name:    name,
+		Choices: choices,
+		Pub:     pubToken != nil,
 	}
 	stmt.End = p.lexer.LastToken.End
 	return stmt
 }
 
-func (p *Parser) parseImplStructDecl() *ast.Stmt {
+func (p *Parser) parseImplDecl() *ast.Stmt {
 	stmt := &ast.Stmt{}
 	stmt.Start = p.current.Start
 	p.nextToken()
@@ -374,7 +357,7 @@ func (p *Parser) parseImplStructDecl() *ast.Stmt {
 	}
 	p.consume(lexer.TTBraceR, true)
 
-	stmt.Node = &ast.ImplStructDecl{
+	stmt.Node = &ast.ImplDecl{
 		Target:    target,
 		Interface: Interface,
 		Body:      body,
@@ -428,7 +411,7 @@ func (p *Parser) parseForStmt(labelToken *lexer.Token) *ast.Stmt {
 	var eachVisitor *ast.EachVisitor
 
 	if labelToken != nil {
-		label = NewIdentifier(labelToken)
+		label = newIdentifier(labelToken)
 	}
 
 	hasParentheses := p.consume(lexer.TTParenL, false) != nil // `(`
@@ -441,13 +424,13 @@ func (p *Parser) parseForStmt(labelToken *lexer.Token) *ast.Stmt {
 			var key *ast.Identifier
 			if p.isToken(lexer.TTComma) {
 				p.nextToken()
-				key = NewIdentifier(p.consume(lexer.TTIdentifier, true))
+				key = newIdentifier(p.consume(lexer.TTIdentifier, true))
 			}
 
 			p.consume(lexer.TTColon, true)
 
 			eachVisitor = &ast.EachVisitor{
-				Value:  NewIdentifier(headToken),
+				Value:  newIdentifier(headToken),
 				Key:    key,
 				Target: p.parseExpr(),
 			}
@@ -510,7 +493,7 @@ func (p *Parser) parseBreakStmt() *ast.Stmt {
 
 	var label *ast.Identifier
 	if p.isToken(lexer.TTIdentifier) {
-		label = NewIdentifier(p.current)
+		label = newIdentifier(p.current)
 		p.nextToken()
 	}
 
@@ -529,7 +512,7 @@ func (p *Parser) parseContinueStmt() *ast.Stmt {
 
 	var label *ast.Identifier
 	if p.isToken(lexer.TTIdentifier) {
-		label = NewIdentifier(p.current)
+		label = newIdentifier(p.current)
 		p.nextToken()
 	}
 
