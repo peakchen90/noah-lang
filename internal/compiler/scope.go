@@ -1,9 +1,5 @@
 package compiler
 
-import (
-	"github.com/peakchen90/noah-lang/internal/ast"
-)
-
 type Scope struct {
 	value map[string]Value
 	kind  map[string]Kind
@@ -35,20 +31,4 @@ func (s *Scope) hasValue(name string) bool {
 
 func (s *Scope) hasKind(name string) bool {
 	return s.getKind(name) != nil
-}
-
-/* compile module helpers  */
-
-func (m *Module) validateValueScope(id *ast.Identifier) {
-	if m.ScopeStack.isExist(id.Name) {
-		// TODO panic
-		panic("duplicate" + id.Name)
-	}
-}
-
-func (m *Module) validateKindScope(kindId *ast.KindIdentifier) {
-	if m.ScopeStack.isExist(kindId.Name) {
-		// TODO panic
-		panic("duplicate" + kindId.Name)
-	}
 }

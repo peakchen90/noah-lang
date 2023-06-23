@@ -57,7 +57,7 @@ type (
 
 	StructExpr struct {
 		Ctor       *Expr
-		Properties []*StructProperty
+		Properties []*ValueProperty
 	}
 
 	ArrayExpr struct {
@@ -70,10 +70,12 @@ type (
 
 	NumberLiteral struct {
 		Value float64
+		Text  string
 	}
 
 	BoolLiteral struct {
 		Value bool
+		Text  string
 	}
 
 	NullLiteral struct {
@@ -88,5 +90,6 @@ type (
 
 	CharLiteral struct {
 		Value rune
+		Text  string
 	}
 )

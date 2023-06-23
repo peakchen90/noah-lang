@@ -1,73 +1,53 @@
 package ast
 
-import "github.com/peakchen90/noah-lang/internal/helper"
-
 type KE interface{ isKindExpr() }
 
-func (*TypeNumber) isKindExpr()     {}
-func (*TypeByte) isKindExpr()       {}
-func (*TypeChar) isKindExpr()       {}
-func (*TypeString) isKindExpr()     {}
-func (*TypeBool) isKindExpr()       {}
-func (*TypeAny) isKindExpr()        {}
-func (*TypeArray) isKindExpr()      {}
-func (*TypeIdentifier) isKindExpr() {}
-func (*TypeMemberKind) isKindExpr() {}
-func (*TypeFuncKind) isKindExpr()   {}
-func (*TypeStructKind) isKindExpr() {}
+func (*TNumber) isKindExpr()     {}
+func (*TByte) isKindExpr()       {}
+func (*TChar) isKindExpr()       {}
+func (*TString) isKindExpr()     {}
+func (*TBool) isKindExpr()       {}
+func (*TAny) isKindExpr()        {}
+func (*TArray) isKindExpr()      {}
+func (*TIdentifier) isKindExpr() {}
+func (*TMemberKind) isKindExpr() {}
+func (*TFuncKind) isKindExpr()   {}
+func (*TStructKind) isKindExpr() {}
 
 type (
-	TypeNumber struct{}
+	TNumber struct{}
 
-	TypeByte struct{}
+	TByte struct{}
 
-	TypeChar struct{}
+	TChar struct{}
 
-	TypeString struct{}
+	TString struct{}
 
-	TypeBool struct{}
+	TBool struct{}
 
-	TypeAny struct{}
+	TAny struct{}
 
-	TypeArray struct {
+	TArray struct {
 		Kind *KindExpr
 		Len  *Expr
 	}
 
-	TypeIdentifier struct {
-		Name *KindIdentifier
+	TIdentifier struct {
+		Name *Identifier
 	}
 
-	TypeMemberKind struct {
+	TMemberKind struct {
 		Left  *KindExpr
 		Right *KindExpr
 	}
 
-	TypeFuncKind struct {
+	TFuncKind struct {
 		Arguments []*Argument
 		Return    *KindExpr
 	}
 
-	TypeStructKind struct {
+	TStructKind struct {
 		Extends    []*KindExpr
 		Properties []*KindProperty
 	}
 )
-
-func (t *TypeMemberKind) ToMemberIds() []string {
-	members := make([]string, 0, helper.SmallCap)
-
-	left, ok := t.Left.Node.(*TypeMemberKind)
-	if ok {
-		for _, s := range left.ToMemberIds() {
-			members = append(members, s)
-		}
-
-	} else {
-		members = append(members, t.Left.Node.(*TypeIdentifier).Name.Name)
-	}
-
-	members = append(members, t.Right.Node.(*TypeIdentifier).Name.Name)
-
-	return members
-}

@@ -14,8 +14,8 @@ func newIdentifier(token *lexer.Token) *ast.Identifier {
 	}
 }
 
-func newKindIdentifier(token *lexer.Token) *ast.KindIdentifier {
-	return &ast.KindIdentifier{
+func newKindIdentifier(token *lexer.Token) *ast.Identifier {
+	return &ast.Identifier{
 		Name:     token.Value,
 		Position: token.Position,
 	}

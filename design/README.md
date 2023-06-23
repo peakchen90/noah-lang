@@ -227,7 +227,7 @@ fn main() {
 
 ```noah
 pub interface Person {
-    say() -> string
+    fn say() -> string
 }
 
 pub struct Man {
@@ -239,13 +239,13 @@ pub struct Woman {
 }
 
 impl (Person) Man {
-    pub fn say() {
+    fn say() {
         return "Man: " + self.name
     }
 }
 
 impl (Person) Woman {
-    pub fn say() {
+    fn say() {
         return "Woman: " + self.nick
     }
 }

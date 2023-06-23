@@ -15,10 +15,10 @@ func (*ForStmt) isStmt()       {}
 func (*BreakStmt) isStmt()     {}
 func (*ContinueStmt) isStmt()  {}
 
-func (*TypeAliasDecl) isStmt()     {}
-func (*TypeInterfaceDecl) isStmt() {}
-func (*TypeStructDecl) isStmt()    {}
-func (*TypeEnumDecl) isStmt()      {}
+func (*TAliasDecl) isStmt()     {}
+func (*TInterfaceDecl) isStmt() {}
+func (*TStructDecl) isStmt()    {}
+func (*TEnumDecl) isStmt()      {}
 
 /* statements */
 type (
@@ -87,27 +87,27 @@ type (
 
 /* kind decl */
 type (
-	TypeAliasDecl struct {
-		Name *KindIdentifier
+	TAliasDecl struct {
+		Name *Identifier
 		Kind *KindExpr
 		Pub  bool
 	}
 
-	TypeInterfaceDecl struct {
-		Name       *KindIdentifier
+	TInterfaceDecl struct {
+		Name       *Identifier
 		Properties []*KindProperty
 		Pub        bool
 	}
 
-	TypeStructDecl struct {
-		Name *KindIdentifier
+	TStructDecl struct {
+		Name *Identifier
 		Kind *KindExpr
 		Pub  bool
 	}
 
-	TypeEnumDecl struct {
-		Name    *KindIdentifier
-		Choices []*KindIdentifier
+	TEnumDecl struct {
+		Name    *Identifier
+		Choices []*Identifier
 		Pub     bool
 	}
 )

@@ -5,8 +5,11 @@ enum Color {
     Green,
 }
 
+let a: string = 3
+
 pub interface Person {
     fn say() -> string
+    fn say2(a: bool)
 }
 
 pub struct Man {
@@ -17,28 +20,15 @@ pub struct Woman {
     nick: string
 }
 
-impl (Person) Man {
-    fn say() {
+impl (Person) Woman {
+    fn say() -> string {
         return "Man: " + self.name
     }
-}
 
-impl (a.Person) b.Woman {
-    fn say() {
-        return "Woman: " + self.nick
-    }
-}
-
-impl c.Woman {
-    fn say() {
-        return "Woman: " + self.nick
+    fn say2(afa: bool,) {
     }
 }
 
 struct OldMan <- Man {
     age: number
-}
-
-struct Student <- a.Man, b.Woman {
-    scores: []number
 }

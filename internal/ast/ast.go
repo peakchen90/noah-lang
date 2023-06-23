@@ -22,11 +22,6 @@ type (
 		Position
 	}
 
-	KindIdentifier struct {
-		Name string
-		Position
-	}
-
 	Identifier struct {
 		Name string
 		Position
@@ -38,16 +33,16 @@ type (
 		Position
 	}
 
+	ValueProperty struct {
+		Key   *Expr
+		Value *Expr
+	}
+
 	Argument struct {
 		Name *Identifier
 		Kind *KindExpr
 		Rest bool
 		Position
-	}
-
-	StructProperty struct {
-		Key   *Expr
-		Value *Expr
 	}
 
 	EachVisitor struct {
@@ -60,4 +55,11 @@ type (
 type Position struct {
 	Start int
 	End   int
+}
+
+func NewPosition(start int, end int) *Position {
+	return &Position{
+		Start: start,
+		End:   end,
+	}
 }

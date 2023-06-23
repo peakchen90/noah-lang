@@ -6,7 +6,7 @@ import (
 )
 
 func (m *Module) preCompile() {
-	stack := m.ScopeStack
+	stack := m.Scopes
 	stack.push()
 
 	for _, stmt := range m.Ast.Body {
@@ -19,14 +19,14 @@ func (m *Module) preCompile() {
 			m.compileImplDecl(stmt.Node.(*ast.ImplDecl), true)
 		case *ast.VarDecl:
 			m.compileVarDecl(stmt.Node.(*ast.VarDecl), true)
-		case *ast.TypeAliasDecl:
-			m.compileTypeAliasDecl(stmt.Node.(*ast.TypeAliasDecl))
-		case *ast.TypeInterfaceDecl:
-			m.compileTypeInterfaceDecl(stmt.Node.(*ast.TypeInterfaceDecl))
-		case *ast.TypeStructDecl:
-			m.compileTypeStructDecl(stmt.Node.(*ast.TypeStructDecl))
-		case *ast.TypeEnumDecl:
-			m.compileTypeEnumDecl(stmt.Node.(*ast.TypeEnumDecl))
+		case *ast.TAliasDecl:
+			m.compileTAliasDecl(stmt.Node.(*ast.TAliasDecl))
+		case *ast.TInterfaceDecl:
+			m.compileTInterfaceDecl(stmt.Node.(*ast.TInterfaceDecl))
+		case *ast.TStructDecl:
+			m.compileTStructDecl(stmt.Node.(*ast.TStructDecl))
+		case *ast.TEnumDecl:
+			m.compileTEnumDecl(stmt.Node.(*ast.TEnumDecl))
 		}
 	}
 }
@@ -74,8 +74,7 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target Kind, isPrecompile b
 			}
 			target.getImpl().addFunc(value)
 		} else {
-			m.validateValueScope(node.Name)
-			m.ScopeStack.putValue(name, value)
+			m.putValue(node.Name, value, true)
 			if node.Pub {
 				m.PublicScope.setValue(name, value)
 			}
@@ -84,7 +83,7 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target Kind, isPrecompile b
 		if target != nil {
 			value = target.getImpl().getFunc(name)
 		} else {
-			value = m.ScopeStack.findValue(name).(*FuncValue)
+			value = m.findValue(node.Name, true).(*FuncValue)
 		}
 
 		// TODO ptr
@@ -117,17 +116,21 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl, isPrecompile bool) {
 			t, ok := m.compileKindExpr(node.Interface).(*TInterface)
 			if ok {
 				t.Refers = append(t.Refers, target)
-				for k, v := range t.Properties {
-					if impls[k] == nil {
+				for key, kind := range t.Properties {
+					if impls[key] == nil {
 						// TODO
-						panic("missing func: " + k)
+						panic("missing func: " + key)
 					}
-					if !compareKind(v, impls[k].Kind, true) {
+					if !compareKind(kind, impls[key].Kind, true) {
 						// TODO
-						panic("can math func sign: " + k)
+						panic("can math func sign: " + key)
 					}
 				}
 			} else {
+				if t == nil {
+					// TODO
+					panic("can not found: " + getKindExprId(node.Interface))
+				}
 				// TODO
 				panic("unexpected kind")
 			}
@@ -139,13 +142,12 @@ func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 	name := node.Id.Name
 
 	if isPrecompile {
-		m.validateValueScope(node.Id)
 		scope := &VarValue{
 			Name:  name,
 			Kind:  m.compileKindExpr(node.Kind),
 			Const: node.Const,
 		}
-		m.ScopeStack.putValue(name, scope)
+		m.putValue(node.Id, scope, true)
 		if node.Pub {
 			m.PublicScope.setValue(name, scope)
 		}
@@ -155,36 +157,33 @@ func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 	}
 }
 
-func (m *Module) compileTypeAliasDecl(node *ast.TypeAliasDecl) {
-	m.validateKindScope(node.Name)
-
-	name := node.Name.Name
+func (m *Module) compileTAliasDecl(node *ast.TAliasDecl) {
 	kind := &TCustom{
 		Id:   getNextTypeId(),
 		Kind: m.compileKindExpr(node.Kind),
 	}
 
-	m.ScopeStack.putKind(name, kind)
+	m.putKind(node.Name, kind, true)
 	if node.Pub {
-		m.PublicScope.setKind(name, kind)
+		m.PublicScope.setKind(node.Name.Name, kind)
 	}
 }
 
-func (m *Module) compileTypeInterfaceDecl(node *ast.TypeInterfaceDecl) {
-	m.validateKindScope(node.Name)
-
-	name := node.Name.Name
+func (m *Module) compileTInterfaceDecl(node *ast.TInterfaceDecl) {
 	props := make(map[string]Kind)
 
-	for _, item := range node.Properties {
-		key := item.Key.Name
+	for _, pair := range node.Properties {
+		key := pair.Key.Name
 		_, has := props[key]
 		if has {
 			// TODO duplicate
 			panic("duplicate " + key)
 
+		} else if key[0] == '_' {
+			// TODO duplicate
+			panic("interface func can not private: " + key)
 		}
-		props[key] = m.compileKindExpr(item.Kind)
+		props[key] = m.compileKindExpr(pair.Kind)
 	}
 
 	kind := &TInterface{
@@ -193,28 +192,22 @@ func (m *Module) compileTypeInterfaceDecl(node *ast.TypeInterfaceDecl) {
 		Refers:     make([]Kind, 0, helper.DefaultCap),
 	}
 
-	m.ScopeStack.putKind(name, kind)
+	m.putKind(node.Name, kind, true)
 	if node.Pub {
-		m.PublicScope.setKind(name, kind)
+		m.PublicScope.setKind(node.Name.Name, kind)
 	}
 }
 
-func (m *Module) compileTypeStructDecl(node *ast.TypeStructDecl) {
-	m.validateKindScope(node.Name)
+func (m *Module) compileTStructDecl(node *ast.TStructDecl) {
+	kind := m.compileStructKind(node.Kind.Node.(*ast.TStructKind), true)
 
-	name := node.Name.Name
-	kind := m.compileStructKind(node.Kind.Node.(*ast.TypeStructKind), true)
-
-	m.ScopeStack.putKind(name, kind)
+	m.putKind(node.Name, kind, true)
 	if node.Pub {
-		m.PublicScope.setKind(name, kind)
+		m.PublicScope.setKind(node.Name.Name, kind)
 	}
 }
 
-func (m *Module) compileTypeEnumDecl(node *ast.TypeEnumDecl) {
-	m.validateKindScope(node.Name)
-
-	name := node.Name.Name
+func (m *Module) compileTEnumDecl(node *ast.TEnumDecl) {
 	choices := make(map[string]int)
 
 	for i, item := range node.Choices {
@@ -232,8 +225,8 @@ func (m *Module) compileTypeEnumDecl(node *ast.TypeEnumDecl) {
 		Choices: choices,
 	}
 
-	m.ScopeStack.putKind(name, kind)
+	m.putKind(node.Name, kind, true)
 	if node.Pub {
-		m.PublicScope.setKind(name, kind)
+		m.PublicScope.setKind(node.Name.Name, kind)
 	}
 }

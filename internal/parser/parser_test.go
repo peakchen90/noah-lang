@@ -108,7 +108,7 @@ func TestParser(t *testing.T) {
 			panic(err)
 		}
 
-		NewParser(string(code))
+		NewParser(string(code)).Parse()
 
 	}
 

@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"fmt"
+	"github.com/peakchen90/noah-lang/internal/ast"
 	"github.com/peakchen90/noah-lang/internal/helper"
 	"strconv"
 	"strings"
@@ -19,6 +20,7 @@ type Lexer struct {
 func NewLexer(source []rune) *Lexer {
 	lexer := Lexer{
 		source:    source,
+		index:     0,
 		allowExpr: true,
 	}
 	return &lexer
@@ -265,8 +267,7 @@ func (l *Lexer) LookNext() rune {
 func (l *Lexer) createToken(tokenType TokenType, start int, end int) *Token {
 	tokenMeta := &tokenMetaTable[tokenType]
 	token := Token{TokenMeta: tokenMeta}
-	token.Start = start
-	token.End = end
+	token.Position = *ast.NewPosition(start, end)
 
 	if tokenType != TTComment {
 		l.allowExpr = tokenMeta.AllowExpr
@@ -283,7 +284,12 @@ func (l *Lexer) skipSpace() {
 	for l.checkIndex() {
 		ch := l.Look(0)
 		if ch == '\r' || ch == '\n' || ch == '\t' || ch == ' ' {
-			if ch == '\r' || ch == '\n' {
+			if ch == '\r' {
+				if l.Look(1) == '\n' { // \r\n
+					l.index++
+				}
+				l.SeenNewline = true
+			} else if ch == '\n' {
 				l.SeenNewline = true
 			}
 			l.index++

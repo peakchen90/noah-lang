@@ -221,7 +221,7 @@ func (p *Parser) parseTypeDecl(pubToken *lexer.Token) *ast.Stmt {
 
 	// alias T
 	kind := p.parseKindExpr()
-	stmt.Node = &ast.TypeAliasDecl{
+	stmt.Node = &ast.TAliasDecl{
 		Name: name,
 		Kind: kind,
 		Pub:  pubToken != nil,
@@ -251,10 +251,10 @@ func (p *Parser) parseInterfaceDecl(pubToken *lexer.Token) *ast.Stmt {
 
 	// `{`
 	p.consume(lexer.TTBraceL, true)
-	properties := p.parseKindProperties(true, true)
+	properties := p.parseKindProperties(true)
 	p.consume(lexer.TTBraceR, true)
 
-	stmt.Node = &ast.TypeInterfaceDecl{
+	stmt.Node = &ast.TInterfaceDecl{
 		Name:       name,
 		Properties: properties,
 		Pub:        pubToken != nil,
@@ -279,7 +279,7 @@ func (p *Parser) parseStructDecl(pubToken *lexer.Token) *ast.Stmt {
 		p.unexpectedPos(nameToken.Start, "Reserved type cannot be used: "+nameToken.Value)
 	}
 
-	stmt.Node = &ast.TypeStructDecl{
+	stmt.Node = &ast.TStructDecl{
 		Name: newKindIdentifier(nameToken),
 		Kind: p.parseStructKindExpr(start),
 		Pub:  pubToken != nil,
@@ -312,7 +312,7 @@ func (p *Parser) parseEnumDecl(pubToken *lexer.Token) *ast.Stmt {
 	choices := p.parseEnumItems()
 	p.consume(lexer.TTBraceR, true)
 
-	stmt.Node = &ast.TypeEnumDecl{
+	stmt.Node = &ast.TEnumDecl{
 		Name:    name,
 		Choices: choices,
 		Pub:     pubToken != nil,
@@ -341,15 +341,12 @@ func (p *Parser) parseImplDecl() *ast.Stmt {
 
 	p.consume(lexer.TTBraceL, true)
 	for !p.isToken(lexer.TTBraceR) {
-		var pubToken *lexer.Token
-		if p.isKeyword("pub") {
-			pubToken = p.current
-			p.nextToken()
-		}
 		if p.isKeyword("fn") {
-			body = append(body, p.parseFuncDecl(pubToken))
-			for p.consume(lexer.TTSemi, false) != nil {
-				// remove semis
+			body = append(body, p.parseFuncDecl(nil))
+			for {
+				if p.consume(lexer.TTSemi, false) == nil {
+					break
+				}
 			}
 		} else {
 			p.unexpected()
@@ -438,7 +435,7 @@ func (p *Parser) parseForStmt(labelToken *lexer.Token) *ast.Stmt {
 			test = p.parseIdentifierExpr(headToken)
 		}
 	} else if p.isKeyword("let") || p.isKeyword("const") { // for (init; test; update) {}
-		init = p.parseVarDecl(nil, len(p.current.Value) == 5)
+		init = p.parseVarDecl(nil, p.current.Value == "const")
 		p.consume(lexer.TTSemi, true)
 		if !p.isToken(lexer.TTSemi) {
 			test = p.parseExpr()

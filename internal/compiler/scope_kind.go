@@ -126,6 +126,10 @@ func getNextTypeId() int {
 }
 
 func compareKind(expected Kind, received Kind, isMatch bool) bool {
+	if expected == nil && received == nil {
+		return true
+	}
+
 	_, ok := received.(*TAny)
 	if ok {
 		return true
@@ -191,8 +195,8 @@ func compareKind(expected Kind, received Kind, isMatch bool) bool {
 			if len(e.Properties) != len(r.Properties) {
 				return false
 			}
-			for k, v := range e.Properties {
-				if !compareKind(v, r.Properties[k], isMatch) {
+			for key, kind := range e.Properties {
+				if !compareKind(kind, r.Properties[key], isMatch) {
 					return false
 				}
 			}
@@ -211,8 +215,8 @@ func compareKind(expected Kind, received Kind, isMatch bool) bool {
 			if len(e.Properties) != len(r.Properties) {
 				return false
 			}
-			for k, v := range e.Properties {
-				if !compareKind(v, r.Properties[k], isMatch) {
+			for key, kind := range e.Properties {
+				if !compareKind(kind, r.Properties[key], isMatch) {
 					return false
 				}
 			}

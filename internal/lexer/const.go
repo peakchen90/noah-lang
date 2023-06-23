@@ -15,7 +15,7 @@ var keywords = [...]string{
 }
 
 var reservedKeywords = [...]string{
-	"import", "async", "await", "switch", "case", "default", "try", "catch", "throw",
+	"import", "async", "await", "switch", "case", "default", "try", "catch", "throw", "new",
 }
 
 // 内置常量

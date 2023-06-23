@@ -16,16 +16,14 @@ type Parser struct {
 	loopLevel  int          // 当前进入到第几层循环块
 }
 
-func NewParser(input string) *ast.File {
+func NewParser(input string) *Parser {
 	source := []rune(input)
-	parser := Parser{
-		source: source,
-		lexer:  lexer.NewLexer(source),
-	}
-	return parser.parse()
+	return &Parser{source: source}
 }
 
-func (p *Parser) parse() *ast.File {
+func (p *Parser) Parse() *ast.File {
+	p.lexer = lexer.NewLexer(p.source)
+
 	body := make([]*ast.Stmt, 0, helper.DefaultCap)
 	p.nextToken()
 

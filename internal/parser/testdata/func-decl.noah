@@ -14,6 +14,6 @@ impl S {
     fn walk() {
     }
 
-    pub fn walk2(...a: []any) {
+    fn walk2(...a: []any) {
     }
 }

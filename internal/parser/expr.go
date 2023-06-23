@@ -35,7 +35,7 @@ func (p *Parser) parseMaybeUnaryExpr(precedence int8) *ast.Expr {
 				Operator: token.Text,
 				Prefix:   true,
 			},
-			Position: ast.Position{Start: token.Start, End: argument.End},
+			Position: *ast.NewPosition(token.Start, argument.End),
 		}
 	}
 
@@ -54,7 +54,7 @@ func (p *Parser) parseMaybePostfixUnaryExpr(left *ast.Expr, precedence int8) *as
 				Operator: token.Text,
 				Prefix:   false,
 			},
-			Position: ast.Position{Start: left.Start, End: token.End},
+			Position: *ast.NewPosition(left.Start, token.End),
 		}
 	}
 
@@ -79,7 +79,7 @@ func (p *Parser) parseBinaryExprPrecedence(left *ast.Expr, precedence int8) *ast
 					Right:    right,
 					Operator: operator,
 				},
-				Position: ast.Position{Start: left.Start, End: right.End},
+				Position: *ast.NewPosition(left.Start, right.End),
 			}
 		} else {
 			// 解析可能更高优先级的右侧表达式，如: `1 + 2 * 3` 将解析 `2 * 3` 作为右值
@@ -91,7 +91,7 @@ func (p *Parser) parseBinaryExprPrecedence(left *ast.Expr, precedence int8) *ast
 					Right:    maybeHigherPrecedenceExpr,
 					Operator: operator,
 				},
-				Position: ast.Position{Start: left.Start, End: maybeHigherPrecedenceExpr.End},
+				Position: *ast.NewPosition(left.Start, maybeHigherPrecedenceExpr.End),
 			}
 		}
 
@@ -146,12 +146,12 @@ func (p *Parser) parseFuncExpr() *ast.Expr {
 
 	return &ast.Expr{
 		Node:     &ast.FuncExpr{FuncKind: funcKind, Body: body},
-		Position: ast.Position{Start: start, End: body.End},
+		Position: *ast.NewPosition(start, body.End),
 	}
 }
 
 func (p *Parser) parseStructExpr(ctor *ast.Expr) *ast.Expr {
-	properties := make([]*ast.StructProperty, 0, helper.DefaultCap)
+	properties := make([]*ast.ValueProperty, 0, helper.DefaultCap)
 	start := p.current.Start
 	if ctor != nil {
 		start = ctor.Start
@@ -166,7 +166,7 @@ func (p *Parser) parseStructExpr(ctor *ast.Expr) *ast.Expr {
 		p.consume(lexer.TTColon, true)
 		value := p.parseExpr()
 
-		properties = append(properties, &ast.StructProperty{
+		properties = append(properties, &ast.ValueProperty{
 			Key:   name,
 			Value: value,
 		})
@@ -180,7 +180,7 @@ func (p *Parser) parseStructExpr(ctor *ast.Expr) *ast.Expr {
 
 	return &ast.Expr{
 		Node:     &ast.StructExpr{Ctor: ctor, Properties: properties},
-		Position: ast.Position{Start: start, End: p.lexer.LastToken.End},
+		Position: *ast.NewPosition(start, p.lexer.LastToken.End),
 	}
 }
 
@@ -200,13 +200,17 @@ func (p *Parser) parseArrayExpr() *ast.Expr {
 
 	return &ast.Expr{
 		Node:     &ast.ArrayExpr{Items: items},
-		Position: ast.Position{Start: start, End: p.lexer.LastToken.End},
+		Position: *ast.NewPosition(start, p.lexer.LastToken.End),
 	}
 }
 
 func (p *Parser) parseBooleanExpr() *ast.Expr {
+	text := p.current.Value
 	expr := ast.Expr{
-		Node:     &ast.BoolLiteral{Value: len(p.current.Value) == 4},
+		Node: &ast.BoolLiteral{
+			Value: text == "true", // `true`
+			Text:  text,
+		},
 		Position: p.current.Position,
 	}
 	p.nextToken()
@@ -241,8 +245,12 @@ func (p *Parser) parseStringExpr() *ast.Expr {
 }
 
 func (p *Parser) parseCharExpr() *ast.Expr {
+	text := p.current.Value
 	expr := ast.Expr{
-		Node:     &ast.CharLiteral{Value: rune(p.current.Value[0])},
+		Node: &ast.CharLiteral{
+			Value: rune(text[0]),
+			Text:  text,
+		},
 		Position: p.current.Position,
 	}
 	p.nextToken()
@@ -250,13 +258,17 @@ func (p *Parser) parseCharExpr() *ast.Expr {
 }
 
 func (p *Parser) parseNumberExpr() *ast.Expr {
-	value, err := strconv.ParseFloat(p.current.Value, 64)
+	text := p.current.Value
+	value, err := strconv.ParseFloat(text, 64)
 	if err != nil {
 		p.unexpected()
 	}
 
 	expr := ast.Expr{
-		Node:     &ast.NumberLiteral{Value: value},
+		Node: &ast.NumberLiteral{
+			Value: value,
+			Text:  text,
+		},
 		Position: p.current.Position,
 	}
 	p.nextToken()
@@ -286,10 +298,7 @@ func (p *Parser) parseMaybeChainExpr(parent *ast.Expr, chainType ChainType) *ast
 				Property: property,
 				Computed: false,
 			},
-			Position: ast.Position{
-				Start: parent.Start,
-				End:   property.End,
-			},
+			Position: *ast.NewPosition(parent.Start, property.End),
 		}
 		return p.parseMaybeChainExpr(memberExpr, ChainTypeDot|ChainTypeComputed|ChainTypeCall|ChainTypeStruct)
 	} else if (chainType&ChainTypeComputed > 0) && p.isToken(lexer.TTBracketL) { // `[`
@@ -303,10 +312,7 @@ func (p *Parser) parseMaybeChainExpr(parent *ast.Expr, chainType ChainType) *ast
 				Property: property,
 				Computed: true,
 			},
-			Position: ast.Position{
-				Start: parent.Start,
-				End:   p.lexer.LastToken.End,
-			},
+			Position: *ast.NewPosition(parent.Start, p.lexer.LastToken.End),
 		}
 		return p.parseMaybeChainExpr(computedMemberExpr, ChainTypeDot|ChainTypeComputed|ChainTypeCall)
 	} else if (chainType&ChainTypeCall > 0) && p.isToken(lexer.TTParenL) { // `(`
@@ -338,9 +344,9 @@ func (p *Parser) parseCallExpr(callee *ast.Expr) *ast.Expr {
 			Callee:    callee,
 			Arguments: arguments,
 		},
-		Position: ast.Position{
-			Start: callee.Start,
-			End:   p.lexer.LastToken.End,
-		},
+		Position: *ast.NewPosition(
+			callee.Start,
+			p.lexer.LastToken.End,
+		),
 	}
 }

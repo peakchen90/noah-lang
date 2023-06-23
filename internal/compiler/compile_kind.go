@@ -15,39 +15,37 @@ func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) Kind {
 	node := kindExpr.Node
 
 	switch node.(type) {
-	case *ast.TypeNumber:
+	case *ast.TNumber:
 		kind = &TNumber{Impl: newImpl()}
-	case *ast.TypeByte:
+	case *ast.TByte:
 		kind = &TByte{Impl: newImpl()}
-	case *ast.TypeChar:
+	case *ast.TChar:
 		kind = &TChar{Impl: newImpl()}
-	case *ast.TypeString:
+	case *ast.TString:
 		kind = &TString{Impl: newImpl()}
-	case *ast.TypeBool:
+	case *ast.TBool:
 		kind = &TBool{Impl: newImpl()}
-	case *ast.TypeAny:
+	case *ast.TAny:
 		kind = &TAny{Impl: newImpl()}
-	case *ast.TypeArray:
-		node := node.(*ast.TypeArray)
+	case *ast.TArray:
+		node := node.(*ast.TArray)
 		kind = m.compileArrayKind(node)
-	case *ast.TypeIdentifier:
-		node := node.(*ast.TypeIdentifier)
-		kind = m.ScopeStack.findKind(node.Name.Name)
-	case *ast.TypeMemberKind:
-		node := node.(*ast.TypeMemberKind)
-		kind = m.ScopeStack.findMemberKind(node.ToMemberIds())
-	case *ast.TypeFuncKind:
-		node := node.(*ast.TypeFuncKind)
+	case *ast.TIdentifier:
+		kind = m.findIdentifierKind(kindExpr, true)
+	case *ast.TMemberKind:
+		kind = m.findMemberKind(kindExpr, nil, true)
+	case *ast.TFuncKind:
+		node := node.(*ast.TFuncKind)
 		kind = m.compileFuncKind(node, false)
-	case *ast.TypeStructKind:
-		node := node.(*ast.TypeStructKind)
+	case *ast.TStructKind:
+		node := node.(*ast.TStructKind)
 		kind = m.compileStructKind(node, false)
 	}
 
 	return kind
 }
 
-func (m *Module) compileArrayKind(t *ast.TypeArray) Kind {
+func (m *Module) compileArrayKind(t *ast.TArray) Kind {
 	size := -1 // vector array
 
 	if t.Len != nil {
@@ -66,10 +64,9 @@ func (m *Module) compileArrayKind(t *ast.TypeArray) Kind {
 	}
 }
 
-func (m *Module) compileFuncKind(t *ast.TypeFuncKind, isDecl bool) Kind {
+func (m *Module) compileFuncKind(t *ast.TFuncKind, isDecl bool) Kind {
 	id := -1
 	rest := false
-	size := len(t.Arguments)
 	arguments := make([]Kind, 0, helper.DefaultCap)
 
 	if isDecl {
@@ -78,7 +75,7 @@ func (m *Module) compileFuncKind(t *ast.TypeFuncKind, isDecl bool) Kind {
 
 	for i, arg := range t.Arguments {
 		if arg.Rest {
-			if i == size-1 {
+			if i == len(t.Arguments)-1 {
 				rest = true
 			} else {
 				// TODO unexpected rest arg
@@ -97,7 +94,7 @@ func (m *Module) compileFuncKind(t *ast.TypeFuncKind, isDecl bool) Kind {
 	}
 }
 
-func (m *Module) compileStructKind(t *ast.TypeStructKind, isDecl bool) Kind {
+func (m *Module) compileStructKind(t *ast.TStructKind, isDecl bool) Kind {
 	id := -1
 	extends := make([]Kind, 0, helper.SmallCap)
 	props := make(map[string]Kind)
@@ -151,17 +148,17 @@ func (c *Compiler) inferKind(expr *ast.Expr) *ast.KE {
 		case *ast.IdentifierLiteral:
 			// TODO
 		case *ast.NumberLiteral:
-			expr.InferKind = &ast.TypeNumber{}
+			expr.InferKind = &ast.TNumber{}
 		case *ast.BoolLiteral:
-			expr.InferKind = &ast.TypeBool{}
+			expr.InferKind = &ast.TBool{}
 		case *ast.NullLiteral:
 			// TODO
 		case *ast.SelfLiteral:
 			// TODO
 		case *ast.StringLiteral:
-			expr.InferKind = &ast.TypeString{}
+			expr.InferKind = &ast.TString{}
 		case *ast.CharLiteral:
-			expr.InferKind = &ast.TypeChar{}
+			expr.InferKind = &ast.TChar{}
 		}
 	}
 
