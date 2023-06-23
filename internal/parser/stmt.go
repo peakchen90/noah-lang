@@ -18,8 +18,6 @@ func (p *Parser) parseStmt() *ast.Stmt {
 			p.expect(lexer.TTKeyword)
 
 			switch p.current.Value {
-			case "use":
-				stmt = p.parseUseModuleStmt(pubToken)
 			case "fn":
 				stmt = p.parseFuncDecl(pubToken)
 			case "let":
@@ -37,8 +35,6 @@ func (p *Parser) parseStmt() *ast.Stmt {
 			default:
 				p.unexpected()
 			}
-		case "use":
-			stmt = p.parseUseModuleStmt(nil)
 		case "fn":
 			stmt = p.parseFuncDecl(nil)
 		case "let":
@@ -53,6 +49,8 @@ func (p *Parser) parseStmt() *ast.Stmt {
 			stmt = p.parseStructDecl(nil)
 		case "enum":
 			stmt = p.parseEnumDecl(nil)
+		case "import":
+			stmt = p.parseImportDecl()
 		case "impl":
 			stmt = p.parseImplDecl()
 		case "if":
@@ -100,23 +98,31 @@ func (p *Parser) parseStmt() *ast.Stmt {
 	return stmt
 }
 
-func (p *Parser) parseUseModuleStmt(pubToken *lexer.Token) *ast.Stmt {
+func (p *Parser) parseImportDecl() *ast.Stmt {
 	stmt := &ast.Stmt{}
-	if pubToken != nil {
-		stmt.Start = pubToken.Start
+	stmt.Start = p.current.Start
+	p.nextToken() // skip `import`
+
+	var Package *ast.Identifier
+	headToken := p.consume(lexer.TTIdentifier, true)
+	paths := make([]*ast.Identifier, 0, helper.DefaultCap)
+
+	if p.consume(lexer.TTColon, false) != nil {
+		Package = newIdentifier(headToken)
+		p.expect(lexer.TTIdentifier)
 	} else {
-		stmt.Start = p.current.Start
+		paths = append(paths, newIdentifier(headToken))
+		p.consume(lexer.TTDot, false)
 	}
 
-	p.nextToken() // skip `use`
-
-	// source
-	if !p.isToken(lexer.TTString) {
-		p.unexpectedMissing("source")
+	for p.isToken(lexer.TTIdentifier) {
+		paths = append(paths, newIdentifier(p.consume(lexer.TTIdentifier, true)))
+		if p.consume(lexer.TTDot, false) == nil {
+			break
+		}
 	}
-	source := p.parseAtomExpr()
-	stmt.End = source.End
 
+	stmt.End = p.lexer.LastToken.End
 	var local *ast.Identifier
 
 	if p.consume(lexer.TTAsOp, false) != nil {
@@ -124,10 +130,10 @@ func (p *Parser) parseUseModuleStmt(pubToken *lexer.Token) *ast.Stmt {
 		stmt.End = local.End
 	}
 
-	stmt.Node = &ast.UseModuleStmt{
-		Source: source,
-		Local:  local,
-		Pub:    pubToken != nil,
+	stmt.Node = &ast.ImportDecl{
+		Package: Package,
+		Paths:   paths,
+		Local:   local,
 	}
 
 	return stmt

@@ -3,17 +3,17 @@ package ast
 // S statements
 type S interface{ isStmt() }
 
-func (*UseModuleStmt) isStmt() {}
-func (*FuncDecl) isStmt()      {}
-func (*ImplDecl) isStmt()      {}
-func (*VarDecl) isStmt()       {}
-func (*BlockStmt) isStmt()     {}
-func (*ReturnStmt) isStmt()    {}
-func (*ExprStmt) isStmt()      {}
-func (*IfStmt) isStmt()        {}
-func (*ForStmt) isStmt()       {}
-func (*BreakStmt) isStmt()     {}
-func (*ContinueStmt) isStmt()  {}
+func (*ImportDecl) isStmt()   {}
+func (*FuncDecl) isStmt()     {}
+func (*ImplDecl) isStmt()     {}
+func (*VarDecl) isStmt()      {}
+func (*BlockStmt) isStmt()    {}
+func (*ReturnStmt) isStmt()   {}
+func (*ExprStmt) isStmt()     {}
+func (*IfStmt) isStmt()       {}
+func (*ForStmt) isStmt()      {}
+func (*BreakStmt) isStmt()    {}
+func (*ContinueStmt) isStmt() {}
 
 func (*TAliasDecl) isStmt()     {}
 func (*TInterfaceDecl) isStmt() {}
@@ -22,10 +22,10 @@ func (*TEnumDecl) isStmt()      {}
 
 /* statements */
 type (
-	UseModuleStmt struct {
-		Source *Expr
-		Local  *Identifier
-		Pub    bool
+	ImportDecl struct {
+		Package *Identifier
+		Paths   []*Identifier
+		Local   *Identifier
 	}
 
 	FuncDecl struct {

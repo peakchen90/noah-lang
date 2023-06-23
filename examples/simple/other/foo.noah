@@ -1,0 +1,12 @@
+let abc = 123 // private
+
+pub const PI = 3.14159 // public
+
+// public struct
+pub struct Person {
+    name: string
+}
+
+impl Person {
+    fn name() {}
+}

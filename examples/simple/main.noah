@@ -1,0 +1,12 @@
+import other.bar as bar2
+import other.foo
+
+type P2 bar2.P // 3.14159
+
+fn main() {
+    bar2.say()
+}
+
+impl foo.Person {
+    fn name2() {}
+}

@@ -36,10 +36,10 @@ func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) Kind {
 		kind = m.findMemberKind(kindExpr, nil, true)
 	case *ast.TFuncKind:
 		node := node.(*ast.TFuncKind)
-		kind = m.compileFuncKind(node, false)
+		kind = m.compileFuncKind(node)
 	case *ast.TStructKind:
 		node := node.(*ast.TStructKind)
-		kind = m.compileStructKind(node, false)
+		kind = m.compileStructKind(node)
 	}
 
 	return kind
@@ -64,14 +64,9 @@ func (m *Module) compileArrayKind(t *ast.TArray) Kind {
 	}
 }
 
-func (m *Module) compileFuncKind(t *ast.TFuncKind, isDecl bool) Kind {
-	id := -1
+func (m *Module) compileFuncKind(t *ast.TFuncKind) Kind {
 	rest := false
 	arguments := make([]Kind, 0, helper.DefaultCap)
-
-	if isDecl {
-		id = getNextTypeId()
-	}
 
 	for i, arg := range t.Arguments {
 		if arg.Rest {
@@ -86,7 +81,7 @@ func (m *Module) compileFuncKind(t *ast.TFuncKind, isDecl bool) Kind {
 	}
 
 	return &TFunc{
-		Id:           id,
+		Id:           getNextTypeId(),
 		Arguments:    arguments,
 		Return:       m.compileKindExpr(t.Return),
 		RestArgument: rest,
@@ -94,14 +89,9 @@ func (m *Module) compileFuncKind(t *ast.TFuncKind, isDecl bool) Kind {
 	}
 }
 
-func (m *Module) compileStructKind(t *ast.TStructKind, isDecl bool) Kind {
-	id := -1
+func (m *Module) compileStructKind(t *ast.TStructKind) Kind {
 	extends := make([]Kind, 0, helper.SmallCap)
 	props := make(map[string]Kind)
-
-	if isDecl {
-		id = getNextTypeId()
-	}
 
 	for _, item := range t.Properties {
 		key := item.Key.Name
@@ -118,7 +108,7 @@ func (m *Module) compileStructKind(t *ast.TStructKind, isDecl bool) Kind {
 	}
 
 	return &TStruct{
-		Id:         id,
+		Id:         getNextTypeId(),
 		Extends:    extends,
 		Properties: props,
 		Impl:       newImpl(),

@@ -303,17 +303,35 @@ fn hello(value: any) {
 let a: number = 'a' as number
 ```
 
+## 私有属性
+
+在使用 `impl` 实现方法，使用 `struct` 定义结构体时，约定属性或方法名以 `_` 开始即表示私有属性，私有属性在当前模块（文件）外不可访问
+
+```noah
+struct Foo {
+    _age: number // private
+    name: string // public
+}
+
+impl Foo {
+    fn _foo() {} // private
+    fn bar() {} // public
+}
+```
+
 ## 模块
 
 ### 定义模块
 
 同一个文件的变量、类型都同属一个模块。模块内的变量、类型可以互相访问，但是对外部模块来说这些变量及类型默认都是私有的，可通过 `pub`
-向外部暴露
+向外部暴露。
 
-`lib/foo.noah`
+使用 `import` 关键字导入外部模块，默认将导入模块路径的最后一段作为本地标识符，也可以通过 `as` 关键字设置为其他标识符。
+
+`other/foo.noah`
 
 ```noah
-var abc = 123 // private
+let abc = 123 // private
 
 pub const PI = 3.14159 // public
 
@@ -323,14 +341,14 @@ pub struct Person {
 }
 ```
 
-`lib/bar.noah`
+`other/bar.noah`
 
 ```noah
-use "foo"
-pub use "foo" as foo2 // re-export
+import other.foo
 
 let n1 = foo.PI // 3.14159 (from `lib/foo.noah`)
-type P foo2.Person
+
+pub type P1 foo.Person
 
 pub fn say() -> string {
     return "Hello World"
@@ -340,20 +358,20 @@ pub fn say() -> string {
 `main.noah`
 
 ```noah
-use "lib/bar"
+import other.bar as bar2
 
-let n = bar.foo2.PI // 3.14159 (from `lib/foo.noah`)
+type P2 bar2.PI // 3.14159
 
 fn main() {
-    let s = bar.say() // (from `lib/bar.noah`)    
+    bar2.say()    
 }
 ```
 
 **三方模块(模块名以 `moduleName:` 开始)**:
 
 ```noah
-use "std:numbers" // 导入标准库模块
-use "third:lib/foo" // 导入三方库模块
+import std:numbers" // 导入标准库模块
+import third:lib.foo" // 导入三方库模块
 ```
 
 ## 其他

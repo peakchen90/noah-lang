@@ -1,40 +1,32 @@
 package compiler
 
 import (
-	"os"
 	"path/filepath"
 )
 
 /* compiler */
 
 type Compiler struct {
-	Root      string
 	Main      *Module
-	ModuleMap ModuleMap
+	Modules   ModuleMap
+	VirtualFS *VirtualFS
 }
 
-func NewCompiler(root string) *Compiler {
-	root, _ = filepath.Abs(root)
-	mainPath := filepath.Join(root, "main.noah")
-	code, err := os.ReadFile(mainPath)
+func NewCompiler(root string, isFileSystem bool) *Compiler {
+	virtualFS := newVirtualFS(root, isFileSystem)
+	mainFile := filepath.Join(virtualFS.Root, "main.noah")
+	code, err := virtualFS.ReadFile(mainFile)
 	if err != nil {
 		panic(err)
 	}
-	return NewPureCompiler(string(code), mainPath)
-}
 
-func NewPureCompiler(code string, modulePath string) *Compiler {
-	absPath, err := filepath.Abs(modulePath)
-	if err == nil {
-		modulePath = absPath
-	}
 	c := &Compiler{
-		Root:      filepath.Dir(modulePath),
-		ModuleMap: make(ModuleMap),
+		Modules:   make(ModuleMap),
+		VirtualFS: virtualFS,
 	}
 
-	c.Main = NewModule(c, code, modulePath)
-	c.ModuleMap.add(c.Main)
+	c.Main = NewModule(c, string(code), "", ":main")
+	c.Modules.add(c.Main)
 
 	return c
 }
@@ -48,14 +40,14 @@ func (c *Compiler) Compile() *Compiler {
 
 type ModuleMap map[string]*Module
 
-func (m *ModuleMap) get(pathId string) *Module {
-	return (*m)[pathId]
+func (m *ModuleMap) get(moduleId string) *Module {
+	return (*m)[moduleId]
 }
 
 func (m *ModuleMap) add(module *Module) {
-	(*m)[module.PathId] = module
+	(*m)[module.moduleId] = module
 }
 
-func (m *ModuleMap) has(pathId string) bool {
-	return m.get(pathId) != nil
+func (m *ModuleMap) has(moduleId string) bool {
+	return m.get(moduleId) != nil
 }

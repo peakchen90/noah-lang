@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	inst := compiler.NewCompiler("").Compile()
+	inst := compiler.NewCompiler("examples/simple", true).Compile()
 
 	jsonStr, _ := json.MarshalIndent(inst.Main.Ast, "", "  ")
 	fmt.Println(string(jsonStr))

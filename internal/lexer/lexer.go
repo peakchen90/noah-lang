@@ -34,7 +34,7 @@ func (l *Lexer) Next() *Token {
 	var token *Token
 	ch := l.Look(0)
 
-	if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '_' || ch == '$' {
+	if helper.IsIdentifierChar(ch, true) {
 		token = l.readAsIdentifier()
 	} else if ch >= '0' && ch <= '9' {
 		token = l.readAsNumber()
@@ -517,7 +517,7 @@ func (l *Lexer) readAsIdentifier() *Token {
 
 	for l.checkIndex() {
 		ch := l.Look(0)
-		if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '_' || ch == '$' || (ch >= '0' && ch <= '9') {
+		if helper.IsIdentifierChar(ch, false) {
 			value.WriteRune(ch)
 			l.index++
 		} else {

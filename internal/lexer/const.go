@@ -11,11 +11,11 @@ var keywords = [...]string{
 	// 运算符
 	"as", "is",
 	// 其他修饰符
-	"pub", "use", "impl",
+	"pub", "import", "impl",
 }
 
 var reservedKeywords = [...]string{
-	"import", "async", "await", "switch", "case", "default", "try", "catch", "throw", "new",
+	"async", "await", "switch", "case", "default", "try", "catch", "throw", "new",
 }
 
 // 内置常量

@@ -1,0 +1,9 @@
+import other.foo
+
+let n1 = foo.PI // 3.14159 (from `lib/foo.noah`)
+
+pub type P foo.Person
+
+pub fn say() -> string {
+    return "Hello World"
+}

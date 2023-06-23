@@ -1,7 +1,7 @@
-use "foo"
-pub use "foo" as foo2 // re-export
+import "foo"
+import "foo" as foo2 // re-export
 
-use "lib/bar"
+import "lib/bar"
 
-use "std:numbers" // 导入标准库模块
-use "third:lib/foo" // 导入三方库模块
+import "std:numbers" // 导入标准库模块
+import "third:lib/foo" // 导入三方库模块

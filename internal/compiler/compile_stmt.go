@@ -3,16 +3,18 @@ package compiler
 import (
 	"github.com/peakchen90/noah-lang/internal/ast"
 	"github.com/peakchen90/noah-lang/internal/helper"
+	"path/filepath"
+	"strings"
 )
 
 func (m *Module) preCompile() {
-	stack := m.Scopes
+	stack := m.scopes
 	stack.push()
 
 	for _, stmt := range m.Ast.Body {
 		switch stmt.Node.(type) {
-		case *ast.UseModuleStmt:
-			m.compileUseModuleStmt(stmt.Node.(*ast.UseModuleStmt))
+		case *ast.ImportDecl:
+			m.compileImportDecl(stmt.Node.(*ast.ImportDecl))
 		case *ast.FuncDecl:
 			m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), nil, true)
 		case *ast.ImplDecl:
@@ -39,7 +41,7 @@ func (m *Module) compileFile() {
 
 func (m *Module) compileStmt(stmt *ast.Stmt) {
 	switch (stmt.Node).(type) {
-	case *ast.UseModuleStmt:
+	case *ast.ImportDecl:
 	case *ast.FuncDecl:
 	case *ast.ImplDecl:
 	case *ast.VarDecl:
@@ -53,8 +55,56 @@ func (m *Module) compileStmt(stmt *ast.Stmt) {
 	}
 }
 
-func (m *Module) compileUseModuleStmt(node *ast.UseModuleStmt) {
-	// TODO
+func (m *Module) compileImportDecl(node *ast.ImportDecl) {
+	paths := node.Paths
+	local := node.Local
+	packageName := m.packageName
+
+	if node.Package != nil {
+		packageName = node.Package.Name
+	}
+
+	if local == nil {
+		local = paths[len(paths)-1]
+	}
+
+	pathIdBuilder := strings.Builder{}
+	for i, item := range paths {
+		pathIdBuilder.WriteString(item.Name)
+		if i < len(paths)-1 {
+			pathIdBuilder.WriteByte('/')
+		}
+	}
+
+	pathId := pathIdBuilder.String()
+	moduleId := packageName + ":" + pathId
+	module := m.compiler.Modules.get(moduleId)
+
+	if module == nil {
+		modulePath := ""
+
+		if len(packageName) == 0 {
+			modulePath = filepath.Join(m.compiler.VirtualFS.Root, pathId+".noah")
+		} else {
+			// TODO resolve module
+		}
+
+		code, err := m.compiler.VirtualFS.ReadFile(modulePath)
+		if err != nil {
+			panic(err)
+		}
+
+		module = NewModule(m.compiler, string(code), packageName, moduleId)
+		m.compiler.Modules.add(module)
+	}
+
+	value := &ModuleValue{
+		Name:   local.Name,
+		Module: module,
+	}
+	m.putValue(local, value, true)
+
+	module.compile()
 }
 
 func (m *Module) compileFuncDecl(node *ast.FuncDecl, target Kind, isPrecompile bool) *FuncValue {
@@ -76,7 +126,7 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target Kind, isPrecompile b
 		} else {
 			m.putValue(node.Name, value, true)
 			if node.Pub {
-				m.PublicScope.setValue(name, value)
+				m.exports.setValue(name, value)
 			}
 		}
 	} else {
@@ -149,7 +199,7 @@ func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 		}
 		m.putValue(node.Id, scope, true)
 		if node.Pub {
-			m.PublicScope.setValue(name, scope)
+			m.exports.setValue(name, scope)
 		}
 	} else {
 		// TODO assignment
@@ -161,11 +211,12 @@ func (m *Module) compileTAliasDecl(node *ast.TAliasDecl) {
 	kind := &TCustom{
 		Id:   getNextTypeId(),
 		Kind: m.compileKindExpr(node.Kind),
+		Impl: newImpl(),
 	}
 
 	m.putKind(node.Name, kind, true)
 	if node.Pub {
-		m.PublicScope.setKind(node.Name.Name, kind)
+		m.exports.setKind(node.Name.Name, kind)
 	}
 }
 
@@ -194,16 +245,16 @@ func (m *Module) compileTInterfaceDecl(node *ast.TInterfaceDecl) {
 
 	m.putKind(node.Name, kind, true)
 	if node.Pub {
-		m.PublicScope.setKind(node.Name.Name, kind)
+		m.exports.setKind(node.Name.Name, kind)
 	}
 }
 
 func (m *Module) compileTStructDecl(node *ast.TStructDecl) {
-	kind := m.compileStructKind(node.Kind.Node.(*ast.TStructKind), true)
+	kind := m.compileStructKind(node.Kind.Node.(*ast.TStructKind))
 
 	m.putKind(node.Name, kind, true)
 	if node.Pub {
-		m.PublicScope.setKind(node.Name.Name, kind)
+		m.exports.setKind(node.Name.Name, kind)
 	}
 }
 
@@ -227,6 +278,6 @@ func (m *Module) compileTEnumDecl(node *ast.TEnumDecl) {
 
 	m.putKind(node.Name, kind, true)
 	if node.Pub {
-		m.PublicScope.setKind(node.Name.Name, kind)
+		m.exports.setKind(node.Name.Name, kind)
 	}
 }
