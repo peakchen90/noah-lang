@@ -20,10 +20,10 @@ var reservedKeywords = [...]string{
 
 // 内置常量
 var builtInConstants = [...]string{
-	"true", "false", "null", "self",
+	"true", "false", "null",
 }
 
-// isKeyword 判断是否为关键字
+// 判断是否为关键字
 func isKeyword(value string) bool {
 	for _, item := range keywords {
 		if item == value {
@@ -33,7 +33,7 @@ func isKeyword(value string) bool {
 	return false
 }
 
-// isReversedKeyword 判断是否为保留关键字
+// 判断是否为保留关键字
 func isReversedKeyword(value string) bool {
 	for _, item := range reservedKeywords {
 		if item == value {
@@ -43,7 +43,7 @@ func isReversedKeyword(value string) bool {
 	return false
 }
 
-// isBuiltInConstant 判断是否为内置常量
+// 判断是否为内置常量
 func isBuiltInConstant(value string) bool {
 	for _, item := range builtInConstants {
 		if item == value {

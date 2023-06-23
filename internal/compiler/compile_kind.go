@@ -26,7 +26,9 @@ func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) Kind {
 	case *ast.TBool:
 		kind = &TBool{Impl: newImpl()}
 	case *ast.TAny:
-		kind = &TAny{Impl: newImpl()}
+		kind = &TAny{}
+	case *ast.TSelf:
+		kind = m.findIdentifierKind(kindExpr, true)
 	case *ast.TArray:
 		node := node.(*ast.TArray)
 		kind = m.compileArrayKind(node)
@@ -142,8 +144,6 @@ func (c *Compiler) inferKind(expr *ast.Expr) *ast.KE {
 		case *ast.BoolLiteral:
 			expr.InferKind = &ast.TBool{}
 		case *ast.NullLiteral:
-			// TODO
-		case *ast.SelfLiteral:
 			// TODO
 		case *ast.StringLiteral:
 			expr.InferKind = &ast.TString{}

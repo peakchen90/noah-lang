@@ -16,7 +16,6 @@ func (m *Module) compileExpr(expr *ast.Expr) {
 	case *ast.NumberLiteral:
 	case *ast.BoolLiteral:
 	case *ast.NullLiteral:
-	case *ast.SelfLiteral:
 	case *ast.StringLiteral:
 	case *ast.CharLiteral:
 	}

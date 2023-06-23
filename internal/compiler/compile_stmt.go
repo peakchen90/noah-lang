@@ -144,6 +144,9 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target Kind, isPrecompile b
 
 func (m *Module) compileImplDecl(node *ast.ImplDecl, isPrecompile bool) {
 	target := m.compileKindExpr(node.Target)
+	m.scopes.push()
+	m.putSelfKind("self", target)
+
 	switch target.(type) {
 	case *TInterface:
 		// TODO
@@ -186,6 +189,8 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl, isPrecompile bool) {
 			}
 		}
 	}
+
+	m.scopes.pop()
 }
 
 func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {

@@ -113,8 +113,6 @@ func (p *Parser) parseAtomExpr() *ast.Expr {
 			return p.parseMaybeChainExpr(p.parseBooleanExpr(), ChainTypeDot)
 		} else if value == "null" {
 			return p.parseNullExpr()
-		} else if value == "self" {
-			return p.parseMaybeChainExpr(p.parseSelfExpr(), ChainTypeDot|ChainTypeStruct)
 		}
 	} else if p.consume(lexer.TTIdentifier, false) != nil {
 		return p.parseMaybeChainExpr(newIdentifierExpr(p.lexer.LastToken), ChainTypeDot|ChainTypeComputed|ChainTypeCall|ChainTypeStruct)
@@ -226,15 +224,6 @@ func (p *Parser) parseNullExpr() *ast.Expr {
 	return &expr
 }
 
-func (p *Parser) parseSelfExpr() *ast.Expr {
-	expr := ast.Expr{
-		Node:     &ast.SelfLiteral{},
-		Position: p.current.Position,
-	}
-	p.nextToken()
-	return &expr
-}
-
 func (p *Parser) parseStringExpr() *ast.Expr {
 	expr := ast.Expr{
 		Node:     &ast.StringLiteral{Value: p.current.Value},
@@ -291,7 +280,7 @@ func (p *Parser) parseIdentifierExpr(token *lexer.Token) *ast.Expr {
 func (p *Parser) parseMaybeChainExpr(parent *ast.Expr, chainType ChainType) *ast.Expr {
 	if (chainType&ChainTypeDot > 0) && p.isToken(lexer.TTDot) { // `.`
 		p.nextToken()
-		property := newIdentifierExpr(p.consume(lexer.TTIdentifier, true))
+		property := newIdentifierExpr(p.consumeVarId(true))
 		memberExpr := &ast.Expr{
 			Node: &ast.MemberExpr{
 				Object:   parent,

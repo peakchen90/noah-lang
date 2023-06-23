@@ -43,10 +43,10 @@ func (t *TByte) getImpl() *Impl      { return t.Impl }
 func (t *TChar) getImpl() *Impl      { return t.Impl }
 func (t *TString) getImpl() *Impl    { return t.Impl }
 func (t *TBool) getImpl() *Impl      { return t.Impl }
-func (t *TAny) getImpl() *Impl       { return newImpl() }
+func (t *TAny) getImpl() *Impl       { return nil }
 func (t *TArray) getImpl() *Impl     { return t.Impl }
 func (t *TFunc) getImpl() *Impl      { return t.Impl }
-func (t *TInterface) getImpl() *Impl { return newImpl() }
+func (t *TInterface) getImpl() *Impl { return nil }
 func (t *TStruct) getImpl() *Impl    { return t.Impl }
 func (t *TEnum) getImpl() *Impl      { return t.Impl }
 func (t *TCustom) getImpl() *Impl    { return t.Impl }
@@ -73,7 +73,6 @@ type (
 	}
 
 	TAny struct {
-		Impl *Impl
 	}
 
 	TArray struct {

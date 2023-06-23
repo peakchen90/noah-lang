@@ -1,7 +1,7 @@
-import "foo"
-import "foo" as foo2 // re-export
+import foo
+import foo as foo2 // re-export
 
-import "lib/bar"
+import lib.fo_$Bo.a3
 
-import "std:numbers" // 导入标准库模块
-import "third:lib/foo" // 导入三方库模块
+import std:numbers // 导入标准库模块
+import third:lib.foo // 导入三方库模块

@@ -8,6 +8,7 @@ func (*TChar) isKindExpr()       {}
 func (*TString) isKindExpr()     {}
 func (*TBool) isKindExpr()       {}
 func (*TAny) isKindExpr()        {}
+func (*TSelf) isKindExpr()       {}
 func (*TArray) isKindExpr()      {}
 func (*TIdentifier) isKindExpr() {}
 func (*TMemberKind) isKindExpr() {}
@@ -26,6 +27,8 @@ type (
 	TBool struct{}
 
 	TAny struct{}
+
+	TSelf struct{}
 
 	TArray struct {
 		Kind *KindExpr

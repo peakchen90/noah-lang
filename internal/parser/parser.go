@@ -96,6 +96,11 @@ func (p *Parser) isToken(tokenType lexer.TokenType) bool {
 	return p.current.Type == tokenType
 }
 
+// 判断当前是否为有效的 id token 类型
+func (p *Parser) isValidId() bool {
+	return p.current.Type == lexer.TTIdentifier && p.current.Value != "self"
+}
+
 // 判断当前是否是指定名称的关键字
 func (p *Parser) isKeyword(name string) bool {
 	if p.isToken(lexer.TTKeyword) && p.current.Value == name {
@@ -112,6 +117,19 @@ func (p *Parser) isEnd() bool {
 // 消费一个 token 类型，如果消费成功返回 token 并读取下一个 token，否则返回 nil
 func (p *Parser) consume(tokenType lexer.TokenType, isPanic bool) *lexer.Token {
 	if p.isToken(tokenType) {
+		token := p.current
+		p.nextToken()
+		return token
+	}
+	if isPanic {
+		p.unexpected()
+	}
+	return nil
+}
+
+// 消费一个有效变量 id 类型，如果消费成功返回 token 并读取下一个 token，否则返回 nil
+func (p *Parser) consumeVarId(isPanic bool) *lexer.Token {
+	if p.isValidId() {
 		token := p.current
 		p.nextToken()
 		return token

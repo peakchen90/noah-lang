@@ -15,7 +15,6 @@ func (*IdentifierLiteral) isExpr() {}
 func (*NumberLiteral) isExpr()     {}
 func (*BoolLiteral) isExpr()       {}
 func (*NullLiteral) isExpr()       {}
-func (*SelfLiteral) isExpr()       {}
 func (*StringLiteral) isExpr()     {}
 func (*CharLiteral) isExpr()       {}
 
@@ -79,9 +78,6 @@ type (
 	}
 
 	NullLiteral struct {
-	}
-
-	SelfLiteral struct {
 	}
 
 	StringLiteral struct {

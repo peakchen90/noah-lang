@@ -79,6 +79,13 @@ func (m *Module) putKind(name *ast.Identifier, scope Kind, isPanic bool) {
 	}
 }
 
+func (m *Module) putSelfKind(name string, scope Kind) {
+	last := m.scopes.last()
+	if last != nil {
+		last.setKind(name, scope)
+	}
+}
+
 func (m *Module) findValue(name *ast.Identifier, isPanic bool) Value {
 	for i := m.scopes.size() - 1; i >= 0; i-- {
 		scope := m.scopes.stack[i].getValue(name.Name)
@@ -96,7 +103,10 @@ func (m *Module) findValue(name *ast.Identifier, isPanic bool) Value {
 }
 
 func (m *Module) findIdentifierKind(kindExpr *ast.KindExpr, isPanic bool) Kind {
-	node, _ := kindExpr.Node.(*ast.TIdentifier)
+	node, ok := kindExpr.Node.(*ast.TIdentifier)
+	if !ok {
+		panic("Internal Err")
+	}
 
 	for i := m.scopes.size() - 1; i >= 0; i-- {
 		scope := m.scopes.stack[i].getKind(node.Name.Name)
