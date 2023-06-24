@@ -144,7 +144,7 @@ func (m *Module) compile() {
 
 	for _, stmt := range m.Ast.Body {
 		switch stmt.Node.(type) {
-		case *ast.FuncDecl:
+		case *ast.FuncDecl, *ast.ImplDecl:
 			postHandlers = append(postHandlers, stmt)
 		default:
 			m.compileStmt(stmt)

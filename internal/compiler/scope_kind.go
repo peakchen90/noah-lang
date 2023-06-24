@@ -124,10 +124,10 @@ type (
 /* 类型常量 */
 
 var (
-	TNumberConst = &TNumber{Impl: newImpl()}
-	TByteConst   = &TByte{Impl: newImpl()}
-	TCharConst   = &TChar{Impl: newImpl()}
-	TStringConst = &TString{Impl: newImpl()}
-	TBoolConst   = &TBool{Impl: newImpl()}
-	TAnyConst    = &TAny{}
+	typeNumber = &TNumber{Impl: newImpl()}
+	typeByte   = &TByte{Impl: newImpl()}
+	typeChar   = &TChar{Impl: newImpl()}
+	typeString = &TString{Impl: newImpl()}
+	typeBool   = &TBool{Impl: newImpl()}
+	typeAny    = &TAny{}
 )

@@ -16,15 +16,12 @@ const (
 )
 
 func compareKind(expected *KindRef, received *KindRef, isMatch bool) bool {
-	if expected == nil && received == nil {
-		return true
-	}
-
 	_, ok := received.Ref.(*TAny)
 	if ok {
 		return true
 	}
 
+	// self 指向
 	_e, ok := expected.Ref.(*TSelf)
 	if ok {
 		expected = _e.KindRef
@@ -34,24 +31,11 @@ func compareKind(expected *KindRef, received *KindRef, isMatch bool) bool {
 		received = _r.KindRef
 	}
 
-	switch expected.Ref.(type) {
-	case *TNumber:
-		_, ok := received.Ref.(*TNumber)
-		return ok
-	case *TByte:
-		_, ok := received.Ref.(*TByte)
-		return ok
-	case *TChar:
-		_, ok := received.Ref.(*TChar)
-		return ok
-	case *TString:
-		_, ok := received.Ref.(*TString)
-		return ok
-	case *TBool:
-		_, ok := received.Ref.(*TBool)
-		return ok
-	case *TAny:
+	if expected.Ref == received.Ref {
 		return true
+	}
+
+	switch expected.Ref.(type) {
 	case *TArray:
 		r, ok := received.Ref.(*TArray)
 		if !ok {

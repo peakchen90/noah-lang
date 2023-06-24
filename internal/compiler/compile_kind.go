@@ -16,17 +16,17 @@ func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) *KindRef {
 
 	switch node.(type) {
 	case *ast.TNumber:
-		kind.Ref = TNumberConst
+		kind.Ref = typeNumber
 	case *ast.TByte:
-		kind.Ref = TByteConst
+		kind.Ref = typeByte
 	case *ast.TChar:
-		kind.Ref = TCharConst
+		kind.Ref = typeChar
 	case *ast.TString:
-		kind.Ref = TStringConst
+		kind.Ref = typeString
 	case *ast.TBool:
-		kind.Ref = TBoolConst
+		kind.Ref = typeBool
 	case *ast.TAny:
-		kind.Ref = TAnyConst
+		kind.Ref = typeAny
 	case *ast.TSelf:
 		kind.Ref = &TSelf{KindRef: m.scopes.findSelfKind(kindExpr, true)}
 	case *ast.TArray:
