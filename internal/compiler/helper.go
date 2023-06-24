@@ -16,6 +16,10 @@ const (
 )
 
 func matchKind(expected *KindRef, received *KindRef) bool {
+	if expected == nil || received == nil {
+		return false
+	}
+
 	// 引用 self 指向
 	_e, ok := expected.Ref.(*TSelf)
 	if ok {
