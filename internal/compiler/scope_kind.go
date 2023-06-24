@@ -122,7 +122,6 @@ type (
 )
 
 /* 类型常量 */
-
 var (
 	typeNumber = &TNumber{Impl: newImpl()}
 	typeByte   = &TByte{Impl: newImpl()}

@@ -269,7 +269,7 @@ func (p *Parser) parseIdentifierExpr(token *lexer.Token) *ast.Expr {
 		token = p.current
 	}
 	expr := ast.Expr{
-		Node:     &ast.IdentifierLiteral{Name: token.Value},
+		Node:     newIdentifierExpr(token).Node,
 		Position: token.Position,
 	}
 	p.nextToken()

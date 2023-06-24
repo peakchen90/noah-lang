@@ -64,7 +64,7 @@ type (
 	}
 
 	IdentifierLiteral struct {
-		Name string
+		Name *Identifier
 	}
 
 	NumberLiteral struct {

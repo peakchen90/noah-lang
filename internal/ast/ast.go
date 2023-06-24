@@ -12,8 +12,7 @@ type (
 	}
 
 	Expr struct {
-		Node      E
-		InferKind KE
+		Node E
 		Position
 	}
 

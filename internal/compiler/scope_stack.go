@@ -49,7 +49,7 @@ func (s *ScopeStack) putValue(name *ast.Identifier, scope Value, isPanic bool) {
 	if last != nil {
 		if last.has(name.Name) {
 			if isPanic {
-				s.module.unexpectedPos(name.Start, "Identifier has already been declared: "+name.Name)
+				s.module.unexpectedPos(name.Start, "identifier has already been declared: "+name.Name)
 			}
 		}
 
@@ -62,7 +62,7 @@ func (s *ScopeStack) putModule(name *ast.Identifier, scope Value, isPanic bool) 
 	if last != nil {
 		if last.has(name.Name) {
 			if isPanic {
-				s.module.unexpectedPos(name.Start, "Identifier has already been declared: "+name.Name)
+				s.module.unexpectedPos(name.Start, "identifier has already been declared: "+name.Name)
 			}
 		}
 
@@ -75,7 +75,7 @@ func (s *ScopeStack) putKind(name *ast.Identifier, scope *KindRef, isPanic bool)
 	if last != nil {
 		if last.has(name.Name) {
 			if isPanic {
-				s.module.unexpectedPos(name.Start, "Identifier has already been declared: "+name.Name)
+				s.module.unexpectedPos(name.Start, "identifier has already been declared: "+name.Name)
 			}
 		}
 
@@ -190,7 +190,7 @@ func (s *ScopeStack) findSelfKind(kindExpr *ast.KindExpr, isPanic bool) *KindRef
 	kind, err := s.findKind("self")
 
 	if err != nil && isPanic {
-		s.module.unexpectedPos(kindExpr.Start, "Cannot use self here")
+		s.module.unexpectedPos(kindExpr.Start, "cannot use self here")
 	}
 
 	return kind

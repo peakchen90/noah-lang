@@ -40,7 +40,7 @@ func (m *Module) compileStmt(stmt *ast.Stmt) {
 	case *ast.TEnumDecl:
 		m.compileTEnumDecl(stmt.Node.(*ast.TEnumDecl), false)
 	default:
-		m.unexpectedPos(stmt.Start, "unexpected stmt")
+		panic("Internal Err")
 	}
 }
 
@@ -118,7 +118,7 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 	if target != nil {
 		impls := target.Ref.getImpl()
 		if impls.hasFunc(name.Name) {
-			m.unexpectedPos(node.Name.Start, "Duplicate key: "+name.Name)
+			m.unexpectedPos(node.Name.Start, "duplicate key: "+name.Name)
 		}
 
 		value = &FuncValue{
@@ -143,7 +143,7 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 		t, ok := restParamKind.Ref.(*TArray)
 		if !ok || t.Len >= 0 {
 			restKindNode := funcKindNode.Params[len(paramKinds)-1].Kind
-			m.unexpectedPos(restKindNode.Start, "The rest parameter should be: []T")
+			m.unexpectedPos(restKindNode.Start, "the rest parameter should be: []T")
 		}
 	}
 
@@ -179,11 +179,11 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl) {
 
 	switch target.Ref.(type) {
 	case *TInterface:
-		m.unexpectedPos(node.Target.Start, "Cannot implements for `interface` type")
+		m.unexpectedPos(node.Target.Start, "cannot implements for `interface` type")
 	case *TAny:
-		m.unexpectedPos(node.Target.Start, "Cannot implements for `any` type")
+		m.unexpectedPos(node.Target.Start, "cannot implements for `any` type")
 	case *TSelf:
-		m.unexpectedPos(node.Target.Start, "Cannot implements for `self` type")
+		m.unexpectedPos(node.Target.Start, "cannot implements for `self` type")
 	}
 
 	implValues := make(map[string]*FuncValue)
@@ -199,20 +199,20 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl) {
 		if ok {
 			t.Refs = append(t.Refs, target)
 			interfaceName := getKindExprString(node.Interface)
-			for key, kind := range t.Properties {
+			for key, interfaceDeclKind := range t.Properties {
 				if implValues[key] == nil {
-					m.unexpectedPos(node.Body.Start, fmt.Sprintf("No implement method: %s.%s", interfaceName, key))
+					m.unexpectedPos(node.Body.Start, fmt.Sprintf("no implement method: %s.%s", interfaceName, key))
 				}
-				if !compareKind(kind, implValues[key].KindRef, true) {
+				if !matchKind(interfaceDeclKind, implValues[key].KindRef) {
 					funcNode := implDecls[key].Node.(*ast.FuncDecl)
-					m.unexpectedPos(funcNode.Name.End, fmt.Sprintf("Could not match method signature: %s.%s", interfaceName, key))
+					m.unexpectedPos(funcNode.Name.End, fmt.Sprintf("cannot match method signature: %s.%s", interfaceName, key))
 				}
 			}
 		} else {
 			if t == nil {
-				m.unexpectedPos(node.Interface.Start, "Cannot found: "+getKindExprString(node.Interface))
+				m.unexpectedPos(node.Interface.Start, "cannot found: "+getKindExprString(node.Interface))
 			}
-			m.unexpectedPos(node.Interface.Start, "Expect be an interface type")
+			m.unexpectedPos(node.Interface.Start, "expect be an interface type")
 		}
 	}
 
@@ -235,10 +235,29 @@ func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 	}
 
 	value := m.scopes.findVar(name, true)
-	value.KindRef.Ref = m.compileKindExpr(node.Kind).Ref
 
-	// TODO assignment
-	// TODO infer kind
+	// 变量类型
+	var kind *KindRef
+	if node.Kind != nil {
+		kind = m.compileKindExpr(node.Kind)
+	}
+	if node.Init != nil {
+		inferKind, err := m.inferKind(node.Init)
+		if err != nil {
+			m.unexpectedPos(node.Init.Start, err.Error())
+		} else {
+			if kind == nil {
+				kind = inferKind
+			} else if !matchKind(kind, inferKind) {
+				m.unexpectedPos(node.Init.Start, err.Error())
+			}
+		}
+	} else {
+		m.unexpectedPos(node.Id.Start, "cannot infer variable type")
+	}
+	value.KindRef.Ref = kind.Ref
+
+	value.Ptr = 0 // TODO ptr
 }
 
 func (m *Module) compileBlockStmt(node *ast.BlockStmt) {
@@ -313,9 +332,9 @@ func (m *Module) compileTInterfaceDecl(node *ast.TInterfaceDecl, isPrecompile bo
 		key := pair.Key.Name
 		_, has := refType.Properties[key]
 		if has {
-			m.unexpectedPos(pair.Key.Start, "Duplicate key: "+key)
+			m.unexpectedPos(pair.Key.Start, "duplicate key: "+key)
 		} else if key[0] == '_' {
-			m.unexpectedPos(pair.Key.Start, "Should not be private method: "+key)
+			m.unexpectedPos(pair.Key.Start, "should not be private method: "+key)
 		}
 		refType.Properties[key] = m.compileKindExpr(pair.Kind)
 	}
@@ -344,7 +363,7 @@ func (m *Module) compileTEnumDecl(node *ast.TEnumDecl, isPrecompile bool) {
 		name := item.Name
 		_, has := choices[name]
 		if has {
-			m.unexpectedPos(item.Start, "Duplicate item: "+name)
+			m.unexpectedPos(item.Start, "duplicate item: "+name)
 		}
 		choices[name] = i
 	}

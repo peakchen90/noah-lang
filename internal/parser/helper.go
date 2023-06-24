@@ -23,7 +23,7 @@ func newKindIdentifier(token *lexer.Token) *ast.Identifier {
 
 func newIdentifierExpr(token *lexer.Token) *ast.Expr {
 	return &ast.Expr{
-		Node:     &ast.IdentifierLiteral{Name: token.Value},
+		Node:     &ast.IdentifierLiteral{Name: newIdentifier(token)},
 		Position: token.Position,
 	}
 }

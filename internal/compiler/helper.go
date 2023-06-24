@@ -15,13 +15,8 @@ const (
 	MSCompile
 )
 
-func compareKind(expected *KindRef, received *KindRef, isMatch bool) bool {
-	_, ok := received.Ref.(*TAny)
-	if ok {
-		return true
-	}
-
-	// self 指向
+func matchKind(expected *KindRef, received *KindRef) bool {
+	// 引用 self 指向
 	_e, ok := expected.Ref.(*TSelf)
 	if ok {
 		expected = _e.KindRef
@@ -31,7 +26,13 @@ func compareKind(expected *KindRef, received *KindRef, isMatch bool) bool {
 		received = _r.KindRef
 	}
 
+	// equal
 	if expected.Ref == received.Ref {
+		return true
+	}
+
+	// any
+	if expected.Ref == typeAny || received.Ref == typeAny {
 		return true
 	}
 
@@ -43,7 +44,7 @@ func compareKind(expected *KindRef, received *KindRef, isMatch bool) bool {
 		}
 
 		e := expected.Ref.(*TArray)
-		return e.Len == r.Len && compareKind(e.KindRef, r.KindRef, isMatch)
+		return e.Len == r.Len && matchKind(e.KindRef, r.KindRef)
 	case *TFunc:
 		r, ok := received.Ref.(*TFunc)
 		if !ok {
@@ -51,20 +52,16 @@ func compareKind(expected *KindRef, received *KindRef, isMatch bool) bool {
 		}
 		e := expected.Ref.(*TFunc)
 
-		if isMatch {
-			if e.RestParam != r.RestParam || len(e.Params) != len(r.Params) {
+		if e.RestParam != r.RestParam || len(e.Params) != len(r.Params) {
+			return false
+		}
+
+		for i, param := range e.Params {
+			if !matchKind(param, r.Params[i]) {
 				return false
 			}
-
-			for i, param := range e.Params {
-				if !compareKind(param, r.Params[i], isMatch) {
-					return false
-				}
-			}
-			return compareKind(e.Return, r.Return, isMatch)
-		} else {
-			return r == e
 		}
+		return matchKind(e.Return, r.Return)
 	case *TStruct:
 		r, ok := received.Ref.(*TStruct)
 		if !ok {
@@ -72,46 +69,38 @@ func compareKind(expected *KindRef, received *KindRef, isMatch bool) bool {
 		}
 		e := expected.Ref.(*TStruct)
 
-		if isMatch {
-			// TODO think about extends
+		// TODO think about extends
 
-			if len(e.Properties) != len(r.Properties) {
+		if len(e.Properties) != len(r.Properties) {
+			return false
+		}
+		for key, kind := range e.Properties {
+			if !matchKind(kind, r.Properties[key]) {
 				return false
 			}
-			for key, kind := range e.Properties {
-				if !compareKind(kind, r.Properties[key], isMatch) {
-					return false
-				}
-			}
-			return true
-		} else {
-			return r == e
 		}
+		return true
 	case *TInterface:
 		r, ok := received.Ref.(*TInterface)
 		e := expected.Ref.(*TInterface)
 		if !ok {
 			for _, ref := range e.Refs {
-				if isMatch && compareKind(ref, received, isMatch) {
+				if matchKind(ref, received) {
 					return true
 				}
 			}
 			return false
 		}
 
-		if isMatch {
-			if len(e.Properties) != len(r.Properties) {
+		if len(e.Properties) != len(r.Properties) {
+			return false
+		}
+		for key, kind := range e.Properties {
+			if !matchKind(kind, r.Properties[key]) {
 				return false
 			}
-			for key, kind := range e.Properties {
-				if !compareKind(kind, r.Properties[key], isMatch) {
-					return false
-				}
-			}
-			return true
-		} else {
-			return r == e
 		}
+		return true
 	case *TEnum:
 		r, ok := received.Ref.(*TEnum)
 		if !ok {
@@ -119,27 +108,18 @@ func compareKind(expected *KindRef, received *KindRef, isMatch bool) bool {
 		}
 		e := expected.Ref.(*TEnum)
 
-		if isMatch {
-			if len(e.Choices) != len(r.Choices) {
+		if len(e.Choices) != len(r.Choices) {
+			return false
+		}
+		for i, v := range e.Choices {
+			if v != r.Choices[i] {
 				return false
 			}
-			for i, v := range e.Choices {
-				if v != r.Choices[i] {
-					return false
-				}
-			}
-			return true
-		} else {
-			return r == e
 		}
+		return true
 	case *TCustom:
 		e := expected.Ref.(*TCustom)
-		if isMatch {
-			return compareKind(e.KindRef, received, true)
-		} else {
-			r, ok := received.Ref.(*TCustom)
-			return ok && r == e
-		}
+		return matchKind(e.KindRef, received)
 	}
 
 	return false
@@ -231,4 +211,20 @@ func getKindExprString(expr *ast.KindExpr) string {
 	}
 
 	return builder.String()
+}
+
+func isReferenceKind(kind *KindRef) bool {
+	switch kind.Ref {
+	case typeNumber, typeByte, typeChar, typeString, typeBool:
+		return false
+	}
+
+	switch kind.Ref.(type) {
+	case *TCustom:
+		return isReferenceKind(kind.Ref.(*TCustom).KindRef)
+	case *TSelf:
+		return isReferenceKind(kind.Ref.(*TSelf).KindRef)
+	}
+
+	return true
 }
