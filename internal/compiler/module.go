@@ -3,6 +3,7 @@ package compiler
 import (
 	"errors"
 	"github.com/peakchen90/noah-lang/internal/ast"
+	"github.com/peakchen90/noah-lang/internal/helper"
 	"github.com/peakchen90/noah-lang/internal/parser"
 	"path/filepath"
 	"strings"
@@ -138,7 +139,19 @@ func (m *Module) compile() {
 	}
 	m.state = MSCompile
 
+	// 后置编译
+	postHandlers := make([]*ast.Stmt, 0, helper.DefaultCap)
+
 	for _, stmt := range m.Ast.Body {
+		switch stmt.Node.(type) {
+		case *ast.FuncDecl:
+			postHandlers = append(postHandlers, stmt)
+		default:
+			m.compileStmt(stmt)
+		}
+	}
+
+	for _, stmt := range postHandlers {
 		m.compileStmt(stmt)
 	}
 }

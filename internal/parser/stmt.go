@@ -344,6 +344,9 @@ func (p *Parser) parseImplDecl() *ast.Stmt {
 	target := p.parseKindExpr()
 
 	body := make([]*ast.Stmt, 0, helper.DefaultCap)
+	blockStmt := &ast.BlockStmt{}
+	bodyStmt := &ast.Stmt{Node: blockStmt}
+	bodyStmt.Start = p.current.Start
 
 	p.consume(lexer.TTBraceL, true)
 	for !p.isToken(lexer.TTBraceR) {
@@ -358,12 +361,15 @@ func (p *Parser) parseImplDecl() *ast.Stmt {
 			p.unexpected()
 		}
 	}
+	bodyStmt.End = p.current.End
 	p.consume(lexer.TTBraceR, true)
+
+	blockStmt.Body = body
 
 	stmt.Node = &ast.ImplDecl{
 		Target:    target,
 		Interface: Interface,
-		Body:      body,
+		Body:      bodyStmt,
 	}
 	stmt.End = p.lexer.LastToken.End
 	return stmt

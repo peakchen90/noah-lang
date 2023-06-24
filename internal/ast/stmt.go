@@ -38,7 +38,7 @@ type (
 	ImplDecl struct {
 		Target    *KindExpr
 		Interface *KindExpr
-		Body      []*Stmt
+		Body      *Stmt
 	}
 
 	VarDecl struct {

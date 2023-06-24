@@ -21,8 +21,8 @@ func (*CharLiteral) isExpr()       {}
 // expr
 type (
 	CallExpr struct {
-		Callee    *Expr
-		Arguments []*Expr
+		Callee *Expr
+		Params []*Expr
 	}
 
 	MemberExpr struct {

@@ -93,10 +93,10 @@ type (
 	}
 
 	TFunc struct {
-		Arguments    []*KindRef
-		Return       *KindRef
-		RestArgument bool
-		Impl         *Impl
+		Params    []*KindRef
+		Return    *KindRef
+		RestParam bool
+		Impl      *Impl
 	}
 
 	TStruct struct {
@@ -119,4 +119,15 @@ type (
 		KindRef *KindRef
 		Impl    *Impl
 	}
+)
+
+/* 类型常量 */
+
+var (
+	TNumberConst = &TNumber{Impl: newImpl()}
+	TByteConst   = &TByte{Impl: newImpl()}
+	TCharConst   = &TChar{Impl: newImpl()}
+	TStringConst = &TString{Impl: newImpl()}
+	TBoolConst   = &TBool{Impl: newImpl()}
+	TAnyConst    = &TAny{}
 )

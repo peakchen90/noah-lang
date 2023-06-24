@@ -16,17 +16,17 @@ func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) *KindRef {
 
 	switch node.(type) {
 	case *ast.TNumber:
-		kind.Ref = &TNumber{Impl: newImpl()}
+		kind.Ref = TNumberConst
 	case *ast.TByte:
-		kind.Ref = &TByte{Impl: newImpl()}
+		kind.Ref = TByteConst
 	case *ast.TChar:
-		kind.Ref = &TChar{Impl: newImpl()}
+		kind.Ref = TCharConst
 	case *ast.TString:
-		kind.Ref = &TString{Impl: newImpl()}
+		kind.Ref = TStringConst
 	case *ast.TBool:
-		kind.Ref = &TBool{Impl: newImpl()}
+		kind.Ref = TBoolConst
 	case *ast.TAny:
-		kind.Ref = &TAny{}
+		kind.Ref = TAnyConst
 	case *ast.TSelf:
 		kind.Ref = &TSelf{KindRef: m.scopes.findSelfKind(kindExpr, true)}
 	case *ast.TArray:
@@ -71,24 +71,23 @@ func (m *Module) compileArrayKind(t *ast.TArray) *KindRef {
 func (m *Module) compileFuncKind(t *ast.TFuncKind) *KindRef {
 	kind := &KindRef{}
 	rest := false
-	arguments := make([]*KindRef, 0, helper.DefaultCap)
+	params := make([]*KindRef, 0, helper.DefaultCap)
 
-	for i, arg := range t.Arguments {
-		if arg.Rest {
-			if i == len(t.Arguments)-1 {
-				rest = true
-			} else {
-				m.unexpectedPos(arg.Start, "The rest arguments should be placed last")
+	for i, param := range t.Params {
+		if param.Rest {
+			if i < len(t.Params)-1 {
+				m.unexpectedPos(param.Start, "The rest parameter should be placed last")
 			}
+			rest = true
 		}
-		arguments = append(arguments, m.compileKindExpr(arg.Kind))
+		params = append(params, m.compileKindExpr(param.Kind))
 	}
 
 	kind.Ref = &TFunc{
-		Arguments:    arguments,
-		Return:       m.compileKindExpr(t.Return),
-		RestArgument: rest,
-		Impl:         newImpl(),
+		Params:    params,
+		Return:    m.compileKindExpr(t.Return),
+		RestParam: rest,
+		Impl:      newImpl(),
 	}
 	return kind
 }

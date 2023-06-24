@@ -68,12 +68,12 @@ func compareKind(expected *KindRef, received *KindRef, isMatch bool) bool {
 		e := expected.Ref.(*TFunc)
 
 		if isMatch {
-			if e.RestArgument != r.RestArgument || len(e.Arguments) != len(r.Arguments) {
+			if e.RestParam != r.RestParam || len(e.Params) != len(r.Params) {
 				return false
 			}
 
-			for i, arg := range e.Arguments {
-				if !compareKind(arg, r.Arguments[i], isMatch) {
+			for i, param := range e.Params {
+				if !compareKind(param, r.Params[i], isMatch) {
 					return false
 				}
 			}
@@ -161,7 +161,7 @@ func compareKind(expected *KindRef, received *KindRef, isMatch bool) bool {
 	return false
 }
 
-func getKindExprId(expr *ast.KindExpr) string {
+func getKindExprString(expr *ast.KindExpr) string {
 	if expr == nil {
 		return ""
 	}
@@ -181,6 +181,8 @@ func getKindExprId(expr *ast.KindExpr) string {
 		builder.WriteString("bool")
 	case *ast.TAny:
 		builder.WriteString("any")
+	case *ast.TSelf:
+		builder.WriteString("self")
 	case *ast.TArray:
 		node := expr.Node.(*ast.TArray)
 		builder.WriteString("[")
@@ -189,30 +191,30 @@ func getKindExprId(expr *ast.KindExpr) string {
 			builder.WriteString(lenNode.Text)
 		}
 		builder.WriteString("]")
-		builder.WriteString(getKindExprId(node.Kind))
+		builder.WriteString(getKindExprString(node.Kind))
 	case *ast.TIdentifier:
 		node := expr.Node.(*ast.TIdentifier)
 		builder.WriteString(node.Name.Name)
 	case *ast.TMemberKind:
 		node := expr.Node.(*ast.TMemberKind)
-		builder.WriteString(getKindExprId(node.Left))
+		builder.WriteString(getKindExprString(node.Left))
 		builder.WriteString(".")
-		builder.WriteString(getKindExprId(node.Right))
+		builder.WriteString(getKindExprString(node.Right))
 	case *ast.TFuncKind:
 		node := expr.Node.(*ast.TFuncKind)
 		builder.WriteString("fn(")
-		for i, arg := range node.Arguments {
-			builder.WriteString(arg.Name.Name)
+		for i, param := range node.Params {
+			builder.WriteString(param.Name.Name)
 			builder.WriteString(": ")
-			builder.WriteString(getKindExprId(arg.Kind))
-			if i < len(node.Arguments)-1 {
+			builder.WriteString(getKindExprString(param.Kind))
+			if i < len(node.Params)-1 {
 				builder.WriteString(", ")
 			}
 		}
 		builder.WriteString(")")
-		if len(node.Arguments) > 0 {
+		if len(node.Params) > 0 {
 			builder.WriteString(" -> ")
-			builder.WriteString(getKindExprId(node.Return))
+			builder.WriteString(getKindExprString(node.Return))
 		}
 	case *ast.TStructKind:
 		node := expr.Node.(*ast.TStructKind)
@@ -221,7 +223,7 @@ func getKindExprId(expr *ast.KindExpr) string {
 		if len(node.Extends) > 0 {
 			builder.WriteString("<-")
 			for i, kind := range node.Extends {
-				builder.WriteString(getKindExprId(kind))
+				builder.WriteString(getKindExprString(kind))
 				if i < len(node.Extends)-1 {
 					builder.WriteString(", ")
 				}
@@ -233,7 +235,7 @@ func getKindExprId(expr *ast.KindExpr) string {
 			for i, pair := range node.Properties {
 				builder.WriteString(pair.Key.Name)
 				builder.WriteString(": ")
-				builder.WriteString(getKindExprId(pair.Kind))
+				builder.WriteString(getKindExprString(pair.Kind))
 				if i < len(node.Properties)-1 {
 					builder.WriteString(", ")
 				}

@@ -317,10 +317,10 @@ func (p *Parser) parseMaybeChainExpr(parent *ast.Expr, chainOp ChainOp) *ast.Exp
 
 func (p *Parser) parseCallExpr(callee *ast.Expr) *ast.Expr {
 	p.nextToken()
-	arguments := make([]*ast.Expr, 0, helper.DefaultCap)
+	params := make([]*ast.Expr, 0, helper.DefaultCap)
 
 	for !p.isToken(lexer.TTParenR) {
-		arguments = append(arguments, p.parseExpr())
+		params = append(params, p.parseExpr())
 		if p.consume(lexer.TTComma, false) == nil {
 			break
 		}
@@ -330,8 +330,8 @@ func (p *Parser) parseCallExpr(callee *ast.Expr) *ast.Expr {
 
 	return &ast.Expr{
 		Node: &ast.CallExpr{
-			Callee:    callee,
-			Arguments: arguments,
+			Callee: callee,
+			Params: params,
 		},
 		Position: *ast.NewPosition(
 			callee.Start,

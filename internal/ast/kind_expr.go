@@ -45,8 +45,8 @@ type (
 	}
 
 	TFuncKind struct {
-		Arguments []*Argument
-		Return    *KindExpr
+		Params []*Param
+		Return *KindExpr
 	}
 
 	TStructKind struct {

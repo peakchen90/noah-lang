@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"fmt"
 	"github.com/peakchen90/noah-lang/internal/ast"
 	"github.com/peakchen90/noah-lang/internal/helper"
 	"strings"
@@ -115,8 +116,8 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 
 	// impl struct methods
 	if target != nil {
-		targetImpls := target.Ref.getImpl()
-		if targetImpls.hasFunc(name.Name) {
+		impls := target.Ref.getImpl()
+		if impls.hasFunc(name.Name) {
 			m.unexpectedPos(node.Name.Start, "Duplicate key: "+name.Name)
 		}
 
@@ -124,20 +125,46 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 			Name:    name.Name,
 			KindRef: &KindRef{},
 		}
-		targetImpls.addFunc(value)
+		impls.addFunc(value)
 	} else {
 		value = m.scopes.findFunc(name, true)
 	}
 
+	funcKindNode := node.Kind.Node.(*ast.TFuncKind)
+
 	// compile func kind
-	value.KindRef.Ref = m.compileKindExpr(node.Kind).Ref
+	kind := m.compileKindExpr(node.Kind)
+	value.KindRef.Ref = kind.Ref
+	funcKind := kind.Ref.(*TFunc)
+	paramKinds := funcKind.Params
+	// 校验 rest 参数类型
+	if funcKind.RestParam && len(paramKinds) > 0 {
+		restParamKind := paramKinds[len(paramKinds)-1]
+		t, ok := restParamKind.Ref.(*TArray)
+		if !ok || t.Len >= 0 {
+			restKindNode := funcKindNode.Params[len(paramKinds)-1].Kind
+			m.unexpectedPos(restKindNode.Start, "The rest parameter should be: []T")
+		}
+	}
+
+	// compile func params
+	m.scopes.push()
+	for i, param := range funcKindNode.Params {
+		paramValue := &VarValue{
+			Name:    name.Name,
+			KindRef: paramKinds[i],
+			Const:   false,
+			Ptr:     0, // TODO ptr
+		}
+		m.scopes.putValue(param.Name, paramValue, true)
+	}
 
 	// compile func body
-	m.scopes.push()
 	body := node.Body.Node.(*ast.BlockStmt)
 	m.compileBlockStmt(body)
+	m.scopes.pop()
 
-	// TODO ptr
+	value.Ptr = 0 // TODO ptr
 
 	return value
 }
@@ -152,16 +179,16 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl) {
 
 	switch target.Ref.(type) {
 	case *TInterface:
-		m.unexpectedPos(node.Target.Start, "Cannot implements for interface type")
+		m.unexpectedPos(node.Target.Start, "Cannot implements for `interface` type")
 	case *TAny:
-		m.unexpectedPos(node.Target.Start, "Cannot implements for any type")
+		m.unexpectedPos(node.Target.Start, "Cannot implements for `any` type")
 	case *TSelf:
-		m.unexpectedPos(node.Target.Start, "Cannot implements for self type")
+		m.unexpectedPos(node.Target.Start, "Cannot implements for `self` type")
 	}
 
 	implValues := make(map[string]*FuncValue)
 	implDecls := make(map[string]*ast.Stmt)
-	for _, stmt := range node.Body {
+	for _, stmt := range node.Body.Node.(*ast.BlockStmt).Body {
 		val := m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), target, false)
 		implValues[val.Name] = val
 		implDecls[val.Name] = stmt
@@ -171,18 +198,19 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl) {
 		t, ok := m.compileKindExpr(node.Interface).Ref.(*TInterface)
 		if ok {
 			t.Refs = append(t.Refs, target)
+			interfaceName := getKindExprString(node.Interface)
 			for key, kind := range t.Properties {
 				if implValues[key] == nil {
-					m.unexpectedPos(node.Target.Start, "No implement method: "+key)
+					m.unexpectedPos(node.Body.Start, fmt.Sprintf("No implement method: %s.%s", interfaceName, key))
 				}
 				if !compareKind(kind, implValues[key].KindRef, true) {
-					// TODO panic
-					m.unexpectedPos(implDecls[key].Start, "Unable to match interface method signature: "+key)
+					funcNode := implDecls[key].Node.(*ast.FuncDecl)
+					m.unexpectedPos(funcNode.Name.End, fmt.Sprintf("Could not match method signature: %s.%s", interfaceName, key))
 				}
 			}
 		} else {
 			if t == nil {
-				m.unexpectedPos(node.Interface.Start, "Cannot found: "+getKindExprId(node.Interface))
+				m.unexpectedPos(node.Interface.Start, "Cannot found: "+getKindExprString(node.Interface))
 			}
 			m.unexpectedPos(node.Interface.Start, "Expect be an interface type")
 		}
@@ -214,6 +242,11 @@ func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 }
 
 func (m *Module) compileBlockStmt(node *ast.BlockStmt) {
+	m.scopes.push()
+	for _, stmt := range node.Body {
+		m.compileStmt(stmt)
+	}
+	m.scopes.pop()
 }
 
 func (m *Module) compileReturnStmt(node *ast.ReturnStmt) {

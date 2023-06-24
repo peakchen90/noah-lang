@@ -38,7 +38,7 @@ type (
 		Value *Expr
 	}
 
-	Argument struct {
+	Param struct {
 		Name *Identifier
 		Kind *KindExpr
 		Rest bool
