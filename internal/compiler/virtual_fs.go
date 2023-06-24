@@ -3,24 +3,42 @@ package compiler
 import (
 	"errors"
 	"os"
+	"os/user"
 	"path/filepath"
 )
 
 type VirtualFS struct {
 	Root         string
+	PackageRoot  string
 	isFileSystem bool
 	files        map[string][]byte
 }
 
 func newVirtualFS(root string, isFileSystem bool) *VirtualFS {
+	packageRoot := ""
+
 	if isFileSystem {
-		root, _ = filepath.Abs(root)
-	} else if len(root) == 0 {
-		root = "/virtual-fs"
+		_root, err := filepath.Abs(root)
+		if err != nil {
+			panic(err)
+		}
+		root = _root
+
+		current, err := user.Current()
+		if err != nil {
+			panic(err)
+		}
+		packageRoot = filepath.Join(current.HomeDir, ".noah/packages")
+	} else {
+		if len(root) == 0 {
+			root = "/noah-virtual:root"
+		}
+		packageRoot = "/noah-virtual:packages"
 	}
 
 	return &VirtualFS{
 		Root:         root,
+		PackageRoot:  packageRoot,
 		isFileSystem: isFileSystem,
 		files:        make(map[string][]byte),
 	}
@@ -54,4 +72,14 @@ func (v *VirtualFS) Remove(filename string) error {
 
 	delete(v.files, filename)
 	return nil
+}
+
+func (v *VirtualFS) ExistFile(filename string) bool {
+	if v.isFileSystem {
+		s, err := os.Stat(filename)
+		return err == nil && !s.IsDir()
+	}
+
+	_, has := v.files[filename]
+	return has
 }

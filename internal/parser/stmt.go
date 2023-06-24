@@ -115,10 +115,10 @@ func (p *Parser) parseImportDecl() *ast.Stmt {
 		p.consume(lexer.TTDot, false)
 	}
 
-	for p.isToken(lexer.TTIdentifier) {
+	for p.isValidId() {
 		paths = append(paths, newIdentifier(p.consumeVarId(true)))
-		if p.consume(lexer.TTDot, false) == nil {
-			break
+		if p.consume(lexer.TTDot, false) != nil && !p.isValidId() {
+			p.unexpected()
 		}
 	}
 

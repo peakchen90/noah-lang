@@ -31,7 +31,7 @@ func (s *ScopeStack) last() *Scope {
 func (s *ScopeStack) push() {
 	s.stack = append(s.stack, &Scope{
 		value: make(map[string]Value),
-		kind:  make(map[string]Kind),
+		kind:  make(map[string]*KindRef),
 	})
 }
 

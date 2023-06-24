@@ -34,6 +34,12 @@ func (i *Impl) getPubFunc(name string) *FuncValue {
 	return nil
 }
 
+/* kind ref */
+
+type KindRef struct {
+	Ref Kind
+}
+
 /* kind */
 
 type Kind interface{ getImpl() *Impl }
@@ -77,31 +83,31 @@ type (
 	}
 
 	TSelf struct {
-		Kind Kind
+		KindRef *KindRef
 	}
 
 	TArray struct {
-		Kind Kind
-		Len  int // -1 means vector array
-		Impl *Impl
+		KindRef *KindRef
+		Len     int // -1 means vector array
+		Impl    *Impl
 	}
 
 	TFunc struct {
-		Arguments    []Kind
-		Return       Kind
+		Arguments    []*KindRef
+		Return       *KindRef
 		RestArgument bool
 		Impl         *Impl
 	}
 
 	TStruct struct {
-		Extends    []Kind
-		Properties map[string]Kind
+		Extends    []*KindRef
+		Properties map[string]*KindRef
 		Impl       *Impl
 	}
 
 	TInterface struct {
-		Properties map[string]Kind
-		Refers     []Kind
+		Properties map[string]*KindRef
+		Refs       []*KindRef
 	}
 
 	TEnum struct {
@@ -110,7 +116,7 @@ type (
 	}
 
 	TCustom struct {
-		Kind Kind
-		Impl *Impl
+		KindRef *KindRef
+		Impl    *Impl
 	}
 )

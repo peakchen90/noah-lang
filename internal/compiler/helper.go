@@ -5,50 +5,67 @@ import (
 	"strings"
 )
 
-func compareKind(expected Kind, received Kind, isMatch bool) bool {
+type ModuleState uint
+
+const (
+	MSInit ModuleState = iota
+	MSResolve
+	MSParse
+	MSPrecompile
+	MSCompile
+)
+
+func compareKind(expected *KindRef, received *KindRef, isMatch bool) bool {
 	if expected == nil && received == nil {
 		return true
 	}
 
-	_, ok := received.(*TAny)
+	_, ok := received.Ref.(*TAny)
 	if ok {
 		return true
 	}
 
-	switch expected.(type) {
+	_e, ok := expected.Ref.(*TSelf)
+	if ok {
+		expected = _e.KindRef
+	}
+	_r, ok := received.Ref.(*TSelf)
+	if ok {
+		received = _r.KindRef
+	}
+
+	switch expected.Ref.(type) {
 	case *TNumber:
-		_, ok = received.(*TNumber)
+		_, ok := received.Ref.(*TNumber)
 		return ok
 	case *TByte:
-		_, ok = received.(*TByte)
+		_, ok := received.Ref.(*TByte)
 		return ok
 	case *TChar:
-		_, ok = received.(*TChar)
+		_, ok := received.Ref.(*TChar)
 		return ok
 	case *TString:
-		_, ok = received.(*TString)
+		_, ok := received.Ref.(*TString)
 		return ok
 	case *TBool:
-		_, ok = received.(*TBool)
+		_, ok := received.Ref.(*TBool)
 		return ok
 	case *TAny:
 		return true
-	case *TSelf:
-		return false
 	case *TArray:
-		r, ok := received.(*TArray)
+		r, ok := received.Ref.(*TArray)
 		if !ok {
 			return false
 		}
 
-		e := expected.(*TArray)
-		return e.Len == r.Len && compareKind(e.Kind, r.Kind, isMatch)
+		e := expected.Ref.(*TArray)
+		return e.Len == r.Len && compareKind(e.KindRef, r.KindRef, isMatch)
 	case *TFunc:
-		r, ok := received.(*TFunc)
+		r, ok := received.Ref.(*TFunc)
 		if !ok {
 			return false
 		}
-		e := expected.(*TFunc)
+		e := expected.Ref.(*TFunc)
 
 		if isMatch {
 			if e.RestArgument != r.RestArgument || len(e.Arguments) != len(r.Arguments) {
@@ -65,11 +82,11 @@ func compareKind(expected Kind, received Kind, isMatch bool) bool {
 			return r == e
 		}
 	case *TStruct:
-		r, ok := received.(*TStruct)
+		r, ok := received.Ref.(*TStruct)
 		if !ok {
 			return false
 		}
-		e := expected.(*TStruct)
+		e := expected.Ref.(*TStruct)
 
 		if isMatch {
 			// TODO think about extends
@@ -87,11 +104,16 @@ func compareKind(expected Kind, received Kind, isMatch bool) bool {
 			return r == e
 		}
 	case *TInterface:
-		r, ok := received.(*TInterface)
+		r, ok := received.Ref.(*TInterface)
+		e := expected.Ref.(*TInterface)
 		if !ok {
+			for _, ref := range e.Refs {
+				if isMatch && compareKind(ref, received, isMatch) {
+					return true
+				}
+			}
 			return false
 		}
-		e := expected.(*TInterface)
 
 		if isMatch {
 			if len(e.Properties) != len(r.Properties) {
@@ -107,11 +129,11 @@ func compareKind(expected Kind, received Kind, isMatch bool) bool {
 			return r == e
 		}
 	case *TEnum:
-		r, ok := received.(*TEnum)
+		r, ok := received.Ref.(*TEnum)
 		if !ok {
 			return false
 		}
-		e := expected.(*TEnum)
+		e := expected.Ref.(*TEnum)
 
 		if isMatch {
 			if len(e.Choices) != len(r.Choices) {
@@ -127,11 +149,11 @@ func compareKind(expected Kind, received Kind, isMatch bool) bool {
 			return r == e
 		}
 	case *TCustom:
-		e := expected.(*TCustom)
+		e := expected.Ref.(*TCustom)
 		if isMatch {
-			return compareKind(e.Kind, received, true)
+			return compareKind(e.KindRef, received, true)
 		} else {
-			r, ok := received.(*TCustom)
+			r, ok := received.Ref.(*TCustom)
 			return ok && r == e
 		}
 	}

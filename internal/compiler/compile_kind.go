@@ -6,8 +6,8 @@ import (
 	"math"
 )
 
-func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) Kind {
-	var kind Kind
+func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) *KindRef {
+	kind := &KindRef{}
 	if kindExpr == nil {
 		return kind
 	}
@@ -16,39 +16,40 @@ func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) Kind {
 
 	switch node.(type) {
 	case *ast.TNumber:
-		kind = &TNumber{Impl: newImpl()}
+		kind.Ref = &TNumber{Impl: newImpl()}
 	case *ast.TByte:
-		kind = &TByte{Impl: newImpl()}
+		kind.Ref = &TByte{Impl: newImpl()}
 	case *ast.TChar:
-		kind = &TChar{Impl: newImpl()}
+		kind.Ref = &TChar{Impl: newImpl()}
 	case *ast.TString:
-		kind = &TString{Impl: newImpl()}
+		kind.Ref = &TString{Impl: newImpl()}
 	case *ast.TBool:
-		kind = &TBool{Impl: newImpl()}
+		kind.Ref = &TBool{Impl: newImpl()}
 	case *ast.TAny:
-		kind = &TAny{}
+		kind.Ref = &TAny{}
 	case *ast.TSelf:
-		kind = &TSelf{Kind: m.findSelfKind(kindExpr, true)}
+		kind.Ref = &TSelf{KindRef: m.findSelfKind(kindExpr, true)}
 	case *ast.TArray:
 		node := node.(*ast.TArray)
-		kind = m.compileArrayKind(node)
+		return m.compileArrayKind(node)
 	case *ast.TIdentifier:
 		node := node.(*ast.TIdentifier)
-		kind = m.findIdentifierKind(node.Name, true)
+		return m.findIdentifierKind(node.Name, true)
 	case *ast.TMemberKind:
-		kind = m.findMemberKind(kindExpr, nil, true)
+		return m.findMemberKind(kindExpr, nil, true)
 	case *ast.TFuncKind:
 		node := node.(*ast.TFuncKind)
-		kind = m.compileFuncKind(node)
+		return m.compileFuncKind(node)
 	case *ast.TStructKind:
 		node := node.(*ast.TStructKind)
-		kind = m.compileStructKind(node)
+		return m.compileStructKind(node)
 	}
 
 	return kind
 }
 
-func (m *Module) compileArrayKind(t *ast.TArray) Kind {
+func (m *Module) compileArrayKind(t *ast.TArray) *KindRef {
+	kind := &KindRef{}
 	size := -1 // vector array
 
 	if t.Len != nil {
@@ -59,16 +60,18 @@ func (m *Module) compileArrayKind(t *ast.TArray) Kind {
 		size = int(rawVal)
 	}
 
-	return &TArray{
-		Kind: m.compileKindExpr(t.Kind),
-		Len:  size,
-		Impl: newImpl(),
+	kind.Ref = &TArray{
+		KindRef: m.compileKindExpr(t.Kind),
+		Len:     size,
+		Impl:    newImpl(),
 	}
+	return kind
 }
 
-func (m *Module) compileFuncKind(t *ast.TFuncKind) Kind {
+func (m *Module) compileFuncKind(t *ast.TFuncKind) *KindRef {
+	kind := &KindRef{}
 	rest := false
-	arguments := make([]Kind, 0, helper.DefaultCap)
+	arguments := make([]*KindRef, 0, helper.DefaultCap)
 
 	for i, arg := range t.Arguments {
 		if arg.Rest {
@@ -81,17 +84,19 @@ func (m *Module) compileFuncKind(t *ast.TFuncKind) Kind {
 		arguments = append(arguments, m.compileKindExpr(arg.Kind))
 	}
 
-	return &TFunc{
+	kind.Ref = &TFunc{
 		Arguments:    arguments,
 		Return:       m.compileKindExpr(t.Return),
 		RestArgument: rest,
 		Impl:         newImpl(),
 	}
+	return kind
 }
 
-func (m *Module) compileStructKind(t *ast.TStructKind) Kind {
-	extends := make([]Kind, 0, helper.SmallCap)
-	props := make(map[string]Kind)
+func (m *Module) compileStructKind(t *ast.TStructKind) *KindRef {
+	kind := &KindRef{}
+	extends := make([]*KindRef, 0, helper.SmallCap)
+	props := make(map[string]*KindRef)
 
 	for _, pair := range t.Properties {
 		key := pair.Key.Name
@@ -106,11 +111,12 @@ func (m *Module) compileStructKind(t *ast.TStructKind) Kind {
 		extends = append(extends, m.compileKindExpr(item))
 	}
 
-	return &TStruct{
+	kind.Ref = &TStruct{
 		Extends:    extends,
 		Properties: props,
 		Impl:       newImpl(),
 	}
+	return kind
 }
 
 // TODO
