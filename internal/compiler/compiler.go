@@ -10,24 +10,24 @@ type Compiler struct {
 
 func NewCompiler(root string, isFileSystem bool) *Compiler {
 	virtualFS := newVirtualFS(root, isFileSystem)
-	_compiler := &Compiler{
+	return &Compiler{
 		Modules:   make(ModuleMap),
 		VirtualFS: virtualFS,
 	}
-
-	module, err := NewModule(_compiler).resolve("main")
-	if err != nil {
-		panic(err)
-	}
-	_compiler.Main = module
-	return _compiler
 }
 
 func (c *Compiler) Compile() *Compiler {
-	_, err := c.Main.parse()
+	module, err := NewModule(c).resolve("main")
 	if err != nil {
 		panic(err)
 	}
+
+	err = module.parse()
+	if err != nil {
+		panic(err)
+	}
+
+	c.Main = module
 	c.Main.precompile()
 	c.Main.compile()
 	return c

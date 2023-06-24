@@ -28,15 +28,15 @@ func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) *KindRef {
 	case *ast.TAny:
 		kind.Ref = &TAny{}
 	case *ast.TSelf:
-		kind.Ref = &TSelf{KindRef: m.findSelfKind(kindExpr, true)}
+		kind.Ref = &TSelf{KindRef: m.scopes.findSelfKind(kindExpr, true)}
 	case *ast.TArray:
 		node := node.(*ast.TArray)
 		return m.compileArrayKind(node)
 	case *ast.TIdentifier:
 		node := node.(*ast.TIdentifier)
-		return m.findIdentifierKind(node.Name, true)
+		return m.scopes.findIdentifierKind(node.Name, true)
 	case *ast.TMemberKind:
-		return m.findMemberKind(kindExpr, nil, true)
+		return m.scopes.findMemberKind(kindExpr, true)
 	case *ast.TFuncKind:
 		node := node.(*ast.TFuncKind)
 		return m.compileFuncKind(node)

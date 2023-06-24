@@ -3,7 +3,6 @@ package compiler
 import (
 	"errors"
 	"github.com/peakchen90/noah-lang/internal/ast"
-	"github.com/peakchen90/noah-lang/internal/helper"
 	"github.com/peakchen90/noah-lang/internal/parser"
 	"path/filepath"
 	"strings"
@@ -24,16 +23,14 @@ type Module struct {
 }
 
 func NewModule(compiler *Compiler) *Module {
-	return &Module{
-		compiler: compiler,
-		exports: &Scope{
-			value: make(map[string]Value),
-			kind:  make(map[string]*KindRef),
-		},
-		scopes:      newScopeStack(),
+	module := &Module{
+		compiler:    compiler,
+		exports:     newScope(),
 		state:       MSInit,
 		allowImport: true,
 	}
+	module.scopes = newScopeStack(module)
+	return module
 }
 
 // 解析模块
@@ -79,21 +76,21 @@ func (m *Module) resolve(moduleId string) (*Module, error) {
 }
 
 // 解析模块
-func (m *Module) parse() (*Module, error) {
+func (m *Module) parse() error {
 	if m.state >= MSParse {
-		return m, nil
+		return nil
 	}
 	m.state = MSParse
 
 	code, err := m.compiler.VirtualFS.ReadFile(m.path)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	m.parser = parser.NewParser(string(code), m.moduleId)
 	m.Ast = m.parser.Parse()
 
-	return m, nil
+	return nil
 }
 
 // 预编译模块
@@ -144,203 +141,6 @@ func (m *Module) compile() {
 	for _, stmt := range m.Ast.Body {
 		m.compileStmt(stmt)
 	}
-}
-
-func (m *Module) putValue(name *ast.Identifier, scope Value, isPanic bool) {
-	last := m.scopes.last()
-	if last != nil {
-		if last.has(name.Name) {
-			if isPanic {
-				m.unexpectedPos(name.Start, "Identifier has already been declared: "+name.Name)
-			}
-		}
-
-		last.setValue(name.Name, scope)
-	}
-}
-
-func (m *Module) putModule(name *ast.Identifier, scope Value, isPanic bool) {
-	last := m.scopes.last()
-	if last != nil {
-		if last.has(name.Name) {
-			if isPanic {
-				m.unexpectedPos(name.Start, "Identifier has already been declared: "+name.Name)
-			}
-		}
-
-		last.setValue(name.Name, scope)
-	}
-}
-
-func (m *Module) putKind(name *ast.Identifier, scope *KindRef, isPanic bool) {
-	last := m.scopes.last()
-	if last != nil {
-		if last.has(name.Name) {
-			if isPanic {
-				m.unexpectedPos(name.Start, "Identifier has already been declared: "+name.Name)
-			}
-		}
-
-		last.setKind(name.Name, scope)
-	}
-}
-
-func (m *Module) putSelfKind(scope *KindRef) {
-	last := m.scopes.last()
-	if last != nil {
-		last.setKind("self", scope)
-	}
-}
-
-func (m *Module) putSelfValue(scope Value) {
-	last := m.scopes.last()
-	if last != nil {
-		last.setValue("self", scope)
-	}
-}
-
-func (m *Module) findValue(name *ast.Identifier, isPanic bool) Value {
-	for i := m.scopes.size() - 1; i >= 0; i-- {
-		scope := m.scopes.stack[i].getValue(name.Name)
-		if scope != nil {
-			return scope
-		}
-	}
-
-	if isPanic {
-		m.unexpectedPos(name.Start, name.Name+" is not defined")
-	}
-
-	return nil
-}
-
-func (m *Module) findKind(name string) (*KindRef, error) {
-	for i := m.scopes.size() - 1; i >= 0; i-- {
-		scope := m.scopes.stack[i].getKind(name)
-		if scope != nil {
-			return scope, nil
-		}
-	}
-	return nil, errors.New(name + " is not found")
-}
-
-func (m *Module) findIdentifierKind(name *ast.Identifier, isPanic bool) *KindRef {
-	kind, err := m.findKind(name.Name)
-
-	if err != nil && isPanic {
-		m.unexpectedPos(name.Start, name.Name+" is not found")
-	}
-
-	return kind
-}
-
-func (m *Module) findMemberKind(kindExpr *ast.KindExpr, module *Module, isPanic bool) *KindRef {
-	memberIdStack := make([]*ast.KindExpr, 0, helper.SmallCap)
-	current := kindExpr
-
-outer:
-	for {
-		switch current.Node.(type) {
-		case *ast.TMemberKind:
-			node := current.Node.(*ast.TMemberKind)
-			memberIdStack = append(memberIdStack, node.Right)
-			current = node.Left
-		case *ast.TIdentifier:
-			memberIdStack = append(memberIdStack, current)
-			break outer
-		default:
-			panic("Internal Err")
-		}
-	}
-
-	if module == nil {
-		module = m
-	}
-
-	var kind *KindRef
-	builder := strings.Builder{}
-
-	for i := len(memberIdStack) - 1; i >= 0; i-- {
-		item := memberIdStack[i]
-		node := item.Node.(*ast.TIdentifier)
-		builder.WriteString(node.Name.Name)
-
-		if i > 0 {
-			value := module.findModule(node.Name, isPanic)
-			if value == nil {
-				break
-			}
-			module = value.Module
-			builder.WriteByte('.')
-		} else {
-			kind = module.findIdentifierKind(node.Name, isPanic)
-		}
-	}
-
-	if kind == nil {
-		if isPanic {
-			m.unexpectedPos(kindExpr.Start, builder.String()+" is not found")
-		}
-	}
-
-	return kind
-}
-
-func (m *Module) findSelfKind(kindExpr *ast.KindExpr, isPanic bool) *KindRef {
-	_, ok := kindExpr.Node.(*ast.TSelf)
-	if !ok {
-		panic("Internal Err")
-	}
-
-	kind, err := m.findKind("self")
-
-	if err != nil && isPanic {
-		m.unexpectedPos(kindExpr.Start, "Cannot use self here")
-	}
-
-	return kind
-}
-
-func (m *Module) findModule(name *ast.Identifier, isPanic bool) *ModuleValue {
-	scope := m.findValue(name, isPanic)
-	value, ok := scope.(*ModuleValue)
-	if scope != nil && ok {
-		return value
-	}
-
-	if isPanic {
-		m.unexpectedPos(name.Start, name.Name+" is not found")
-	}
-
-	return nil
-}
-
-func (m *Module) findFunc(name *ast.Identifier, isPanic bool) *FuncValue {
-	scope := m.findValue(name, isPanic)
-	value, ok := scope.(*FuncValue)
-	if scope != nil && ok {
-		return value
-	}
-
-	if isPanic {
-		m.unexpectedPos(name.Start, name.Name+" is not found")
-	}
-
-	return nil
-}
-
-func (m *Module) findVar(name *ast.Identifier, isPanic bool) *VarValue {
-	scope := m.findValue(name, isPanic)
-	value, ok := scope.(*VarValue)
-	if scope != nil && ok {
-		return value
-	}
-
-	if isPanic {
-		m.unexpectedPos(name.Start, name.Name+" is not found")
-	}
-
-	return nil
 }
 
 func (m *Module) unexpectedPos(index int, msg string) {

@@ -5,6 +5,13 @@ type Scope struct {
 	kind  map[string]*KindRef
 }
 
+func newScope() *Scope {
+	return &Scope{
+		value: make(map[string]Value),
+		kind:  make(map[string]*KindRef),
+	}
+}
+
 func (s *Scope) getValue(name string) Value {
 	return s.value[name]
 }

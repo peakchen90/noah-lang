@@ -63,6 +63,10 @@ func (m *Module) compileImportDecl(node *ast.ImportDecl, isPrecompile bool) {
 	module, has := m.compiler.Modules.find(moduleId)
 
 	if !has {
+		if !isPrecompile {
+			panic("Internal Err")
+		}
+
 		_mod, err := NewModule(m.compiler).resolve(moduleId)
 		if err != nil {
 			m.unexpectedPos(importPathStart, err.Error())
@@ -81,9 +85,9 @@ func (m *Module) compileImportDecl(node *ast.ImportDecl, isPrecompile bool) {
 			Name:   local.Name,
 			Module: module,
 		}
-		m.putValue(local, value, true)
+		m.scopes.putValue(local, value, true)
 
-		_, err := module.parse()
+		err := module.parse()
 		if err != nil {
 			m.unexpectedPos(importPathStart, err.Error())
 		}
@@ -102,14 +106,14 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 			Name:    name.Name,
 			KindRef: &KindRef{},
 		}
-		m.putValue(name, value, true)
+		m.scopes.putValue(name, value, true)
 		if node.Pub {
 			m.exports.setValue(name.Name, value)
 		}
 		return value
 	}
 
-	// 实现 struct methods
+	// impl struct methods
 	if target != nil {
 		targetImpls := target.Ref.getImpl()
 		if targetImpls.hasFunc(name.Name) {
@@ -122,10 +126,16 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 		}
 		targetImpls.addFunc(value)
 	} else {
-		value = m.findFunc(name, true)
+		value = m.scopes.findFunc(name, true)
 	}
 
+	// compile func kind
 	value.KindRef.Ref = m.compileKindExpr(node.Kind).Ref
+
+	// compile func body
+	m.scopes.push()
+	body := node.Body.Node.(*ast.BlockStmt)
+	m.compileBlockStmt(body)
 
 	// TODO ptr
 
@@ -137,8 +147,8 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl) {
 
 	// push scope : 用于存放 self 指向
 	m.scopes.push()
-	m.putSelfKind(target)
-	m.putSelfValue(&SelfValue{KindRef: target})
+	m.scopes.putSelfKind(target)
+	m.scopes.putSelfValue(&SelfValue{KindRef: target})
 
 	switch target.Ref.(type) {
 	case *TInterface:
@@ -189,14 +199,14 @@ func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 			KindRef: &KindRef{},
 			Const:   node.Const,
 		}
-		m.putValue(name, scope, true)
+		m.scopes.putValue(name, scope, true)
 		if node.Pub {
 			m.exports.setValue(name.Name, scope)
 		}
 		return
 	}
 
-	value := m.findVar(name, true)
+	value := m.scopes.findVar(name, true)
 	value.KindRef.Ref = m.compileKindExpr(node.Kind).Ref
 
 	// TODO assignment
@@ -229,13 +239,13 @@ func (m *Module) compileContinueStmt(node *ast.ContinueStmt) {
 func (m *Module) processKindDecl(name *ast.Identifier, pub bool, isPrecompile bool) *KindRef {
 	if isPrecompile {
 		kind := &KindRef{}
-		m.putKind(name, kind, true)
+		m.scopes.putKind(name, kind, true)
 		if pub {
 			m.exports.setKind(name.Name, kind)
 		}
 		return kind
 	}
-	return m.findIdentifierKind(name, true)
+	return m.scopes.findIdentifierKind(name, true)
 }
 
 func (m *Module) compileTAliasDecl(node *ast.TAliasDecl, isPrecompile bool) {
@@ -264,7 +274,7 @@ func (m *Module) compileTInterfaceDecl(node *ast.TInterfaceDecl, isPrecompile bo
 
 	// push scope : 用于存放 self 指向
 	m.scopes.push()
-	m.putSelfKind(kind)
+	m.scopes.putSelfKind(kind)
 
 	for _, pair := range node.Properties {
 		key := pair.Key.Name
