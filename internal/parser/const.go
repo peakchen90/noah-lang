@@ -20,11 +20,12 @@ func isReservedType(value string) bool {
 	return false
 }
 
-type ChainType uint8
+type ChainOp uint8
 
 const (
-	ChainTypeDot      ChainType = 0b00001000
-	ChainTypeComputed ChainType = 0b00000100
-	ChainTypeCall     ChainType = 0b00000010
-	ChainTypeStruct   ChainType = 0b00000001
+	_copBase          ChainOp = 0b00000001
+	ChainTypeDot              = _copBase << 0
+	ChainTypeComputed         = _copBase << 1
+	ChainTypeCall             = _copBase << 2
+	ChainTypeStruct           = _copBase << 3
 )

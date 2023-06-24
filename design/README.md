@@ -136,11 +136,6 @@ fn foo(name: string) -> bool {
     return true
 }
 
-// 为 `Person` 结构体实现一个名为 `foo` 的方法，方法内部可以使用 `self` 关键字指向结构体的实例 
-fn Person foo(...name: []string) -> string {
-    return self.name
-}
-
 // 函数调用
 fn main() {
     foo("hello world")
@@ -216,9 +211,13 @@ fn main() {
     }
     
     // 无限循环，可通过 `break` 或 `continue` 跳出循环
-    label: for {
+    for {
         break
         continue
+    }
+        
+    // 标签
+    label: for {
     }
 }
 ```

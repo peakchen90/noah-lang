@@ -16,7 +16,7 @@ type TokenMeta struct {
 	AllowExpr  bool
 }
 
-// 更新 token 类型同时要更新 tokenMetaTable
+// Note: 更新 token 类型同时要更新 tokenMetaTable
 const (
 	TTEof        TokenType = iota // 结束 Token
 	TTComment                     // 注释
@@ -89,10 +89,10 @@ var tokenMetaTable = [60]TokenMeta{
 	TTComment:    {TTComment, "TTComment", "", -1, OpNone, false},
 	TTKeyword:    {TTKeyword, "TTKeyword", "", -1, OpNone, false},
 	TTIdentifier: {TTIdentifier, "TTIdentifier", "", -1, OpNone, false},
+	TTConst:      {TTConst, "TTConst", "", -1, OpNone, false},
 	TTNumber:     {TTNumber, "TTNumber", "", -1, OpNone, false},
 	TTString:     {TTString, "TTString", "", -1, OpNone, false},
 	TTChar:       {TTChar, "TTChar", "", -1, OpNone, false},
-	TTConst:      {TTConst, "TTConst", "", -1, OpNone, false},
 	TTReturnSym:  {TTReturnSym, "TTReturnSym", "->", -1, OpNone, false},
 	TTExtendSym:  {TTExtendSym, "TTExtendSym", "<-", -1, OpNone, false},
 	TTParenL:     {TTParenL, "TTParenL", "(", -1, OpNone, true},

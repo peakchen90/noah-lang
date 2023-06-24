@@ -5,14 +5,16 @@ type OpType uint8
 const (
 	OpNone OpType = 0b00000000
 
-	OpBinary     OpType = 0b00001111
-	OpBinaryLTR  OpType = 0b00000001 // left to right
-	OpBinaryRTL  OpType = 0b00000010 // right to left
-	OpBinaryType OpType = 0b00000100 // typeof value
+	_opbBase     OpType = 0b00000001
+	OpBinaryLTR         = _opbBase << 0 // left to right
+	OpBinaryRTL         = _opbBase << 1 // right to left
+	OpBinaryType        = _opbBase << 2 // typeof value
+	OpBinary            = OpBinaryLTR | OpBinaryRTL | OpBinaryType
 
-	OpUnary        OpType = 0b11110000
-	OpUnaryPrefix  OpType = 0b00010000
-	OpUnaryPostfix OpType = 0b00100000
+	_opuBase       OpType = 0b00010000
+	OpUnaryPrefix         = _opuBase << 0
+	OpUnaryPostfix        = _opuBase << 1
+	OpUnary               = OpUnaryPrefix | OpUnaryPostfix
 )
 
 func (op OpType) IsOpNone() bool {
