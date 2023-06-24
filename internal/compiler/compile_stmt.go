@@ -6,12 +6,6 @@ import (
 	"strings"
 )
 
-func (m *Module) compileFile() {
-	for _, stmt := range m.Ast.Body {
-		m.compileStmt(stmt)
-	}
-}
-
 func (m *Module) compileStmt(stmt *ast.Stmt) {
 	switch (stmt.Node).(type) {
 	case *ast.ImportDecl:
@@ -51,7 +45,10 @@ func (m *Module) compileStmt(stmt *ast.Stmt) {
 
 func (m *Module) compileImportDecl(node *ast.ImportDecl, isPrecompile bool) {
 	builder := strings.Builder{}
+	importPathStart := node.Paths[0].Start
+
 	if node.Package != nil {
+		importPathStart = node.Package.Start
 		builder.WriteString(node.Package.Name)
 		builder.WriteString(":")
 	}
@@ -68,7 +65,7 @@ func (m *Module) compileImportDecl(node *ast.ImportDecl, isPrecompile bool) {
 	if !has {
 		_mod, err := NewModule(m.compiler).resolve(moduleId)
 		if err != nil {
-			m.unexpectedPos(node.Paths[0].Start, err.Error())
+			m.unexpectedPos(importPathStart, err.Error())
 		} else {
 			module = _mod
 		}
@@ -88,7 +85,7 @@ func (m *Module) compileImportDecl(node *ast.ImportDecl, isPrecompile bool) {
 
 		_, err := module.parse()
 		if err != nil {
-			m.unexpectedPos(node.Paths[0].Start, err.Error())
+			m.unexpectedPos(importPathStart, err.Error())
 		}
 		module.precompile()
 	} else {

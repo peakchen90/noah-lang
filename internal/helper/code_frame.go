@@ -2,6 +2,7 @@ package helper
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	"strconv"
 	"strings"
 )
@@ -88,6 +89,10 @@ func getSourcePosition(source *string, index int) (line int, column int) {
 
 // 打印代码帧信息，返回目标位置的行列信息
 func printCodeFrame(source []rune, pos int, message string, level codeFrameLevel) (targetLine int, targetColumn int) {
+	gray := color.New(color.FgHiBlack).SprintfFunc()
+	red := color.New(color.FgRed).SprintfFunc()
+	yellow := color.New(color.FgYellow).SprintfFunc()
+
 	input := string(source)
 	beforeLines := make([]string, 0, DefaultCap)
 	afterLines := make([]string, 0, DefaultCap)
@@ -122,8 +127,8 @@ func printCodeFrame(source []rune, pos int, message string, level codeFrameLevel
 		formatLineNo := getFixedWidthStr(strconv.Itoa(lineNo), lineNoWidth, ' ')
 
 		head := fmt.Sprintf("%s | ", formatLineNo)
-		fmt.Print(head)
-		fmt.Println(rawLine)
+		fmt.Print(gray(head))
+		fmt.Println(gray(rawLine))
 	}
 
 	// 打印提示信息（需预留行号空白位置）
@@ -135,7 +140,11 @@ func printCodeFrame(source []rune, pos int, message string, level codeFrameLevel
 	formatMsg.WriteString(genIndentStr(lineNoWidth+3, targetColumn-1, lastLine))
 	formatMsg.WriteString("^ ")
 	formatMsg.WriteString(message)
-	fmt.Println(formatMsg.String())
+	if level == codeFrameError {
+		fmt.Println(red(formatMsg.String()))
+	} else {
+		fmt.Println(yellow(formatMsg.String()))
+	}
 
 	// 打印提示信息后面代码
 	for _, rawLine := range afterLines {
@@ -143,8 +152,8 @@ func printCodeFrame(source []rune, pos int, message string, level codeFrameLevel
 		formatLineNo := getFixedWidthStr(strconv.Itoa(lineNo), lineNoWidth, ' ')
 
 		head := fmt.Sprintf("%s | ", formatLineNo)
-		fmt.Print(head)
-		fmt.Println(rawLine)
+		fmt.Print(gray(head))
+		fmt.Println(gray(rawLine))
 	}
 
 	return

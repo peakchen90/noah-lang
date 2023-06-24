@@ -108,8 +108,7 @@ func TestParser(t *testing.T) {
 			panic(err)
 		}
 
-		NewParser(string(code)).Parse()
-
+		NewParser(string(code), file.Name()).Parse()
 	}
 
 	//for _, fixture := range parserFixtures {

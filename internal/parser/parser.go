@@ -2,12 +2,14 @@ package parser
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/peakchen90/noah-lang/internal/ast"
 	"github.com/peakchen90/noah-lang/internal/helper"
 	"github.com/peakchen90/noah-lang/internal/lexer"
 )
 
 type Parser struct {
+	name       string
 	source     []rune       // utf-8 字符
 	lexer      *lexer.Lexer // 词法分析器
 	current    *lexer.Token // 当前 token
@@ -16,9 +18,12 @@ type Parser struct {
 	loopLevel  int          // 当前进入到第几层循环块
 }
 
-func NewParser(input string) *Parser {
+func NewParser(input string, name string) *Parser {
 	source := []rune(input)
-	return &Parser{source: source}
+	return &Parser{
+		name:   name,
+		source: source,
+	}
 }
 
 func (p *Parser) Parse() *ast.File {
@@ -61,7 +66,8 @@ func (p *Parser) revertLastToken() {
 
 func (p *Parser) UnexpectedPos(index int, msg string) {
 	line, column := helper.PrintErrorFrame(p.source, index, msg)
-	panic(fmt.Sprintf("%s (%d:%d)", msg, line, column))
+	fmt.Print("\n")
+	panic(color.New(color.FgRed).Sprintf("%s (found in \"%s\", loc %d:%d)", msg, p.name, line, column))
 }
 
 func (p *Parser) unexpectedToken(expectHint string, receiveToken *lexer.Token) {

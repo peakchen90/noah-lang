@@ -17,7 +17,10 @@ type Module struct {
 	parser   *parser.Parser
 	exports  *Scope
 	scopes   *ScopeStack
-	state    ModuleState
+
+	/* context flags */
+	state       ModuleState
+	allowImport bool
 }
 
 func NewModule(compiler *Compiler) *Module {
@@ -27,8 +30,9 @@ func NewModule(compiler *Compiler) *Module {
 			value: make(map[string]Value),
 			kind:  make(map[string]*KindRef),
 		},
-		scopes: newScopeStack(),
-		state:  MSInit,
+		scopes:      newScopeStack(),
+		state:       MSInit,
+		allowImport: true,
 	}
 }
 
@@ -86,7 +90,7 @@ func (m *Module) parse() (*Module, error) {
 		return nil, err
 	}
 
-	m.parser = parser.NewParser(string(code))
+	m.parser = parser.NewParser(string(code), m.moduleId)
 	m.Ast = m.parser.Parse()
 
 	return m, nil
@@ -99,12 +103,20 @@ func (m *Module) precompile() {
 	}
 	m.state = MSPrecompile
 
-	// push scope : 将顶层定义全部放在这层
+	// push scope : 将顶层定义全部放在这里
 	m.scopes.push()
 
 	for _, stmt := range m.Ast.Body {
+		_, isImport := stmt.Node.(*ast.ImportDecl)
+		if !isImport {
+			m.allowImport = false
+		}
+
 		switch stmt.Node.(type) {
 		case *ast.ImportDecl:
+			if !m.allowImport {
+				m.unexpectedPos(stmt.Start, "`import` should be at the top of the file")
+			}
 			m.compileImportDecl(stmt.Node.(*ast.ImportDecl), true)
 		case *ast.FuncDecl:
 			m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), nil, true)
