@@ -32,7 +32,7 @@ func (p *Parser) parseMaybeUnaryExpr(precedence int8) *ast.Expr {
 		return &ast.Expr{
 			Node: &ast.UnaryExpr{
 				Argument: argument,
-				Operator: token.Text,
+				Operator: newOperator(token),
 				Prefix:   true,
 			},
 			Position: *ast.NewPosition(token.Start, argument.End),
@@ -51,7 +51,7 @@ func (p *Parser) parseMaybePostfixUnaryExpr(left *ast.Expr, precedence int8) *as
 		return &ast.Expr{
 			Node: &ast.UnaryExpr{
 				Argument: left,
-				Operator: token.Text,
+				Operator: newOperator(token),
 				Prefix:   false,
 			},
 			Position: *ast.NewPosition(left.Start, token.End),
@@ -66,7 +66,7 @@ func (p *Parser) parseBinaryExprPrecedence(left *ast.Expr, precedence int8) *ast
 
 	if (token.OpType.IsOpBinaryLTR() && precedence < token.Precedence) || (token.OpType.IsOpBinaryRTL() && precedence <= token.Precedence) {
 		nextPrecedence := token.Precedence
-		operator := token.Text
+		operator := newOperator(token)
 		p.nextToken()
 
 		var node *ast.Expr
@@ -106,29 +106,29 @@ func (p *Parser) parseBinaryExprPrecedence(left *ast.Expr, precedence int8) *ast
 // 解析一个原子表达式，如: `foo()`, `3.14`, `a.b`, `var2 = expr`, `true`, `"str"`, `fn() {}`, `A{}`
 func (p *Parser) parseAtomExpr() *ast.Expr {
 	if p.isKeyword("fn") {
-		return p.parseMaybeChainExpr(p.parseFuncExpr(), ChainTypeCall)
+		return p.parseMaybeChainExpr(p.parseFuncExpr(), AccessCall)
 	} else if p.isToken(lexer.TTConst) {
 		value := p.current.Value
 		if value == "true" || value == "false" {
-			return p.parseMaybeChainExpr(p.parseBooleanExpr(), ChainTypeDot)
+			return p.parseMaybeChainExpr(p.parseBooleanExpr(), AccessDot)
 		} else if value == "null" {
 			return p.parseNullExpr()
 		}
 	} else if p.consume(lexer.TTIdentifier, false) != nil {
-		return p.parseMaybeChainExpr(newIdentifierExpr(p.lexer.LastToken), ChainTypeDot|ChainTypeComputed|ChainTypeCall|ChainTypeStruct)
+		return p.parseMaybeChainExpr(newIdentifierExpr(p.lexer.LastToken), AccessDot|AccessComputed|AccessCall|AccessStruct)
 	}
 
 	switch p.current.Type {
 	case lexer.TTString:
-		return p.parseMaybeChainExpr(p.parseStringExpr(), ChainTypeDot|ChainTypeComputed)
+		return p.parseMaybeChainExpr(p.parseStringExpr(), AccessDot|AccessComputed)
 	case lexer.TTChar:
-		return p.parseMaybeChainExpr(p.parseCharExpr(), ChainTypeDot)
+		return p.parseMaybeChainExpr(p.parseCharExpr(), AccessDot)
 	case lexer.TTNumber:
-		return p.parseMaybeChainExpr(p.parseNumberExpr(), ChainTypeDot)
+		return p.parseMaybeChainExpr(p.parseNumberExpr(), AccessDot)
 	case lexer.TTBraceL:
-		return p.parseMaybeChainExpr(p.parseStructExpr(nil), ChainTypeDot)
+		return p.parseMaybeChainExpr(p.parseStructExpr(nil), AccessDot)
 	case lexer.TTBracketL:
-		return p.parseMaybeChainExpr(p.parseArrayExpr(), ChainTypeComputed)
+		return p.parseMaybeChainExpr(p.parseArrayExpr(), AccessComputed)
 	default:
 		p.unexpected()
 	}
@@ -277,8 +277,8 @@ func (p *Parser) parseIdentifierExpr(token *lexer.Token) *ast.Expr {
 }
 
 // 解析可能的链式调用表达式，如：`expr.b.c`, `expr[n]`, `expr()`
-func (p *Parser) parseMaybeChainExpr(parent *ast.Expr, chainOp ChainOp) *ast.Expr {
-	if (chainOp&ChainTypeDot > 0) && p.isToken(lexer.TTDot) { // `.`
+func (p *Parser) parseMaybeChainExpr(parent *ast.Expr, access AccessType) *ast.Expr {
+	if (access&AccessDot > 0) && p.isToken(lexer.TTDot) { // `.`
 		p.nextToken()
 		property := newIdentifierExpr(p.consumeVarId(true))
 		memberExpr := &ast.Expr{
@@ -289,8 +289,8 @@ func (p *Parser) parseMaybeChainExpr(parent *ast.Expr, chainOp ChainOp) *ast.Exp
 			},
 			Position: *ast.NewPosition(parent.Start, property.End),
 		}
-		return p.parseMaybeChainExpr(memberExpr, ChainTypeDot|ChainTypeComputed|ChainTypeCall|ChainTypeStruct)
-	} else if (chainOp&ChainTypeComputed > 0) && p.isToken(lexer.TTBracketL) { // `[`
+		return p.parseMaybeChainExpr(memberExpr, AccessDot|AccessComputed|AccessCall|AccessStruct)
+	} else if (access&AccessComputed > 0) && p.isToken(lexer.TTBracketL) { // `[`
 		p.nextToken()
 		property := p.parseExpr()
 		p.consume(lexer.TTBracketR, true)
@@ -303,13 +303,13 @@ func (p *Parser) parseMaybeChainExpr(parent *ast.Expr, chainOp ChainOp) *ast.Exp
 			},
 			Position: *ast.NewPosition(parent.Start, p.lexer.LastToken.End),
 		}
-		return p.parseMaybeChainExpr(computedMemberExpr, ChainTypeDot|ChainTypeComputed|ChainTypeCall)
-	} else if (chainOp&ChainTypeCall > 0) && p.isToken(lexer.TTParenL) { // `(`
+		return p.parseMaybeChainExpr(computedMemberExpr, AccessDot|AccessComputed|AccessCall)
+	} else if (access&AccessCall > 0) && p.isToken(lexer.TTParenL) { // `(`
 		callExpr := p.parseCallExpr(parent)
-		return p.parseMaybeChainExpr(callExpr, ChainTypeDot|ChainTypeComputed|ChainTypeCall)
-	} else if (chainOp&ChainTypeStruct > 0) && p.isToken(lexer.TTBraceL) { // `{`
+		return p.parseMaybeChainExpr(callExpr, AccessDot|AccessComputed|AccessCall)
+	} else if (access&AccessStruct > 0) && p.isToken(lexer.TTBraceL) { // `{`
 		structExpr := p.parseStructExpr(parent)
-		return p.parseMaybeChainExpr(structExpr, ChainTypeDot)
+		return p.parseMaybeChainExpr(structExpr, AccessDot)
 	}
 
 	return parent

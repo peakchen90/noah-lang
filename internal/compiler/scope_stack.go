@@ -44,7 +44,7 @@ func (s *ScopeStack) pop() {
 	}
 }
 
-func (s *ScopeStack) putValue(name *ast.Identifier, scope Value, isPanic bool) {
+func (s *ScopeStack) putModule(name *ast.Identifier, module *Module, isPanic bool) {
 	last := s.last()
 	if last != nil {
 		if last.has(name.Name) {
@@ -53,11 +53,11 @@ func (s *ScopeStack) putValue(name *ast.Identifier, scope Value, isPanic bool) {
 			}
 		}
 
-		last.setValue(name.Name, scope)
+		last.setModule(name.Name, module)
 	}
 }
 
-func (s *ScopeStack) putModule(name *ast.Identifier, scope Value, isPanic bool) {
+func (s *ScopeStack) putValue(name *ast.Identifier, value Value, isPanic bool) {
 	last := s.last()
 	if last != nil {
 		if last.has(name.Name) {
@@ -66,11 +66,18 @@ func (s *ScopeStack) putModule(name *ast.Identifier, scope Value, isPanic bool) 
 			}
 		}
 
-		last.setValue(name.Name, scope)
+		last.setValue(name.Name, value)
 	}
 }
 
-func (s *ScopeStack) putKind(name *ast.Identifier, scope *KindRef, isPanic bool) {
+func (s *ScopeStack) putSelfValue(value Value) {
+	last := s.last()
+	if last != nil {
+		last.setValue("self", value)
+	}
+}
+
+func (s *ScopeStack) putKind(name *ast.Identifier, kind *KindRef, isPanic bool) {
 	last := s.last()
 	if last != nil {
 		if last.has(name.Name) {
@@ -79,29 +86,22 @@ func (s *ScopeStack) putKind(name *ast.Identifier, scope *KindRef, isPanic bool)
 			}
 		}
 
-		last.setKind(name.Name, scope)
+		last.setKind(name.Name, kind)
 	}
 }
 
-func (s *ScopeStack) putSelfKind(scope *KindRef) {
+func (s *ScopeStack) putSelfKind(kind *KindRef) {
 	last := s.last()
 	if last != nil {
-		last.setKind("self", scope)
+		last.setKind("self", kind)
 	}
 }
 
-func (s *ScopeStack) putSelfValue(scope Value) {
-	last := s.last()
-	if last != nil {
-		last.setValue("self", scope)
-	}
-}
-
-func (s *ScopeStack) findValue(name *ast.Identifier, isPanic bool) Value {
+func (s *ScopeStack) findModule(name *ast.Identifier, isPanic bool) *Module {
 	for i := s.size() - 1; i >= 0; i-- {
-		scope := s.stack[i].getValue(name.Name)
-		if scope != nil {
-			return scope
+		module := s.stack[i].getModule(name.Name)
+		if module != nil {
+			return module
 		}
 	}
 
@@ -109,6 +109,68 @@ func (s *ScopeStack) findValue(name *ast.Identifier, isPanic bool) Value {
 		s.module.unexpectedPos(name.Start, name.Name+" is not defined")
 	}
 
+	return nil
+}
+
+func (s *ScopeStack) findValue(name *ast.Identifier, isPanic bool) Value {
+	for i := s.size() - 1; i >= 0; i-- {
+		value := s.stack[i].getValue(name.Name)
+		if value != nil {
+			return value
+		}
+	}
+
+	if isPanic {
+		s.module.unexpectedPos(name.Start, name.Name+" is not defined")
+	}
+
+	return nil
+}
+
+func (s *ScopeStack) findFuncValue(name *ast.Identifier, isPanic bool) *FuncValue {
+	scope := s.findValue(name, isPanic)
+	value, ok := scope.(*FuncValue)
+	if scope != nil && ok {
+		return value
+	}
+
+	if isPanic {
+		s.module.unexpectedPos(name.Start, name.Name+" is not found")
+	}
+
+	return nil
+}
+
+func (s *ScopeStack) findVarValue(name *ast.Identifier, isPanic bool) *VarValue {
+	scope := s.findValue(name, isPanic)
+	value, ok := scope.(*VarValue)
+	if scope != nil && ok {
+		return value
+	}
+
+	if isPanic {
+		s.module.unexpectedPos(name.Start, name.Name+" is not found")
+	}
+
+	return nil
+}
+
+func (s *ScopeStack) findSelfValue(name *ast.Identifier, isPanic bool) *SelfValue {
+	scope := s.findValue(name, isPanic)
+	value, ok := scope.(*SelfValue)
+	if scope != nil && ok {
+		return value
+	}
+
+	if isPanic {
+		s.module.unexpectedPos(name.Start, name.Name+" is not found")
+	}
+
+	return nil
+}
+
+func (s *ScopeStack) findMemberValue(expr *ast.MemberExpr, isPanic bool) Value {
+	// TODO
 	return nil
 }
 
@@ -161,11 +223,11 @@ outer:
 		builder.WriteString(node.Name.Name)
 
 		if i > 0 {
-			value := module.scopes.findModule(node.Name, isPanic)
-			if value == nil {
+			found := module.scopes.findModule(node.Name, isPanic)
+			if found == nil {
 				break
 			}
-			module = value.Module
+			module = found
 			builder.WriteByte('.')
 		} else {
 			kind = module.scopes.findIdentifierKind(node.Name, isPanic)
@@ -194,46 +256,4 @@ func (s *ScopeStack) findSelfKind(kindExpr *ast.KindExpr, isPanic bool) *KindRef
 	}
 
 	return kind
-}
-
-func (s *ScopeStack) findModule(name *ast.Identifier, isPanic bool) *ModuleValue {
-	scope := s.findValue(name, isPanic)
-	value, ok := scope.(*ModuleValue)
-	if scope != nil && ok {
-		return value
-	}
-
-	if isPanic {
-		s.module.unexpectedPos(name.Start, name.Name+" is not found")
-	}
-
-	return nil
-}
-
-func (s *ScopeStack) findFunc(name *ast.Identifier, isPanic bool) *FuncValue {
-	scope := s.findValue(name, isPanic)
-	value, ok := scope.(*FuncValue)
-	if scope != nil && ok {
-		return value
-	}
-
-	if isPanic {
-		s.module.unexpectedPos(name.Start, name.Name+" is not found")
-	}
-
-	return nil
-}
-
-func (s *ScopeStack) findVar(name *ast.Identifier, isPanic bool) *VarValue {
-	scope := s.findValue(name, isPanic)
-	value, ok := scope.(*VarValue)
-	if scope != nil && ok {
-		return value
-	}
-
-	if isPanic {
-		s.module.unexpectedPos(name.Start, name.Name+" is not found")
-	}
-
-	return nil
 }

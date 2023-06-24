@@ -139,19 +139,28 @@ func (m *Module) compile() {
 	}
 	m.state = MSCompile
 
-	// 后置编译
-	postHandlers := make([]*ast.Stmt, 0, helper.DefaultCap)
+	fns := make([]*ast.Stmt, 0, helper.DefaultCap)
+	vars := make([]*ast.Stmt, 0, helper.DefaultCap)
 
+	// 1. 优先编译 类型声明、模块
 	for _, stmt := range m.Ast.Body {
 		switch stmt.Node.(type) {
 		case *ast.FuncDecl, *ast.ImplDecl:
-			postHandlers = append(postHandlers, stmt)
+			fns = append(fns, stmt)
+		case *ast.VarDecl:
+			vars = append(vars, stmt)
 		default:
 			m.compileStmt(stmt)
 		}
 	}
 
-	for _, stmt := range postHandlers {
+	// 2. 其次编译函数
+	for _, stmt := range fns {
+		m.compileStmt(stmt)
+	}
+
+	// 3. 编译全局变量（变量可能依赖类型定义、函数返回值等）
+	for _, stmt := range vars {
 		m.compileStmt(stmt)
 	}
 }

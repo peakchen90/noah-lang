@@ -82,12 +82,7 @@ func (m *Module) compileImportDecl(node *ast.ImportDecl, isPrecompile bool) {
 	}
 
 	if isPrecompile {
-		value := &ModuleValue{
-			Name:   local.Name,
-			Module: module,
-		}
-		m.scopes.putValue(local, value, true)
-
+		m.scopes.putModule(local, module, true)
 		err := module.parse()
 		if err != nil {
 			m.unexpectedPos(importPathStart, err.Error())
@@ -104,8 +99,8 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 
 	if isPrecompile {
 		value = &FuncValue{
-			Name:    name.Name,
-			KindRef: &KindRef{},
+			Name: name.Name,
+			Kind: &KindRef{},
 		}
 		m.scopes.putValue(name, value, true)
 		if node.Pub {
@@ -122,19 +117,19 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 		}
 
 		value = &FuncValue{
-			Name:    name.Name,
-			KindRef: &KindRef{},
+			Name: name.Name,
+			Kind: &KindRef{},
 		}
 		impls.addFunc(value)
 	} else {
-		value = m.scopes.findFunc(name, true)
+		value = m.scopes.findFuncValue(name, true)
 	}
 
 	funcKindNode := node.Kind.Node.(*ast.TFuncKind)
 
 	// compile func kind
 	kind := m.compileKindExpr(node.Kind)
-	value.KindRef.Ref = kind.Ref
+	value.Kind.Ref = kind.Ref
 	funcKind := kind.Ref.(*TFunc)
 	paramKinds := funcKind.Params
 	// 校验 rest 参数类型
@@ -151,10 +146,10 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 	m.scopes.push()
 	for i, param := range funcKindNode.Params {
 		paramValue := &VarValue{
-			Name:    name.Name,
-			KindRef: paramKinds[i],
-			Const:   false,
-			Ptr:     0, // TODO ptr
+			Name:  name.Name,
+			Kind:  paramKinds[i],
+			Const: false,
+			Ptr:   0, // TODO ptr
 		}
 		m.scopes.putValue(param.Name, paramValue, true)
 	}
@@ -175,7 +170,7 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl) {
 	// push scope : 用于存放 self 指向
 	m.scopes.push()
 	m.scopes.putSelfKind(target)
-	m.scopes.putSelfValue(&SelfValue{KindRef: target})
+	m.scopes.putSelfValue(&SelfValue{Kind: target})
 
 	switch target.Ref.(type) {
 	case *TInterface:
@@ -203,7 +198,7 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl) {
 				if implValues[key] == nil {
 					m.unexpectedPos(node.Body.Start, fmt.Sprintf("no implement method: %s.%s", interfaceName, key))
 				}
-				if !matchKind(interfaceDeclKind, implValues[key].KindRef) {
+				if !matchKind(interfaceDeclKind, implValues[key].Kind) {
 					funcNode := implDecls[key].Node.(*ast.FuncDecl)
 					m.unexpectedPos(funcNode.Name.End, fmt.Sprintf("cannot match method signature: %s.%s", interfaceName, key))
 				}
@@ -223,9 +218,9 @@ func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 	name := node.Id
 	if isPrecompile {
 		scope := &VarValue{
-			Name:    name.Name,
-			KindRef: &KindRef{},
-			Const:   node.Const,
+			Name:  name.Name,
+			Kind:  &KindRef{},
+			Const: node.Const,
 		}
 		m.scopes.putValue(name, scope, true)
 		if node.Pub {
@@ -234,7 +229,7 @@ func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 		return
 	}
 
-	value := m.scopes.findVar(name, true)
+	value := m.scopes.findVarValue(name, true)
 
 	// 变量类型
 	var kind *KindRef
@@ -245,19 +240,19 @@ func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 		inferKind, err := m.inferKind(node.Init)
 		if err != nil {
 			m.unexpectedPos(node.Init.Start, err.Error())
-		} else {
-			if kind == nil {
-				kind = inferKind
-			} else if !matchKind(kind, inferKind) {
-				m.unexpectedPos(node.Init.Start, err.Error())
-			}
+		} else if kind == nil {
+			kind = inferKind
 		}
-	} else {
+
+		// TODO maybe assign
+
+		value.Ptr = 0 // TODO ptr
+	}
+
+	if kind == nil {
 		m.unexpectedPos(node.Id.Start, "cannot infer variable type")
 	}
-	value.KindRef.Ref = kind.Ref
-
-	value.Ptr = 0 // TODO ptr
+	value.Kind.Ref = kind.Ref
 }
 
 func (m *Module) compileBlockStmt(node *ast.BlockStmt) {
@@ -307,8 +302,8 @@ func (m *Module) compileTAliasDecl(node *ast.TAliasDecl, isPrecompile bool) {
 	}
 
 	kind.Ref = &TCustom{
-		KindRef: m.compileKindExpr(node.Kind),
-		Impl:    newImpl(),
+		Kind: m.compileKindExpr(node.Kind),
+		Impl: newImpl(),
 	}
 }
 

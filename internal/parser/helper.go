@@ -21,6 +21,13 @@ func newKindIdentifier(token *lexer.Token) *ast.Identifier {
 	}
 }
 
+func newOperator(token *lexer.Token) *ast.Operator {
+	return &ast.Operator{
+		Value:    token.Value,
+		Position: token.Position,
+	}
+}
+
 func newIdentifierExpr(token *lexer.Token) *ast.Expr {
 	return &ast.Expr{
 		Node:     &ast.IdentifierLiteral{Name: newIdentifier(token)},

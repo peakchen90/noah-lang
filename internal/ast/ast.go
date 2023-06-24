@@ -26,6 +26,11 @@ type (
 		Position
 	}
 
+	Operator struct {
+		Value string
+		Position
+	}
+
 	KindProperty struct {
 		Key  *Identifier
 		Kind *KindExpr

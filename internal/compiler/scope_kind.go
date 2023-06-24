@@ -83,13 +83,13 @@ type (
 	}
 
 	TSelf struct {
-		KindRef *KindRef
+		Kind *KindRef
 	}
 
 	TArray struct {
-		KindRef *KindRef
-		Len     int // -1 means vector array
-		Impl    *Impl
+		Kind *KindRef
+		Len  int // -1 means vector array
+		Impl *Impl
 	}
 
 	TFunc struct {
@@ -116,8 +116,8 @@ type (
 	}
 
 	TCustom struct {
-		KindRef *KindRef
-		Impl    *Impl
+		Kind *KindRef
+		Impl *Impl
 	}
 )
 

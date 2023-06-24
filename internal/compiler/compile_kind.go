@@ -29,7 +29,7 @@ func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) *KindRef {
 	case *ast.TAny:
 		kind.Ref = typeAny
 	case *ast.TSelf:
-		kind.Ref = &TSelf{KindRef: m.scopes.findSelfKind(kindExpr, true)}
+		kind.Ref = &TSelf{Kind: m.scopes.findSelfKind(kindExpr, true)}
 	case *ast.TArray:
 		node := node.(*ast.TArray)
 		return m.compileArrayKind(node)
@@ -62,9 +62,9 @@ func (m *Module) compileArrayKind(t *ast.TArray) *KindRef {
 	}
 
 	kind.Ref = &TArray{
-		KindRef: m.compileKindExpr(t.Kind),
-		Len:     size,
-		Impl:    newImpl(),
+		Kind: m.compileKindExpr(t.Kind),
+		Len:  size,
+		Impl: newImpl(),
 	}
 	return kind
 }
@@ -134,7 +134,7 @@ func (m *Module) inferKind(expr *ast.Expr) (*KindRef, error) {
 	case *ast.UnaryExpr:
 		return m.inferUnaryExprKind(expr.Node.(*ast.UnaryExpr))
 	case *ast.FuncExpr:
-		return m.inferFuncExprKind(expr.Node.(*ast.FuncExpr))
+		return m.compileKindExpr(expr.Node.(*ast.FuncExpr).FuncKind), nil
 	case *ast.StructExpr:
 		return m.inferStructExprKind(expr.Node.(*ast.StructExpr))
 	case *ast.ArrayExpr:
@@ -158,23 +158,83 @@ func (m *Module) inferKind(expr *ast.Expr) (*KindRef, error) {
 	return kind, nil
 }
 
-func (m *Module) inferCallExprKind(expr *ast.CallExpr) (*KindRef, error) {
+func (m *Module) inferCallExprKind(expr *ast.CallExpr) (kind *KindRef, err error) {
+	callee := expr.Callee.Node
+
+	switch callee.(type) {
+	case *ast.IdentifierLiteral:
+		value := m.scopes.findValue(callee.(*ast.IdentifierLiteral).Name, true)
+		kind, err = m.getValueKind(value)
+	case *ast.MemberExpr:
+		value := m.scopes.findMemberValue(callee.(*ast.MemberExpr), true)
+		kind, err = m.getValueKind(value)
+	case *ast.FuncExpr:
+		kind = m.compileKindExpr(callee.(*ast.FuncExpr).FuncKind)
+	default:
+		panic("Internal Err")
+	}
+
+	if kind != nil {
+		funcKind, ok := kind.Ref.(*TFunc)
+		if !ok {
+			m.unexpectedPos(expr.Callee.Start, "not a function")
+		}
+		kind = funcKind.Return
+	}
+
+	return
+}
+
+func (m *Module) getValueKind(value Value) (*KindRef, error) {
 	kind := &KindRef{}
-	// TODO
+
+	switch value.(type) {
+	case *FuncValue:
+		kind = value.(*FuncValue).Kind
+	case *VarValue:
+		kind = value.(*VarValue).Kind
+	case *SelfValue:
+		kind = value.(*SelfValue).Kind
+	default:
+		panic("Internal Error")
+	}
 
 	return kind, nil
 }
 
-func (m *Module) inferMemberExprKind(expr *ast.MemberExpr) (*KindRef, error) {
-	kind := &KindRef{}
-	// TODO
+func (m *Module) inferIdentifierLiteralKind(expr *ast.IdentifierLiteral) (*KindRef, error) {
+	value := m.scopes.findValue(expr.Name, true)
+	return m.getValueKind(value)
+}
 
-	return kind, nil
+func (m *Module) inferMemberExprKind(expr *ast.MemberExpr) (*KindRef, error) {
+	value := m.scopes.findMemberValue(expr, true)
+	return m.getValueKind(value)
 }
 
 func (m *Module) inferBinaryExprKind(expr *ast.BinaryExpr) (*KindRef, error) {
 	kind := &KindRef{}
-	// TODO
+
+	switch expr.Operator.Value {
+	// assign
+	case "=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "|=", "^=":
+		return m.inferKind(expr.Left)
+
+	// logic
+	case "||", "&&", "==", "!=", "<", "<=", ">", ">=":
+		kind.Ref = typeBool
+
+	// bit op
+	case "|", "^", "&", "<<", ">>":
+		kind.Ref = typeNumber
+
+	// decimal calc
+	case "+", "-", "*", "/", "%":
+		kind.Ref = typeNumber
+
+	default:
+		panic("Internal Err")
+	}
 
 	return kind, nil
 }
@@ -182,7 +242,7 @@ func (m *Module) inferBinaryExprKind(expr *ast.BinaryExpr) (*KindRef, error) {
 func (m *Module) inferBinaryTypeExprKind(expr *ast.BinaryTypeExpr) (*KindRef, error) {
 	kind := &KindRef{}
 
-	switch expr.Operator {
+	switch expr.Operator.Value {
 	case "is":
 		kind.Ref = typeBool
 	case "as":
@@ -198,7 +258,7 @@ func (m *Module) inferBinaryTypeExprKind(expr *ast.BinaryTypeExpr) (*KindRef, er
 				return nil, err
 			}
 		} else if !matchKind(leftKind, kind) {
-			m.unexpectedPos(expr.Left.Start, "cannot use `as` on incompatible type: "+getKindExprString(expr.Right))
+			m.unexpectedPos(expr.Operator.Start, "cannot use `as` on incompatible type: "+getKindExprString(expr.Right))
 		}
 	default:
 		panic("Internal Err")
@@ -209,39 +269,83 @@ func (m *Module) inferBinaryTypeExprKind(expr *ast.BinaryTypeExpr) (*KindRef, er
 
 func (m *Module) inferUnaryExprKind(expr *ast.UnaryExpr) (*KindRef, error) {
 	kind := &KindRef{}
-	// TODO
 
-	return kind, nil
-}
+	switch expr.Operator.Value {
+	// number op
+	case "+", "-", "++", "--":
+		kind.Ref = typeNumber
 
-func (m *Module) inferFuncExprKind(expr *ast.FuncExpr) (*KindRef, error) {
-	kind := &KindRef{}
-	// TODO
+	// logic
+	case "!":
+		kind.Ref = typeBool
+
+	// bit op
+	case "~":
+		kind.Ref = typeNumber
+
+	default:
+		panic("Internal Err")
+	}
 
 	return kind, nil
 }
 
 func (m *Module) inferStructExprKind(expr *ast.StructExpr) (*KindRef, error) {
 	kind := &KindRef{}
-	// TODO
+	props := make(map[string]*KindRef)
+
+	for _, pair := range expr.Properties {
+		key := pair.Key.Node.(*ast.IdentifierLiteral).Name.Name
+		_, has := props[key]
+		if has {
+			m.unexpectedPos(pair.Key.Start, "duplicate key: "+key)
+		}
+		inferKind, err := m.inferKind(pair.Value)
+		if err != nil {
+			return nil, err
+		}
+		props[key] = inferKind
+	}
+
+	kind.Ref = &TStruct{
+		Extends:    make([]*KindRef, 0, 0),
+		Properties: props,
+		Impl:       newImpl(),
+	}
+
+	if expr.Ctor != nil {
+		inferCtorKind, err := m.inferKind(expr.Ctor)
+		if err != nil {
+			return nil, err
+		}
+		_, ok := inferCtorKind.Ref.(*TStruct)
+		if !ok {
+			m.unexpectedPos(expr.Ctor.Start, "expect a struct")
+		}
+
+		// TODO check struct: k&v, extends
+
+		kind = inferCtorKind
+	}
 
 	return kind, nil
 }
 
 func (m *Module) inferArrayExprKind(expr *ast.ArrayExpr) (*KindRef, error) {
 	kind := &KindRef{}
-	// TODO
+	arr := &TArray{}
+	kind.Ref = arr
 
-	return kind, nil
-}
+	if len(expr.Items) > 0 {
+		inferKind, err := m.inferKind(expr.Items[0])
+		if err != nil {
+			return nil, err
+		}
+		arr.Kind = inferKind
+		arr.Len = len(expr.Items)
+	}
 
-func (m *Module) inferIdentifierLiteralKind(expr *ast.IdentifierLiteral) (*KindRef, error) {
-	//name := expr.Node.(*ast.IdentifierLiteral).Name
-	//value := m.scopes.findValue(name, true)
-	// TODO
-
-	kind := &KindRef{}
-	// TODO
+	// TODO 没有元素如何推断？
 
 	return kind, nil
 }

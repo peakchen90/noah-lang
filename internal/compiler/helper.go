@@ -19,11 +19,11 @@ func matchKind(expected *KindRef, received *KindRef) bool {
 	// 引用 self 指向
 	_e, ok := expected.Ref.(*TSelf)
 	if ok {
-		expected = _e.KindRef
+		expected = _e.Kind
 	}
 	_r, ok := received.Ref.(*TSelf)
 	if ok {
-		received = _r.KindRef
+		received = _r.Kind
 	}
 
 	// equal
@@ -44,7 +44,7 @@ func matchKind(expected *KindRef, received *KindRef) bool {
 		}
 
 		e := expected.Ref.(*TArray)
-		return e.Len == r.Len && matchKind(e.KindRef, r.KindRef)
+		return e.Len == r.Len && matchKind(e.Kind, r.Kind)
 	case *TFunc:
 		r, ok := received.Ref.(*TFunc)
 		if !ok {
@@ -119,7 +119,7 @@ func matchKind(expected *KindRef, received *KindRef) bool {
 		return true
 	case *TCustom:
 		e := expected.Ref.(*TCustom)
-		return matchKind(e.KindRef, received)
+		return matchKind(e.Kind, received)
 	}
 
 	return false
@@ -221,9 +221,9 @@ func isReferenceKind(kind *KindRef) bool {
 
 	switch kind.Ref.(type) {
 	case *TCustom:
-		return isReferenceKind(kind.Ref.(*TCustom).KindRef)
+		return isReferenceKind(kind.Ref.(*TCustom).Kind)
 	case *TSelf:
-		return isReferenceKind(kind.Ref.(*TSelf).KindRef)
+		return isReferenceKind(kind.Ref.(*TSelf).Kind)
 	}
 
 	return true

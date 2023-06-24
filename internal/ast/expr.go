@@ -34,18 +34,18 @@ type (
 	BinaryExpr struct {
 		Left     *Expr
 		Right    *Expr
-		Operator string
+		Operator *Operator
 	}
 
 	BinaryTypeExpr struct {
 		Left     *Expr
 		Right    *KindExpr
-		Operator string
+		Operator *Operator
 	}
 
 	UnaryExpr struct {
 		Argument *Expr
-		Operator string
+		Operator *Operator
 		Prefix   bool
 	}
 
