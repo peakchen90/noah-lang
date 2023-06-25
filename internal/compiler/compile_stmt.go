@@ -81,6 +81,10 @@ func (m *Module) compileImportDecl(node *ast.ImportDecl, isPrecompile bool) {
 		local = node.Paths[len(node.Paths)-1]
 	}
 
+	if local.Name == "self" {
+		m.unexpectedPos(local.Start, "cannot use `self` as a local identifier")
+	}
+
 	if isPrecompile {
 		m.scopes.putModule(local, module, true)
 		err := module.parse()
@@ -98,6 +102,10 @@ func (m *Module) compileFuncSign(node *ast.FuncDecl, target *KindRef, isPrecompi
 	var value *FuncValue
 
 	if isPrecompile {
+		if name.Name == "self" {
+			m.unexpectedPos(name.Start, "identifier 'self' is not allowed")
+		}
+
 		value = &FuncValue{
 			Name: name.Name,
 			Kind: newKindRef(m, -1),
@@ -243,6 +251,9 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl, onlyFuncSign bool) {
 func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 	name := node.Id
 	if isPrecompile {
+		if name.Name == "self" {
+			m.unexpectedPos(name.Start, "identifier 'self' is not allowed")
+		}
 		scope := &VarValue{
 			Name:  name.Name,
 			Kind:  newKindRef(m, -1),
@@ -311,6 +322,9 @@ func (m *Module) compileContinueStmt(node *ast.ContinueStmt) {
 
 func (m *Module) processKindDecl(initKind *KindRef, name *ast.Identifier, pub bool, isPrecompile bool) *KindRef {
 	if isPrecompile {
+		if name.Name == "self" {
+			m.unexpectedPos(name.Start, "identifier 'self' is not allowed")
+		}
 		m.scopes.putKind(name, initKind, true)
 		if pub {
 			m.exports.setKind(name.Name, initKind)

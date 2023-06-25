@@ -141,16 +141,10 @@ func (p *Parser) parseImportDecl() *ast.Stmt {
 
 	stmt.End = p.lexer.LastToken.End
 	var local *ast.Identifier
-	localId := paths[len(paths)-1]
 
 	if p.consume(lexer.TTAsOp, false) != nil {
 		local = newIdentifier(p.consume(lexer.TTIdentifier, true))
-		localId = local
 		stmt.End = local.End
-	}
-
-	if localId.Name == "self" {
-		p.UnexpectedPos(localId.Start, "cannot use `self` as a local identifier")
 	}
 
 	stmt.Node = &ast.ImportDecl{
@@ -171,7 +165,7 @@ func (p *Parser) parseFuncDecl(pubToken *lexer.Token) *ast.Stmt {
 	}
 	p.nextToken() // skip `fn`
 
-	nameToken := p.consumeVarId(true)
+	nameToken := p.consume(lexer.TTIdentifier, true)
 	funcKind := p.parseFuncKindExpr(stmt.Start)
 	funcDecl := &ast.FuncDecl{
 		Name: newIdentifier(nameToken),
@@ -196,7 +190,7 @@ func (p *Parser) parseVarDecl(pubToken *lexer.Token, isConst bool) *ast.Stmt {
 	p.nextToken()
 
 	// id
-	token := p.consumeVarId(false)
+	token := p.consume(lexer.TTIdentifier, false)
 	if token == nil {
 		p.unexpectedMissing("variable name")
 	}
@@ -246,7 +240,7 @@ func (p *Parser) parseTypeDecl(pubToken *lexer.Token) *ast.Stmt {
 		p.UnexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
 	}
 	name := newKindIdentifier(p.current)
-	p.consumeVarId(true)
+	p.consume(lexer.TTIdentifier, true)
 
 	kind := p.parseKindExpr()
 	stmt.Node = &ast.TTypeDecl{
@@ -275,7 +269,7 @@ func (p *Parser) parseInterfaceDecl(pubToken *lexer.Token) *ast.Stmt {
 		p.UnexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
 	}
 	name := newKindIdentifier(p.current)
-	p.consumeVarId(true)
+	p.consume(lexer.TTIdentifier, true)
 
 	// `{`
 	p.consume(lexer.TTBraceL, true)
@@ -302,7 +296,7 @@ func (p *Parser) parseStructDecl(pubToken *lexer.Token) *ast.Stmt {
 	start := p.current.Start
 	p.nextToken() // skip `struct`
 
-	nameToken := p.consumeVarId(true)
+	nameToken := p.consume(lexer.TTIdentifier, true)
 	if isReservedType(nameToken.Value) {
 		p.UnexpectedPos(nameToken.Start, "Reserved type cannot be used: "+nameToken.Value)
 	}
@@ -333,7 +327,7 @@ func (p *Parser) parseEnumDecl(pubToken *lexer.Token) *ast.Stmt {
 		p.UnexpectedPos(p.current.Start, "Reserved type cannot be used: "+p.current.Value)
 	}
 	name := newKindIdentifier(p.current)
-	p.consumeVarId(true)
+	p.consume(lexer.TTIdentifier, true)
 
 	// `{`
 	p.consume(lexer.TTBraceL, true)
@@ -449,13 +443,13 @@ func (p *Parser) parseForStmt(labelToken *lexer.Token) *ast.Stmt {
 
 	if p.isToken(lexer.TTIdentifier) {
 		headToken := p.current
-		p.consumeVarId(true)
+		p.consume(lexer.TTIdentifier, true)
 
 		if p.isToken(lexer.TTComma) || p.isToken(lexer.TTColon) { // for value, key: target {}
 			var key *ast.Identifier
 			if p.isToken(lexer.TTComma) {
 				p.nextToken()
-				key = newIdentifier(p.consumeVarId(true))
+				key = newIdentifier(p.consume(lexer.TTIdentifier, true))
 			}
 
 			p.consume(lexer.TTColon, true)
@@ -525,7 +519,7 @@ func (p *Parser) parseBreakStmt() *ast.Stmt {
 	var label *ast.Identifier
 	if p.isToken(lexer.TTIdentifier) {
 		label = newIdentifier(p.current)
-		p.consumeVarId(true)
+		p.consume(lexer.TTIdentifier, true)
 	}
 
 	stmt.Node = &ast.BreakStmt{
@@ -544,7 +538,7 @@ func (p *Parser) parseContinueStmt() *ast.Stmt {
 	var label *ast.Identifier
 	if p.isToken(lexer.TTIdentifier) {
 		label = newIdentifier(p.current)
-		p.consumeVarId(true)
+		p.consume(lexer.TTIdentifier, true)
 	}
 
 	stmt.Node = &ast.ContinueStmt{

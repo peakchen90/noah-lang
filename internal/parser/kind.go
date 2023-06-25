@@ -66,7 +66,7 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 
 func (p *Parser) parseMaybeChainKindExpr(left *ast.KindExpr) *ast.KindExpr {
 	if p.consume(lexer.TTDot, false) != nil {
-		id := newKindIdentifier(p.consumeVarId(true))
+		id := newKindIdentifier(p.consume(lexer.TTIdentifier, true))
 		right := &ast.KindExpr{
 			Node:     &ast.TIdentifier{Name: id},
 			Position: id.Position,
@@ -99,7 +99,7 @@ func (p *Parser) parseFuncKindExpr(start int) *ast.KindExpr {
 		if rest {
 			lastRestToken = restToken
 		}
-		nameToken := p.consumeVarId(false)
+		nameToken := p.consume(lexer.TTIdentifier, false)
 		if nameToken == nil {
 			p.unexpectedToken("identifier", p.current)
 		}
@@ -142,7 +142,7 @@ func (p *Parser) parseFuncKindExpr(start int) *ast.KindExpr {
 func (p *Parser) parseStructKindExpr(start int) *ast.KindExpr {
 	extends := make([]*ast.KindExpr, 0, helper.SmallCap)
 	if p.consume(lexer.TTExtendSym, false) != nil {
-		for (p.isValidId() && !isReservedType(p.current.Value)) || p.isKeyword("struct") {
+		for (p.isToken(lexer.TTIdentifier) && !isReservedType(p.current.Value)) || p.isKeyword("struct") {
 			extends = append(extends, p.parseKindExpr())
 			if p.consume(lexer.TTComma, false) == nil {
 				break
@@ -176,10 +176,10 @@ func (p *Parser) parseKindProperties(isFunc bool) []*ast.KindProperty {
 		if isFunc {
 			start := p.current.Start
 			p.consumeKeyword("fn", true)
-			pair.Key = newIdentifier(p.consumeVarId(true))
+			pair.Key = newIdentifier(p.consume(lexer.TTIdentifier, true))
 			pair.Kind = p.parseFuncKindExpr(start)
 		} else if !isFunc {
-			token := p.consumeVarId(true)
+			token := p.consume(lexer.TTIdentifier, true)
 			pair.Key = newIdentifier(token)
 			p.consume(lexer.TTColon, true)
 			pair.Kind = p.parseKindExpr()
@@ -207,7 +207,7 @@ func (p *Parser) parseEnumItems() []*ast.Identifier {
 	choices := make([]*ast.Identifier, 0, helper.DefaultCap)
 
 	for !p.isEnd() && !p.isToken(lexer.TTBraceR) {
-		token := p.consumeVarId(true)
+		token := p.consume(lexer.TTIdentifier, true)
 		choices = append(choices, newKindIdentifier(token))
 
 		if p.consume(lexer.TTComma, false) == nil {

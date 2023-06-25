@@ -281,7 +281,7 @@ func (p *Parser) parseIdentifierExpr(token *lexer.Token) *ast.Expr {
 func (p *Parser) parseMaybeChainExpr(parent *ast.Expr, access AccessType) *ast.Expr {
 	if (access&AccessDot > 0) && p.isToken(lexer.TTDot) { // `.`
 		p.nextToken()
-		property := newIdentifierExpr(p.consumeVarId(true))
+		property := newIdentifierExpr(p.consume(lexer.TTIdentifier, true))
 		memberExpr := &ast.Expr{
 			Node: &ast.MemberExpr{
 				Object:   parent,
