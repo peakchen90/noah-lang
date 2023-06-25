@@ -219,12 +219,19 @@ func isReferenceKind(kind *KindRef) bool {
 	return true
 }
 
-func walkStruct(kind *KindRef, callback func(*KindRef)) {
+func walkStruct(kind *KindRef, callback func(*KindRef), reverse bool) {
 	node := kind.current.(*TStruct)
-	callback(kind)
+
+	if !reverse {
+		callback(kind)
+	}
 
 	for _, extend := range node.Extends {
-		walkStruct(extend, callback)
+		walkStruct(extend, callback, reverse)
+	}
+
+	if reverse {
+		callback(kind)
 	}
 }
 
@@ -236,22 +243,14 @@ func getStructProperties(kind *KindRef) map[string]*KindRef {
 
 	properties := make(map[string]*KindRef)
 
-	var walkProps func(k *KindRef)
-	walkProps = func(_kind *KindRef) {
-		_node := _kind.current.(*TStruct)
-		for i := len(_node.Extends) - 1; i >= 0; i-- {
-			walkProps(_node.Extends[i])
-		}
-
-		for k, v := range _node.Properties {
+	walkStruct(kind, func(_kind *KindRef) {
+		for k, v := range _kind.current.(*TStruct).Properties {
 			if kind.module != v.module && k[0] == '_' {
 				continue
 			}
 			properties[k] = v
 		}
-	}
-
-	walkProps(kind)
+	}, true)
 
 	return properties
 }

@@ -130,7 +130,7 @@ func (m *Module) compileStructKind(kind *KindRef, kindExpr *ast.KindExpr) *KindR
 
 		walkStruct(extendKind, func(ref *KindRef) {
 			ref.refs = append(ref.refs, kind)
-		})
+		}, false)
 	}
 
 	kind.current = &TStruct{
