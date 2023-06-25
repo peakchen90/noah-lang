@@ -117,7 +117,7 @@ func (m *Module) precompile() {
 			}
 			m.compileImportDecl(stmt.Node.(*ast.ImportDecl), true)
 		case *ast.FuncDecl:
-			m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), nil)
+			m.compileFuncSign(stmt.Node.(*ast.FuncDecl), nil, true)
 		case *ast.VarDecl:
 			m.compileVarDecl(stmt.Node.(*ast.VarDecl), true)
 		case *ast.TTypeDecl:

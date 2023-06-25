@@ -104,30 +104,53 @@ func (p *Parser) parseImportDecl() *ast.Stmt {
 	p.nextToken() // skip `import`
 
 	var Package *ast.Identifier
-	headToken := p.consumeVarId(true)
+	headToken := p.consume(lexer.TTIdentifier, true)
 	paths := make([]*ast.Identifier, 0, helper.DefaultCap)
+	index := headToken.End
 
-	if p.consume(lexer.TTColon, false) != nil {
-		Package = newIdentifier(headToken)
-		p.expect(lexer.TTIdentifier)
+	if p.current.Start == index {
+		if p.consume(lexer.TTColon, false) != nil {
+			index++
+			Package = newIdentifier(headToken)
+			p.expect(lexer.TTIdentifier)
+		} else {
+			paths = append(paths, newIdentifier(headToken))
+			if p.consume(lexer.TTDot, false) != nil {
+				index++
+			}
+		}
+
+		for p.current.Start == index {
+			if p.isToken(lexer.TTIdentifier) {
+				index = p.current.End
+				paths = append(paths, newIdentifier(p.consume(lexer.TTIdentifier, true)))
+
+				if p.current.Start == index && p.isToken(lexer.TTDot) {
+					index = p.current.End
+					p.nextToken()
+					p.expect(lexer.TTIdentifier)
+					continue
+				}
+			}
+
+			break
+		}
 	} else {
 		paths = append(paths, newIdentifier(headToken))
-		p.consume(lexer.TTDot, false)
-	}
-
-	for p.isValidId() {
-		paths = append(paths, newIdentifier(p.consumeVarId(true)))
-		if p.consume(lexer.TTDot, false) != nil && !p.isValidId() {
-			p.unexpected()
-		}
 	}
 
 	stmt.End = p.lexer.LastToken.End
 	var local *ast.Identifier
+	localId := paths[len(paths)-1]
 
 	if p.consume(lexer.TTAsOp, false) != nil {
-		local = newIdentifier(p.consumeVarId(true))
+		local = newIdentifier(p.consume(lexer.TTIdentifier, true))
+		localId = local
 		stmt.End = local.End
+	}
+
+	if localId.Name == "self" {
+		p.UnexpectedPos(localId.Start, "cannot use `self` as a local identifier")
 	}
 
 	stmt.Node = &ast.ImportDecl{
