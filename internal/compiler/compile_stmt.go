@@ -12,9 +12,9 @@ func (m *Module) compileStmt(stmt *ast.Stmt) {
 	case *ast.ImportDecl:
 		m.compileImportDecl(stmt.Node.(*ast.ImportDecl), false)
 	case *ast.FuncDecl:
-		m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), nil, false)
+		m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), nil)
 	case *ast.ImplDecl:
-		m.compileImplDecl(stmt.Node.(*ast.ImplDecl))
+		m.compileImplDecl(stmt.Node.(*ast.ImplDecl), false)
 	case *ast.VarDecl:
 		m.compileVarDecl(stmt.Node.(*ast.VarDecl), false)
 	case *ast.BlockStmt:
@@ -93,7 +93,7 @@ func (m *Module) compileImportDecl(node *ast.ImportDecl, isPrecompile bool) {
 	}
 }
 
-func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompile bool) *FuncValue {
+func (m *Module) compileFuncSign(node *ast.FuncDecl, target *KindRef, isPrecompile bool) *FuncValue {
 	name := node.Name
 	var value *FuncValue
 
@@ -102,25 +102,25 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 			Name: name.Name,
 			Kind: newKindRef(m, -1),
 		}
-		m.scopes.putValue(name, value, true)
-		if node.Pub {
-			m.exports.setValue(name.Name, value)
+
+		if target != nil {
+			impls := target.current.getImpl()
+			if impls.hasFunc(name.Name) {
+				m.unexpectedPos(node.Name.Start, "duplicate key: "+name.Name)
+			}
+			impls.addFunc(value)
+		} else {
+			m.scopes.putValue(name, value, true)
+			if node.Pub {
+				m.exports.setValue(name.Name, value)
+			}
 		}
+
 		return value
 	}
 
-	// impl struct methods
 	if target != nil {
-		impls := target.current.getImpl()
-		if impls.hasFunc(name.Name) {
-			m.unexpectedPos(node.Name.Start, "duplicate key: "+name.Name)
-		}
-
-		value = &FuncValue{
-			Name: name.Name,
-			Kind: &KindRef{},
-		}
-		impls.addFunc(value)
+		value = target.current.getImpl().getFunc(name.Name)
 	} else {
 		value = m.scopes.findFuncValue(name, true)
 	}
@@ -142,6 +142,25 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 		}
 	}
 
+	value.Ptr = 0 // TODO ptr
+
+	return value
+}
+
+func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef) {
+	name := node.Name
+	var value *FuncValue
+
+	if target != nil {
+		value = target.current.getImpl().getFunc(name.Name)
+	} else {
+		value = m.scopes.findFuncValue(name, true)
+	}
+
+	funcKindNode := node.Kind.Node.(*ast.TFuncKind)
+	funcKind := value.Kind.current.(*TFunc)
+	paramKinds := funcKind.Params
+
 	// compile func params
 	m.scopes.push()
 	for i, param := range funcKindNode.Params {
@@ -158,61 +177,67 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 	body := node.Body.Node.(*ast.BlockStmt)
 	m.compileBlockStmt(body)
 	m.scopes.pop()
-
-	value.Ptr = 0 // TODO ptr
-
-	return value
 }
 
-func (m *Module) compileImplDecl(node *ast.ImplDecl) {
+func (m *Module) compileImplDecl(node *ast.ImplDecl, onlyFuncSign bool) {
 	target := m.compileKindExpr(node.Target)
 
-	// push scope : 用于存放 self 指向
-	m.scopes.push()
-	m.scopes.putSelfKind(target)
-	m.scopes.putSelfValue(&SelfValue{Kind: target})
+	// 编译 impl 函数签名
+	if onlyFuncSign {
+		// push scope : 用于存放 self 指向
+		m.scopes.push()
+		m.scopes.putSelfKind(target)
+		m.scopes.putSelfValue(&SelfValue{Kind: target})
 
-	switch target.current.(type) {
-	case *TInterface:
-		m.unexpectedPos(node.Target.Start, "cannot implements for `interface` type")
-	case *TAny:
-		m.unexpectedPos(node.Target.Start, "cannot implements for `any` type")
-	case *TSelf:
-		m.unexpectedPos(node.Target.Start, "cannot implements for `self` type")
-	}
+		switch target.current.(type) {
+		case *TInterface:
+			m.unexpectedPos(node.Target.Start, "cannot implements for `interface` type")
+		case *TAny:
+			m.unexpectedPos(node.Target.Start, "cannot implements for `any` type")
+		case *TSelf:
+			m.unexpectedPos(node.Target.Start, "cannot implements for `self` type")
+		}
 
-	implValues := make(map[string]*FuncValue)
-	implDecls := make(map[string]*ast.Stmt)
-	for _, stmt := range node.Body.Node.(*ast.BlockStmt).Body {
-		val := m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), target, false)
-		implValues[val.Name] = val
-		implDecls[val.Name] = stmt
-	}
+		implValues := make(map[string]*FuncValue)
+		implDecls := make(map[string]*ast.Stmt)
+		for _, stmt := range node.Body.Node.(*ast.BlockStmt).Body {
+			funcNode := stmt.Node.(*ast.FuncDecl)
+			value := m.compileFuncSign(funcNode, target, true)
+			value = m.compileFuncSign(funcNode, target, false)
+			implValues[value.Name] = value
+			implDecls[value.Name] = stmt
+		}
 
-	if node.Interface != nil {
-		interfaceKind := m.compileKindExpr(node.Interface)
-		t, ok := interfaceKind.current.(*TInterface)
-		if ok {
-			interfaceKind.refs = append(interfaceKind.refs, target)
-			interfaceName := getKindExprString(node.Interface)
-			for key, interfaceDeclKind := range t.Properties {
-				if implValues[key] == nil {
-					m.unexpectedPos(node.Body.Start, fmt.Sprintf("no implement method: %s.%s", interfaceName, key))
+		if node.Interface != nil {
+			interfaceKind := m.compileKindExpr(node.Interface)
+			t, ok := interfaceKind.current.(*TInterface)
+			if ok {
+				interfaceKind.refs = append(interfaceKind.refs, target)
+				interfaceName := getKindExprString(node.Interface)
+				for key, interfaceDeclKind := range t.Properties {
+					if implValues[key] == nil {
+						m.unexpectedPos(node.Body.Start, fmt.Sprintf("no implement method: %s.%s", interfaceName, key))
+					}
+					if !matchKind(interfaceDeclKind, implValues[key].Kind, true) {
+						funcNode := implDecls[key].Node.(*ast.FuncDecl)
+						m.unexpectedPos(funcNode.Name.End, fmt.Sprintf("cannot match method signature: %s.%s", interfaceName, key))
+					}
 				}
-				if !matchKind(interfaceDeclKind, implValues[key].Kind, true) {
-					funcNode := implDecls[key].Node.(*ast.FuncDecl)
-					m.unexpectedPos(funcNode.Name.End, fmt.Sprintf("cannot match method signature: %s.%s", interfaceName, key))
+			} else {
+				if t == nil {
+					m.unexpectedPos(node.Interface.Start, "cannot found: "+getKindExprString(node.Interface))
 				}
+				m.unexpectedPos(node.Interface.Start, "expect be an interface type")
 			}
-		} else {
-			if t == nil {
-				m.unexpectedPos(node.Interface.Start, "cannot found: "+getKindExprString(node.Interface))
-			}
-			m.unexpectedPos(node.Interface.Start, "expect be an interface type")
+		}
+		m.scopes.pop()
+	} else {
+		// 编译 impl 函数
+		for _, stmt := range node.Body.Node.(*ast.BlockStmt).Body {
+			m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), target)
 		}
 	}
 
-	m.scopes.pop()
 }
 
 func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {

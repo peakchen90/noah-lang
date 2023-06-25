@@ -8,11 +8,11 @@ import (
 type ModuleState uint
 
 const (
-	MSInit ModuleState = iota
-	MSResolve
-	MSParse
-	MSPrecompile
-	MSCompile
+	ModuleInit ModuleState = iota
+	ModuleResolve
+	ModuleParse
+	ModulePrecompile
+	ModuleCompile
 )
 
 // isLooseStruct 为 true 表示 expected >= received (属性)

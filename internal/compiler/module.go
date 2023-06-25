@@ -27,7 +27,7 @@ func NewModule(compiler *Compiler) *Module {
 	module := &Module{
 		compiler:    compiler,
 		exports:     newScope(),
-		state:       MSInit,
+		state:       ModuleInit,
 		allowImport: true,
 	}
 	module.scopes = newScopeStack(module)
@@ -36,10 +36,10 @@ func NewModule(compiler *Compiler) *Module {
 
 // 解析模块
 func (m *Module) resolve(moduleId string) (*Module, error) {
-	if m.state >= MSResolve {
+	if m.state >= ModuleResolve {
 		return m, nil
 	}
-	m.state = MSResolve
+	m.state = ModuleResolve
 
 	packageName := ""
 	pathIds := moduleId
@@ -78,10 +78,10 @@ func (m *Module) resolve(moduleId string) (*Module, error) {
 
 // 解析模块
 func (m *Module) parse() error {
-	if m.state >= MSParse {
+	if m.state >= ModuleParse {
 		return nil
 	}
-	m.state = MSParse
+	m.state = ModuleParse
 
 	code, err := m.compiler.VirtualFS.ReadFile(m.path)
 	if err != nil {
@@ -96,10 +96,10 @@ func (m *Module) parse() error {
 
 // 预编译模块
 func (m *Module) precompile() {
-	if m.state >= MSPrecompile {
+	if m.state >= ModulePrecompile {
 		return
 	}
-	m.state = MSPrecompile
+	m.state = ModulePrecompile
 
 	// push scope : 将顶层定义全部放在这里
 	m.scopes.push()
@@ -117,7 +117,7 @@ func (m *Module) precompile() {
 			}
 			m.compileImportDecl(stmt.Node.(*ast.ImportDecl), true)
 		case *ast.FuncDecl:
-			m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), nil, true)
+			m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), nil)
 		case *ast.VarDecl:
 			m.compileVarDecl(stmt.Node.(*ast.VarDecl), true)
 		case *ast.TTypeDecl:
@@ -134,15 +134,15 @@ func (m *Module) precompile() {
 
 // 编译模块
 func (m *Module) compile() {
-	if m.state >= MSCompile {
+	if m.state >= ModuleCompile {
 		return
 	}
-	m.state = MSCompile
+	m.state = ModuleCompile
 
 	fns := make([]*ast.Stmt, 0, helper.DefaultCap)
 	vars := make([]*ast.Stmt, 0, helper.DefaultCap)
 
-	// 1. 优先编译 类型声明、模块
+	// 1. 优先编译 类型声明、模块引入
 	for _, stmt := range m.Ast.Body {
 		switch stmt.Node.(type) {
 		case *ast.FuncDecl, *ast.ImplDecl:
@@ -154,15 +154,33 @@ func (m *Module) compile() {
 		}
 	}
 
-	// 2. 其次编译函数
-	// TODO 函数 body 可能依赖 var 变量的类型推断，考虑先只编译函数签名，最后编译函数体
+	// 2. 其次编译函数签名
 	for _, stmt := range fns {
-		m.compileStmt(stmt)
+		switch stmt.Node.(type) {
+		case *ast.FuncDecl:
+			m.compileFuncSign(stmt.Node.(*ast.FuncDecl), nil, false)
+		case *ast.ImplDecl:
+			m.compileImplDecl(stmt.Node.(*ast.ImplDecl), true)
+		default:
+			panic("Internal Err")
+		}
 	}
 
 	// 3. 编译全局变量（变量可能依赖类型定义、函数返回值等）
 	for _, stmt := range vars {
-		m.compileStmt(stmt)
+		m.compileVarDecl(stmt.Node.(*ast.VarDecl), false)
+	}
+
+	// 4. 编译函数（函数体内部可能依赖其他函数、全局变量）
+	for _, stmt := range fns {
+		switch stmt.Node.(type) {
+		case *ast.FuncDecl:
+			m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), nil)
+		case *ast.ImplDecl:
+			m.compileImplDecl(stmt.Node.(*ast.ImplDecl), false)
+		default:
+			panic("Internal Err")
+		}
 	}
 }
 
