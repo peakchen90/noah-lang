@@ -149,10 +149,11 @@ func (p *Parser) parseFuncExpr() *ast.Expr {
 }
 
 func (p *Parser) parseStructExpr(ctor *ast.Expr) *ast.Expr {
+	ctorKind := exprToKindExpr(ctor)
 	properties := make([]*ast.ValueProperty, 0, helper.DefaultCap)
 	start := p.current.Start
-	if ctor != nil {
-		start = ctor.Start
+	if ctorKind != nil {
+		start = ctorKind.Start
 	}
 
 	p.consume(lexer.TTBraceL, true) // `{`
@@ -177,7 +178,7 @@ func (p *Parser) parseStructExpr(ctor *ast.Expr) *ast.Expr {
 	p.consume(lexer.TTBraceR, true)
 
 	return &ast.Expr{
-		Node:     &ast.StructExpr{Ctor: ctor, Properties: properties},
+		Node:     &ast.StructExpr{Ctor: ctorKind, Properties: properties},
 		Position: *ast.NewPosition(start, p.lexer.LastToken.End),
 	}
 }

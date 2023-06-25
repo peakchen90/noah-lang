@@ -9,7 +9,7 @@ import (
 func (p *Parser) parseKindExpr() *ast.KindExpr {
 	kindExpr := &ast.KindExpr{}
 
-	if p.isToken(lexer.TTIdentifier) { // type alias
+	if p.isToken(lexer.TTIdentifier) { // type refer
 		token := p.current
 		kindExpr.Position = token.Position
 		p.nextToken()

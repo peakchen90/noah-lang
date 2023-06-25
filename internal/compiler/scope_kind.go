@@ -37,7 +37,20 @@ func (i *Impl) getPubFunc(name string) *FuncValue {
 /* kind ref */
 
 type KindRef struct {
-	Ref Kind
+	current Kind
+	refs    []*KindRef // struct extends、impl interface
+	module  *Module
+}
+
+func newKindRef(module *Module, makeRefsGap int) *KindRef {
+	var refs []*KindRef
+	if makeRefsGap >= 0 {
+		refs = make([]*KindRef, 0, makeRefsGap)
+	}
+	return &KindRef{
+		module: module,
+		refs:   refs,
+	}
 }
 
 /* kind */
@@ -107,7 +120,6 @@ type (
 
 	TInterface struct {
 		Properties map[string]*KindRef
-		Refs       []*KindRef
 	}
 
 	TEnum struct {

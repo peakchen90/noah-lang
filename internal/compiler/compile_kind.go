@@ -8,7 +8,7 @@ import (
 )
 
 func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) *KindRef {
-	kind := &KindRef{}
+	kind := newKindRef(m, -1)
 	if kindExpr == nil {
 		return kind
 	}
@@ -17,66 +17,67 @@ func (m *Module) compileKindExpr(kindExpr *ast.KindExpr) *KindRef {
 
 	switch node.(type) {
 	case *ast.TNumber:
-		kind.Ref = typeNumber
+		kind.current = typeNumber
 	case *ast.TByte:
-		kind.Ref = typeByte
+		kind.current = typeByte
 	case *ast.TChar:
-		kind.Ref = typeChar
+		kind.current = typeChar
 	case *ast.TString:
-		kind.Ref = typeString
+		kind.current = typeString
 	case *ast.TBool:
-		kind.Ref = typeBool
+		kind.current = typeBool
 	case *ast.TAny:
-		kind.Ref = typeAny
+		kind.current = typeAny
 	case *ast.TSelf:
-		kind.Ref = &TSelf{Kind: m.scopes.findSelfKind(kindExpr, true)}
+		kind.current = &TSelf{Kind: m.scopes.findSelfKind(kindExpr, true)}
 	case *ast.TArray:
-		node := node.(*ast.TArray)
-		return m.compileArrayKind(node)
+		return m.compileArrayKind(kindExpr)
 	case *ast.TIdentifier:
 		node := node.(*ast.TIdentifier)
 		return m.scopes.findIdentifierKind(node.Name, true)
 	case *ast.TMemberKind:
 		return m.scopes.findMemberKind(kindExpr, true)
 	case *ast.TFuncKind:
-		node := node.(*ast.TFuncKind)
-		return m.compileFuncKind(node)
+		return m.compileFuncKind(kindExpr)
 	case *ast.TStructKind:
-		node := node.(*ast.TStructKind)
-		return m.compileStructKind(node)
+		return m.compileStructKind(nil, kindExpr)
 	}
 
 	return kind
 }
 
-func (m *Module) compileArrayKind(t *ast.TArray) *KindRef {
-	kind := &KindRef{}
+func (m *Module) compileArrayKind(kindExpr *ast.KindExpr) *KindRef {
+	node := kindExpr.Node.(*ast.TArray)
+
+	kind := newKindRef(m, -1)
 	size := -1 // vector array
 
-	if t.Len != nil {
-		rawVal := t.Len.Node.(*ast.NumberLiteral).Value
+	if node.Len != nil {
+		rawVal := node.Len.Node.(*ast.NumberLiteral).Value
 		if rawVal < 0 || math.Floor(rawVal) != rawVal {
-			m.unexpectedPos(t.Len.Start, "expect be a positive integer")
+			m.unexpectedPos(node.Len.Start, "expect be a positive integer")
 		}
 		size = int(rawVal)
 	}
 
-	kind.Ref = &TArray{
-		Kind: m.compileKindExpr(t.Kind),
+	kind.current = &TArray{
+		Kind: m.compileKindExpr(node.Kind),
 		Len:  size,
 		Impl: newImpl(),
 	}
 	return kind
 }
 
-func (m *Module) compileFuncKind(t *ast.TFuncKind) *KindRef {
-	kind := &KindRef{}
+func (m *Module) compileFuncKind(kindExpr *ast.KindExpr) *KindRef {
+	node := kindExpr.Node.(*ast.TFuncKind)
+
+	kind := newKindRef(m, -1)
 	rest := false
 	params := make([]*KindRef, 0, helper.DefaultCap)
 
-	for i, param := range t.Params {
+	for i, param := range node.Params {
 		if param.Rest {
-			if i < len(t.Params)-1 {
+			if i < len(node.Params)-1 {
 				m.unexpectedPos(param.Start, "the rest parameter should be placed last")
 			}
 			rest = true
@@ -84,21 +85,25 @@ func (m *Module) compileFuncKind(t *ast.TFuncKind) *KindRef {
 		params = append(params, m.compileKindExpr(param.Kind))
 	}
 
-	kind.Ref = &TFunc{
+	kind.current = &TFunc{
 		Params:    params,
-		Return:    m.compileKindExpr(t.Return),
+		Return:    m.compileKindExpr(node.Return),
 		RestParam: rest,
 		Impl:      newImpl(),
 	}
 	return kind
 }
 
-func (m *Module) compileStructKind(t *ast.TStructKind) *KindRef {
-	kind := &KindRef{}
+func (m *Module) compileStructKind(kind *KindRef, kindExpr *ast.KindExpr) *KindRef {
+	node := kindExpr.Node.(*ast.TStructKind)
+
+	if kind == nil {
+		kind = newKindRef(m, helper.SmallCap)
+	}
 	extends := make([]*KindRef, 0, helper.SmallCap)
 	props := make(map[string]*KindRef)
 
-	for _, pair := range t.Properties {
+	for _, pair := range node.Properties {
 		key := pair.Key.Name
 		_, has := props[key]
 		if has {
@@ -107,11 +112,28 @@ func (m *Module) compileStructKind(t *ast.TStructKind) *KindRef {
 		props[key] = m.compileKindExpr(pair.Kind)
 	}
 
-	for _, item := range t.Extends {
-		extends = append(extends, m.compileKindExpr(item))
+	for _, item := range node.Extends {
+		extendKind := m.compileKindExpr(item)
+		if extendKind == kind {
+			m.unexpectedPos(item.Start, "cannot extend itself")
+		}
+		for _, ref := range kind.refs {
+			if ref == extendKind {
+				m.unexpectedPos(item.Start, "cannot extends cycle")
+			}
+		}
+		_, is := extendKind.current.(*TStruct)
+		if !is {
+			m.unexpectedPos(item.Start, "expect a struct")
+		}
+		extends = append(extends, extendKind)
+
+		walkStruct(extendKind, func(ref *KindRef) {
+			ref.refs = append(ref.refs, kind)
+		})
 	}
 
-	kind.Ref = &TStruct{
+	kind.current = &TStruct{
 		Extends:    extends,
 		Properties: props,
 		Impl:       newImpl(),
@@ -120,7 +142,7 @@ func (m *Module) compileStructKind(t *ast.TStructKind) *KindRef {
 }
 
 func (m *Module) inferKind(expr *ast.Expr) (*KindRef, error) {
-	kind := &KindRef{}
+	kind := newKindRef(m, -1)
 
 	switch expr.Node.(type) {
 	case *ast.CallExpr:
@@ -142,15 +164,15 @@ func (m *Module) inferKind(expr *ast.Expr) (*KindRef, error) {
 	case *ast.IdentifierLiteral:
 		return m.inferIdentifierLiteralKind(expr.Node.(*ast.IdentifierLiteral))
 	case *ast.NumberLiteral:
-		kind.Ref = typeNumber
+		kind.current = typeNumber
 	case *ast.BoolLiteral:
-		kind.Ref = typeBool
+		kind.current = typeBool
 	case *ast.NullLiteral:
 		return nil, errors.New("cannot infer the type of null")
 	case *ast.StringLiteral:
-		kind.Ref = typeString
+		kind.current = typeString
 	case *ast.CharLiteral:
-		kind.Ref = typeChar
+		kind.current = typeChar
 	default:
 		panic("Internal Err")
 	}
@@ -175,7 +197,7 @@ func (m *Module) inferCallExprKind(expr *ast.CallExpr) (kind *KindRef, err error
 	}
 
 	if kind != nil {
-		funcKind, ok := kind.Ref.(*TFunc)
+		funcKind, ok := kind.current.(*TFunc)
 		if !ok {
 			m.unexpectedPos(expr.Callee.Start, "not a function")
 		}
@@ -185,9 +207,7 @@ func (m *Module) inferCallExprKind(expr *ast.CallExpr) (kind *KindRef, err error
 	return
 }
 
-func (m *Module) getValueKind(value Value) (*KindRef, error) {
-	kind := &KindRef{}
-
+func (m *Module) getValueKind(value Value) (kind *KindRef, err error) {
 	switch value.(type) {
 	case *FuncValue:
 		kind = value.(*FuncValue).Kind
@@ -199,21 +219,31 @@ func (m *Module) getValueKind(value Value) (*KindRef, error) {
 		panic("Internal Error")
 	}
 
-	return kind, nil
+	return
 }
 
 func (m *Module) inferIdentifierLiteralKind(expr *ast.IdentifierLiteral) (*KindRef, error) {
-	value := m.scopes.findValue(expr.Name, true)
-	return m.getValueKind(value)
+	value := m.scopes.findValue(expr.Name, false)
+	if value != nil {
+		return m.getValueKind(value)
+	}
+
+	kind := m.scopes.findIdentifierKind(expr.Name, true)
+	return kind, nil
 }
 
 func (m *Module) inferMemberExprKind(expr *ast.MemberExpr) (*KindRef, error) {
-	value := m.scopes.findMemberValue(expr, true)
-	return m.getValueKind(value)
+	value := m.scopes.findMemberValue(expr, false)
+	if value != nil {
+		return m.getValueKind(value)
+	}
+
+	// TODO
+	return nil, nil
 }
 
 func (m *Module) inferBinaryExprKind(expr *ast.BinaryExpr) (*KindRef, error) {
-	kind := &KindRef{}
+	kind := newKindRef(m, -1)
 
 	switch expr.Operator.Value {
 	// assign
@@ -222,15 +252,15 @@ func (m *Module) inferBinaryExprKind(expr *ast.BinaryExpr) (*KindRef, error) {
 
 	// logic
 	case "||", "&&", "==", "!=", "<", "<=", ">", ">=":
-		kind.Ref = typeBool
+		kind.current = typeBool
 
 	// bit op
 	case "|", "^", "&", "<<", ">>":
-		kind.Ref = typeNumber
+		kind.current = typeNumber
 
 	// decimal calc
 	case "+", "-", "*", "/", "%":
-		kind.Ref = typeNumber
+		kind.current = typeNumber
 
 	default:
 		panic("Internal Err")
@@ -240,11 +270,11 @@ func (m *Module) inferBinaryExprKind(expr *ast.BinaryExpr) (*KindRef, error) {
 }
 
 func (m *Module) inferBinaryTypeExprKind(expr *ast.BinaryTypeExpr) (*KindRef, error) {
-	kind := &KindRef{}
+	kind := newKindRef(m, -1)
 
 	switch expr.Operator.Value {
 	case "is":
-		kind.Ref = typeBool
+		kind.current = typeBool
 	case "as":
 		kind = m.compileKindExpr(expr.Right)
 		leftKind, err := m.inferKind(expr.Left)
@@ -257,7 +287,7 @@ func (m *Module) inferBinaryTypeExprKind(expr *ast.BinaryTypeExpr) (*KindRef, er
 			} else {
 				return nil, err
 			}
-		} else if !matchKind(leftKind, kind) {
+		} else if !matchKind(leftKind, kind, true) {
 			m.unexpectedPos(expr.Operator.Start, "cannot use `as` on incompatible type: "+getKindExprString(expr.Right))
 		}
 	default:
@@ -268,20 +298,20 @@ func (m *Module) inferBinaryTypeExprKind(expr *ast.BinaryTypeExpr) (*KindRef, er
 }
 
 func (m *Module) inferUnaryExprKind(expr *ast.UnaryExpr) (*KindRef, error) {
-	kind := &KindRef{}
+	kind := newKindRef(m, -1)
 
 	switch expr.Operator.Value {
 	// number op
 	case "+", "-", "++", "--":
-		kind.Ref = typeNumber
+		kind.current = typeNumber
 
 	// logic
 	case "!":
-		kind.Ref = typeBool
+		kind.current = typeBool
 
 	// bit op
 	case "~":
-		kind.Ref = typeNumber
+		kind.current = typeNumber
 
 	default:
 		panic("Internal Err")
@@ -291,7 +321,7 @@ func (m *Module) inferUnaryExprKind(expr *ast.UnaryExpr) (*KindRef, error) {
 }
 
 func (m *Module) inferStructExprKind(expr *ast.StructExpr) (*KindRef, error) {
-	kind := &KindRef{}
+	kind := newKindRef(m, 0)
 	props := make(map[string]*KindRef)
 
 	for _, pair := range expr.Properties {
@@ -307,34 +337,33 @@ func (m *Module) inferStructExprKind(expr *ast.StructExpr) (*KindRef, error) {
 		props[key] = inferKind
 	}
 
-	kind.Ref = &TStruct{
+	kind.current = &TStruct{
 		Extends:    make([]*KindRef, 0, 0),
 		Properties: props,
 		Impl:       newImpl(),
 	}
 
 	if expr.Ctor != nil {
-		inferCtorKind, err := m.inferKind(expr.Ctor)
-		if err != nil {
-			return nil, err
-		}
-		_, ok := inferCtorKind.Ref.(*TStruct)
+		ctorKind := m.compileKindExpr(expr.Ctor)
+		_, ok := ctorKind.current.(*TStruct)
 		if !ok {
 			m.unexpectedPos(expr.Ctor.Start, "expect a struct")
 		}
 
-		// TODO check struct: k&v, extends
+		if !matchKind(ctorKind, kind, true) {
+			m.unexpectedPos(expr.Ctor.End, "cannot match struct: "+getKindExprString(expr.Ctor))
+		}
 
-		kind = inferCtorKind
+		kind = ctorKind
 	}
 
 	return kind, nil
 }
 
 func (m *Module) inferArrayExprKind(expr *ast.ArrayExpr) (*KindRef, error) {
-	kind := &KindRef{}
+	kind := newKindRef(m, -1)
 	arr := &TArray{}
-	kind.Ref = arr
+	kind.current = arr
 
 	if len(expr.Items) > 0 {
 		inferKind, err := m.inferKind(expr.Items[0])

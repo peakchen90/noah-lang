@@ -31,8 +31,8 @@ func (m *Module) compileStmt(stmt *ast.Stmt) {
 		m.compileBreakStmt(stmt.Node.(*ast.BreakStmt))
 	case *ast.ContinueStmt:
 		m.compileContinueStmt(stmt.Node.(*ast.ContinueStmt))
-	case *ast.TAliasDecl:
-		m.compileTAliasDecl(stmt.Node.(*ast.TAliasDecl), false)
+	case *ast.TTypeDecl:
+		m.compileTTypeDecl(stmt.Node.(*ast.TTypeDecl), false)
 	case *ast.TInterfaceDecl:
 		m.compileTInterfaceDecl(stmt.Node.(*ast.TInterfaceDecl), false)
 	case *ast.TStructDecl:
@@ -100,7 +100,7 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 	if isPrecompile {
 		value = &FuncValue{
 			Name: name.Name,
-			Kind: &KindRef{},
+			Kind: newKindRef(m, -1),
 		}
 		m.scopes.putValue(name, value, true)
 		if node.Pub {
@@ -111,7 +111,7 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 
 	// impl struct methods
 	if target != nil {
-		impls := target.Ref.getImpl()
+		impls := target.current.getImpl()
 		if impls.hasFunc(name.Name) {
 			m.unexpectedPos(node.Name.Start, "duplicate key: "+name.Name)
 		}
@@ -129,13 +129,13 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef, isPrecompi
 
 	// compile func kind
 	kind := m.compileKindExpr(node.Kind)
-	value.Kind.Ref = kind.Ref
-	funcKind := kind.Ref.(*TFunc)
+	value.Kind.current = kind.current
+	funcKind := kind.current.(*TFunc)
 	paramKinds := funcKind.Params
 	// 校验 rest 参数类型
 	if funcKind.RestParam && len(paramKinds) > 0 {
 		restParamKind := paramKinds[len(paramKinds)-1]
-		t, ok := restParamKind.Ref.(*TArray)
+		t, ok := restParamKind.current.(*TArray)
 		if !ok || t.Len >= 0 {
 			restKindNode := funcKindNode.Params[len(paramKinds)-1].Kind
 			m.unexpectedPos(restKindNode.Start, "the rest parameter should be: []T")
@@ -172,7 +172,7 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl) {
 	m.scopes.putSelfKind(target)
 	m.scopes.putSelfValue(&SelfValue{Kind: target})
 
-	switch target.Ref.(type) {
+	switch target.current.(type) {
 	case *TInterface:
 		m.unexpectedPos(node.Target.Start, "cannot implements for `interface` type")
 	case *TAny:
@@ -190,15 +190,16 @@ func (m *Module) compileImplDecl(node *ast.ImplDecl) {
 	}
 
 	if node.Interface != nil {
-		t, ok := m.compileKindExpr(node.Interface).Ref.(*TInterface)
+		interfaceKind := m.compileKindExpr(node.Interface)
+		t, ok := interfaceKind.current.(*TInterface)
 		if ok {
-			t.Refs = append(t.Refs, target)
+			interfaceKind.refs = append(interfaceKind.refs, target)
 			interfaceName := getKindExprString(node.Interface)
 			for key, interfaceDeclKind := range t.Properties {
 				if implValues[key] == nil {
 					m.unexpectedPos(node.Body.Start, fmt.Sprintf("no implement method: %s.%s", interfaceName, key))
 				}
-				if !matchKind(interfaceDeclKind, implValues[key].Kind) {
+				if !matchKind(interfaceDeclKind, implValues[key].Kind, true) {
 					funcNode := implDecls[key].Node.(*ast.FuncDecl)
 					m.unexpectedPos(funcNode.Name.End, fmt.Sprintf("cannot match method signature: %s.%s", interfaceName, key))
 				}
@@ -219,7 +220,7 @@ func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 	if isPrecompile {
 		scope := &VarValue{
 			Name:  name.Name,
-			Kind:  &KindRef{},
+			Kind:  newKindRef(m, -1),
 			Const: node.Const,
 		}
 		m.scopes.putValue(name, scope, true)
@@ -252,7 +253,7 @@ func (m *Module) compileVarDecl(node *ast.VarDecl, isPrecompile bool) {
 	if kind == nil {
 		m.unexpectedPos(node.Id.Start, "cannot infer variable type")
 	}
-	value.Kind.Ref = kind.Ref
+	value.Kind.current = kind.current
 }
 
 func (m *Module) compileBlockStmt(node *ast.BlockStmt) {
@@ -283,41 +284,43 @@ func (m *Module) compileContinueStmt(node *ast.ContinueStmt) {
 
 /* type decl */
 
-func (m *Module) processKindDecl(name *ast.Identifier, pub bool, isPrecompile bool) *KindRef {
+func (m *Module) processKindDecl(initKind *KindRef, name *ast.Identifier, pub bool, isPrecompile bool) *KindRef {
 	if isPrecompile {
-		kind := &KindRef{}
-		m.scopes.putKind(name, kind, true)
+		m.scopes.putKind(name, initKind, true)
 		if pub {
-			m.exports.setKind(name.Name, kind)
+			m.exports.setKind(name.Name, initKind)
 		}
-		return kind
+		return initKind
 	}
 	return m.scopes.findIdentifierKind(name, true)
 }
 
-func (m *Module) compileTAliasDecl(node *ast.TAliasDecl, isPrecompile bool) {
-	kind := m.processKindDecl(node.Name, node.Pub, isPrecompile)
+func (m *Module) compileTTypeDecl(node *ast.TTypeDecl, isPrecompile bool) {
+	initKind := newKindRef(m, -1)
+	initKind.current = &TCustom{}
+	kind := m.processKindDecl(initKind, node.Name, node.Pub, isPrecompile)
 	if isPrecompile {
 		return
 	}
 
-	kind.Ref = &TCustom{
+	kind.current = &TCustom{
 		Kind: m.compileKindExpr(node.Kind),
 		Impl: newImpl(),
 	}
 }
 
 func (m *Module) compileTInterfaceDecl(node *ast.TInterfaceDecl, isPrecompile bool) {
-	kind := m.processKindDecl(node.Name, node.Pub, isPrecompile)
+	initKind := newKindRef(m, helper.SmallCap)
+	initKind.current = &TInterface{}
+	kind := m.processKindDecl(initKind, node.Name, node.Pub, isPrecompile)
 	if isPrecompile {
 		return
 	}
 
-	refType := &TInterface{
+	_type := &TInterface{
 		Properties: make(map[string]*KindRef),
-		Refs:       make([]*KindRef, 0, helper.DefaultCap),
 	}
-	kind.Ref = refType
+	kind.current = _type
 
 	// push scope : 用于存放 self 指向
 	m.scopes.push()
@@ -325,29 +328,35 @@ func (m *Module) compileTInterfaceDecl(node *ast.TInterfaceDecl, isPrecompile bo
 
 	for _, pair := range node.Properties {
 		key := pair.Key.Name
-		_, has := refType.Properties[key]
+		_, has := _type.Properties[key]
 		if has {
 			m.unexpectedPos(pair.Key.Start, "duplicate key: "+key)
 		} else if key[0] == '_' {
 			m.unexpectedPos(pair.Key.Start, "should not be private method: "+key)
 		}
-		refType.Properties[key] = m.compileKindExpr(pair.Kind)
+		_type.Properties[key] = m.compileKindExpr(pair.Kind)
 	}
 
 	m.scopes.pop()
 }
 
 func (m *Module) compileTStructDecl(node *ast.TStructDecl, isPrecompile bool) {
-	kind := m.processKindDecl(node.Name, node.Pub, isPrecompile)
+	initKind := newKindRef(m, helper.SmallCap)
+	initKind.current = &TStruct{}
+	kind := m.processKindDecl(initKind, node.Name, node.Pub, isPrecompile)
 	if isPrecompile {
 		return
 	}
 
-	kind.Ref = m.compileStructKind(node.Kind.Node.(*ast.TStructKind)).Ref
+	result := m.compileStructKind(kind, node.Kind)
+	kind.current = result.current
+	kind.refs = result.refs
 }
 
 func (m *Module) compileTEnumDecl(node *ast.TEnumDecl, isPrecompile bool) {
-	kind := m.processKindDecl(node.Name, node.Pub, isPrecompile)
+	initKind := newKindRef(m, -1)
+	initKind.current = &TEnum{}
+	kind := m.processKindDecl(initKind, node.Name, node.Pub, isPrecompile)
 	if isPrecompile {
 		return
 	}
@@ -363,7 +372,7 @@ func (m *Module) compileTEnumDecl(node *ast.TEnumDecl, isPrecompile bool) {
 		choices[name] = i
 	}
 
-	kind.Ref = &TEnum{
+	kind.current = &TEnum{
 		Choices: choices,
 	}
 }

@@ -15,81 +15,83 @@ const (
 	MSCompile
 )
 
-func matchKind(expected *KindRef, received *KindRef) bool {
+// isLooseStruct 为 true 表示 expected >= received (属性)
+func matchKind(expected *KindRef, received *KindRef, isLooseStruct bool) bool {
 	if expected == nil || received == nil {
 		return false
 	}
 
 	// 引用 self 指向
-	_e, ok := expected.Ref.(*TSelf)
+	_e, ok := expected.current.(*TSelf)
 	if ok {
 		expected = _e.Kind
 	}
-	_r, ok := received.Ref.(*TSelf)
+	_r, ok := received.current.(*TSelf)
 	if ok {
 		received = _r.Kind
 	}
 
 	// equal
-	if expected.Ref == received.Ref {
+	if expected.current == received.current {
 		return true
 	}
 
 	// any
-	if expected.Ref == typeAny || received.Ref == typeAny {
+	if expected.current == typeAny || received.current == typeAny {
 		return true
 	}
 
-	switch expected.Ref.(type) {
+	switch expected.current.(type) {
 	case *TArray:
-		r, ok := received.Ref.(*TArray)
+		r, ok := received.current.(*TArray)
 		if !ok {
 			return false
 		}
 
-		e := expected.Ref.(*TArray)
-		return e.Len == r.Len && matchKind(e.Kind, r.Kind)
+		e := expected.current.(*TArray)
+		return e.Len == r.Len && matchKind(e.Kind, r.Kind, isLooseStruct)
 	case *TFunc:
-		r, ok := received.Ref.(*TFunc)
+		r, ok := received.current.(*TFunc)
 		if !ok {
 			return false
 		}
-		e := expected.Ref.(*TFunc)
+		e := expected.current.(*TFunc)
 
 		if e.RestParam != r.RestParam || len(e.Params) != len(r.Params) {
 			return false
 		}
 
 		for i, param := range e.Params {
-			if !matchKind(param, r.Params[i]) {
+			if !matchKind(param, r.Params[i], isLooseStruct) {
 				return false
 			}
 		}
-		return matchKind(e.Return, r.Return)
+		return matchKind(e.Return, r.Return, isLooseStruct)
 	case *TStruct:
-		r, ok := received.Ref.(*TStruct)
+		_, ok := received.current.(*TStruct)
 		if !ok {
 			return false
 		}
-		e := expected.Ref.(*TStruct)
 
-		// TODO think about extends
+		// extends
+		expectedProps := getStructProperties(expected)
+		receivedProps := getStructProperties(received)
 
-		if len(e.Properties) != len(r.Properties) {
+		if !isLooseStruct && len(expectedProps) != len(receivedProps) {
 			return false
 		}
-		for key, kind := range e.Properties {
-			if !matchKind(kind, r.Properties[key]) {
+		for key, kind := range receivedProps {
+			if !matchKind(kind, expectedProps[key], false) {
 				return false
 			}
 		}
 		return true
 	case *TInterface:
-		r, ok := received.Ref.(*TInterface)
-		e := expected.Ref.(*TInterface)
+		r, ok := received.current.(*TInterface)
+		e := expected.current.(*TInterface)
 		if !ok {
-			for _, ref := range e.Refs {
-				if matchKind(ref, received) {
+			for _, ref := range expected.refs {
+				if matchKind(ref, received, isLooseStruct) {
 					return true
 				}
 			}
@@ -100,30 +102,14 @@ func matchKind(expected *KindRef, received *KindRef) bool {
 			return false
 		}
 		for key, kind := range e.Properties {
-			if !matchKind(kind, r.Properties[key]) {
-				return false
-			}
-		}
-		return true
-	case *TEnum:
-		r, ok := received.Ref.(*TEnum)
-		if !ok {
-			return false
-		}
-		e := expected.Ref.(*TEnum)
-
-		if len(e.Choices) != len(r.Choices) {
-			return false
-		}
-		for i, v := range e.Choices {
-			if v != r.Choices[i] {
+			if !matchKind(kind, r.Properties[key], isLooseStruct) {
 				return false
 			}
 		}
 		return true
 	case *TCustom:
-		e := expected.Ref.(*TCustom)
-		return matchKind(e.Kind, received)
+		e := expected.current.(*TCustom)
+		return matchKind(e.Kind, received, isLooseStruct)
 	}
 
 	return false
@@ -218,17 +204,54 @@ func getKindExprString(expr *ast.KindExpr) string {
 }
 
 func isReferenceKind(kind *KindRef) bool {
-	switch kind.Ref {
+	switch kind.current {
 	case typeNumber, typeByte, typeChar, typeString, typeBool:
 		return false
 	}
 
-	switch kind.Ref.(type) {
+	switch kind.current.(type) {
 	case *TCustom:
-		return isReferenceKind(kind.Ref.(*TCustom).Kind)
+		return isReferenceKind(kind.current.(*TCustom).Kind)
 	case *TSelf:
-		return isReferenceKind(kind.Ref.(*TSelf).Kind)
+		return isReferenceKind(kind.current.(*TSelf).Kind)
 	}
 
 	return true
+}
+
+func walkStruct(kind *KindRef, callback func(*KindRef)) {
+	node := kind.current.(*TStruct)
+	callback(kind)
+
+	for _, extend := range node.Extends {
+		walkStruct(extend, callback)
+	}
+}
+
+func getStructProperties(kind *KindRef) map[string]*KindRef {
+	node := kind.current.(*TStruct)
+	if len(node.Extends) == 0 {
+		return node.Properties
+	}
+
+	properties := make(map[string]*KindRef)
+
+	var walkProps func(k *KindRef)
+	walkProps = func(_kind *KindRef) {
+		_node := _kind.current.(*TStruct)
+		for i := len(_node.Extends) - 1; i >= 0; i-- {
+			walkProps(_node.Extends[i])
+		}
+
+		for k, v := range _node.Properties {
+			if kind.module != v.module && k[0] == '_' {
+				continue
+			}
+			properties[k] = v
+		}
+	}
+
+	walkProps(kind)
+
+	return properties
 }

@@ -15,7 +15,7 @@ func (*ForStmt) isStmt()      {}
 func (*BreakStmt) isStmt()    {}
 func (*ContinueStmt) isStmt() {}
 
-func (*TAliasDecl) isStmt()     {}
+func (*TTypeDecl) isStmt()      {}
 func (*TInterfaceDecl) isStmt() {}
 func (*TStructDecl) isStmt()    {}
 func (*TEnumDecl) isStmt()      {}
@@ -87,7 +87,7 @@ type (
 
 /* kind decl */
 type (
-	TAliasDecl struct {
+	TTypeDecl struct {
 		Name *Identifier
 		Kind *KindExpr
 		Pub  bool

@@ -55,7 +55,7 @@ type (
 	}
 
 	StructExpr struct {
-		Ctor       *Expr
+		Ctor       *KindExpr
 		Properties []*ValueProperty
 	}
 

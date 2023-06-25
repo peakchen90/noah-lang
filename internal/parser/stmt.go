@@ -225,9 +225,8 @@ func (p *Parser) parseTypeDecl(pubToken *lexer.Token) *ast.Stmt {
 	name := newKindIdentifier(p.current)
 	p.consumeVarId(true)
 
-	// alias T
 	kind := p.parseKindExpr()
-	stmt.Node = &ast.TAliasDecl{
+	stmt.Node = &ast.TTypeDecl{
 		Name: name,
 		Kind: kind,
 		Pub:  pubToken != nil,

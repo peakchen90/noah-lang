@@ -3,8 +3,6 @@ package parser
 import (
 	"github.com/peakchen90/noah-lang/internal/ast"
 	"github.com/peakchen90/noah-lang/internal/lexer"
-	"strconv"
-	"strings"
 )
 
 func newIdentifier(token *lexer.Token) *ast.Identifier {
@@ -35,29 +33,57 @@ func newIdentifierExpr(token *lexer.Token) *ast.Expr {
 	}
 }
 
-func newNumberExpr(token *lexer.Token, parser *Parser) *ast.Expr {
-	value, err := strconv.ParseFloat(token.Value, 64)
-	if err != nil {
-		parser.UnexpectedPos(token.Start, err.Error())
+func exprToKindExpr(expr *ast.Expr) *ast.KindExpr {
+	if expr == nil {
+		return nil
 	}
-	return &ast.Expr{
-		Node:     &ast.NumberLiteral{Value: value},
-		Position: token.Position,
-	}
-}
 
-func isUnsignedInt(value string) bool {
-	first := value[0:1]
-	return len(first) > 0 &&
-		first[0] != '-' &&
-		strings.IndexByte(value, '.') == -1
-}
+	switch expr.Node.(type) {
+	case *ast.IdentifierLiteral:
+		return &ast.KindExpr{
+			Node:     &ast.TIdentifier{Name: expr.Node.(*ast.IdentifierLiteral).Name},
+			Position: expr.Position,
+		}
 
-func getNumberExprValue(expr ast.Expr) float64 {
-	switch node := expr.Node.(type) {
-	case *ast.NumberLiteral:
-		return node.Value
+	case *ast.MemberExpr:
+		currentExpr := expr
+		currentKind := &ast.TMemberKind{}
+		result := &ast.KindExpr{
+			Node:     currentKind,
+			Position: currentExpr.Position,
+		}
+
+		for {
+			switch currentExpr.Node.(type) {
+			case *ast.MemberExpr:
+				node := currentExpr.Node.(*ast.MemberExpr)
+				if node.Computed {
+					panic("Internal Err")
+				}
+
+				currentKind.Right = &ast.KindExpr{
+					Node:     &ast.TIdentifier{Name: node.Property.Node.(*ast.IdentifierLiteral).Name},
+					Position: node.Property.Position,
+				}
+
+				currentExpr = node.Object
+				currentKind = &ast.TMemberKind{}
+				currentKind.Left = &ast.KindExpr{
+					Node:     currentKind,
+					Position: currentExpr.Position,
+				}
+			case *ast.IdentifierLiteral:
+				node := currentExpr.Node.(*ast.IdentifierLiteral)
+				currentKind.Left = &ast.KindExpr{
+					Node:     &ast.TIdentifier{Name: node.Name},
+					Position: node.Name.Position,
+				}
+				break
+			}
+		}
+
+		return result
 	default:
-		panic("Internal Error")
+		panic("Internal Err")
 	}
 }

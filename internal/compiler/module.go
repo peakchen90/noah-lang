@@ -120,8 +120,8 @@ func (m *Module) precompile() {
 			m.compileFuncDecl(stmt.Node.(*ast.FuncDecl), nil, true)
 		case *ast.VarDecl:
 			m.compileVarDecl(stmt.Node.(*ast.VarDecl), true)
-		case *ast.TAliasDecl:
-			m.compileTAliasDecl(stmt.Node.(*ast.TAliasDecl), true)
+		case *ast.TTypeDecl:
+			m.compileTTypeDecl(stmt.Node.(*ast.TTypeDecl), true)
 		case *ast.TInterfaceDecl:
 			m.compileTInterfaceDecl(stmt.Node.(*ast.TInterfaceDecl), true)
 		case *ast.TStructDecl:
@@ -155,6 +155,7 @@ func (m *Module) compile() {
 	}
 
 	// 2. 其次编译函数
+	// TODO 函数 body 可能依赖 var 变量的类型推断，考虑先只编译函数签名，最后编译函数体
 	for _, stmt := range fns {
 		m.compileStmt(stmt)
 	}

@@ -22,5 +22,6 @@ type (
 
 	SelfValue struct {
 		Kind *KindRef
+		Ptr  uintptr
 	}
 )
