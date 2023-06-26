@@ -42,7 +42,7 @@ type (
 		Value *Expr
 	}
 
-	Param struct {
+	Argument struct {
 		Name *Identifier
 		Kind *KindExpr
 		Rest bool

@@ -106,7 +106,7 @@ func (p *Parser) parseBinaryExprPrecedence(left *ast.Expr, precedence int8) *ast
 // 解析一个原子表达式，如: `foo()`, `3.14`, `a.b`, `var2 = expr`, `true`, `"str"`, `fn() {}`, `A{}`
 func (p *Parser) parseAtomExpr() *ast.Expr {
 	if p.isKeyword("fn") {
-		return p.parseMaybeChainExpr(p.parseFuncExpr(), AccessCall)
+		return p.parseMaybeChainExpr(p.parseFuncExpr(), AccessCall|AccessDot)
 	} else if p.isToken(lexer.TTConst) {
 		value := p.current.Value
 		if value == "true" || value == "false" {

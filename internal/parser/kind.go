@@ -49,7 +49,7 @@ func (p *Parser) parseKindExpr() *ast.KindExpr {
 			Len:  Len,
 		}
 		kindExpr.End = kind.End
-	} else if p.isKeyword("fn") { // fn(...params: []T) -> T
+	} else if p.isKeyword("fn") { // fn(...args: []T) -> T
 		start := p.current.Start
 		p.nextToken()
 		kindExpr = p.parseFuncKindExpr(start)
@@ -86,12 +86,12 @@ func (p *Parser) parseFuncKindExpr(start int) *ast.KindExpr {
 	kindExpr := &ast.KindExpr{}
 	kindExpr.Start = start
 
-	// params
-	params := make([]*ast.Param, 0, helper.DefaultCap)
+	// arguments
+	arguments := make([]*ast.Argument, 0, helper.DefaultCap)
 	var lastRestToken *lexer.Token
 	for !p.isEnd() && !p.isToken(lexer.TTParenR) {
 		if lastRestToken != nil {
-			p.UnexpectedPos(lastRestToken.Start, "Only use `...` in the last parameter")
+			p.UnexpectedPos(lastRestToken.Start, "Only use `...` in the last argument")
 		}
 
 		restToken := p.consume(lexer.TTRest, false)
@@ -105,14 +105,14 @@ func (p *Parser) parseFuncKindExpr(start int) *ast.KindExpr {
 		}
 		p.consume(lexer.TTColon, true)
 		kind := p.parseKindExpr()
-		param := &ast.Param{
+		arg := &ast.Argument{
 			Name: newIdentifier(nameToken),
 			Kind: kind,
 			Rest: rest,
 		}
-		param.Start = nameToken.Start
-		param.End = kind.End
-		params = append(params, param)
+		arg.Start = nameToken.Start
+		arg.End = kind.End
+		arguments = append(arguments, arg)
 
 		if p.consume(lexer.TTComma, false) == nil {
 			break
@@ -128,8 +128,8 @@ func (p *Parser) parseFuncKindExpr(start int) *ast.KindExpr {
 	}
 
 	kindExpr.Node = &ast.TFuncKind{
-		Params: params,
-		Return: returnKind,
+		Arguments: arguments,
+		Return:    returnKind,
 	}
 	if returnKind != nil {
 		end = returnKind.End

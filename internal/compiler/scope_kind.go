@@ -106,9 +106,9 @@ type (
 	}
 
 	TFunc struct {
-		Params    []*KindRef
+		Arguments []*KindRef
 		Return    *KindRef
-		RestParam bool
+		HasRest   bool
 		Impl      *Impl
 	}
 

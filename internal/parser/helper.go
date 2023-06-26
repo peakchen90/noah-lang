@@ -78,11 +78,9 @@ func exprToKindExpr(expr *ast.Expr) *ast.KindExpr {
 					Node:     &ast.TIdentifier{Name: node.Name},
 					Position: node.Name.Position,
 				}
-				break
+				return result
 			}
 		}
-
-		return result
 	default:
 		panic("Internal Err")
 	}

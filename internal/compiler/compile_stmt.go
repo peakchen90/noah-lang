@@ -139,14 +139,14 @@ func (m *Module) compileFuncSign(node *ast.FuncDecl, target *KindRef, isPrecompi
 	kind := m.compileKindExpr(node.Kind)
 	value.Kind.current = kind.current
 	funcKind := kind.current.(*TFunc)
-	paramKinds := funcKind.Params
+	argKinds := funcKind.Arguments
 	// 校验 rest 参数类型
-	if funcKind.RestParam && len(paramKinds) > 0 {
-		restParamKind := paramKinds[len(paramKinds)-1]
-		t, ok := restParamKind.current.(*TArray)
+	if funcKind.HasRest && len(argKinds) > 0 {
+		restArgKind := argKinds[len(argKinds)-1]
+		t, ok := restArgKind.current.(*TArray)
 		if !ok || t.Len >= 0 {
-			restKindNode := funcKindNode.Params[len(paramKinds)-1].Kind
-			m.unexpectedPos(restKindNode.Start, "the rest parameter should be: []T")
+			restKindNode := funcKindNode.Arguments[len(argKinds)-1].Kind
+			m.unexpectedPos(restKindNode.Start, "the rest argument should be: []T")
 		}
 	}
 
@@ -167,18 +167,18 @@ func (m *Module) compileFuncDecl(node *ast.FuncDecl, target *KindRef) {
 
 	funcKindNode := node.Kind.Node.(*ast.TFuncKind)
 	funcKind := value.Kind.current.(*TFunc)
-	paramKinds := funcKind.Params
+	argKinds := funcKind.Arguments
 
-	// compile func params
+	// compile func argument
 	m.scopes.push()
-	for i, param := range funcKindNode.Params {
-		paramValue := &VarValue{
+	for i, arg := range funcKindNode.Arguments {
+		argValue := &VarValue{
 			Name:  name.Name,
-			Kind:  paramKinds[i],
+			Kind:  argKinds[i],
 			Const: false,
 			Ptr:   0, // TODO ptr
 		}
-		m.scopes.putValue(param.Name, paramValue, true)
+		m.scopes.putValue(arg.Name, argValue, true)
 	}
 
 	// compile func body
@@ -304,6 +304,7 @@ func (m *Module) compileReturnStmt(node *ast.ReturnStmt) {
 }
 
 func (m *Module) compileExprStmt(node *ast.ExprStmt) {
+	m.compileExpr(node.Expression)
 }
 
 func (m *Module) compileIfStmt(node *ast.IfStmt) {

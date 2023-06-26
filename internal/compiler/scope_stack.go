@@ -169,8 +169,84 @@ func (s *ScopeStack) findSelfValue(name *ast.Identifier, isPanic bool) *SelfValu
 	return nil
 }
 
-func (s *ScopeStack) findMemberValue(expr *ast.MemberExpr, isPanic bool) Value {
-	// TODO
+// TODO
+func (s *ScopeStack) findMemberValue(expr *ast.Expr, isPanic bool) Value {
+	//	memberIdStack := make([]*ast.Expr, 0, helper.DefaultCap)
+	//	current := expr
+	//
+	//outer:
+	//	for {
+	//		switch current.Node.(type) {
+	//		case *ast.MemberExpr:
+	//			node := current.Node.(*ast.MemberExpr)
+	//			if node.Computed {
+	//				// TODO
+	//				s.module.compileExpr(node.Property)
+	//			} else {
+	//				memberIdStack = append(memberIdStack, node.Property)
+	//			}
+	//			current = node.Object
+	//		case *ast.IdentifierLiteral:
+	//			memberIdStack = append(memberIdStack, current)
+	//			break outer
+	//		default:
+	//			panic("Internal Err")
+	//		}
+	//	}
+	//
+	//	var kind *KindRef
+	//	module := s.module
+	//
+	//	handleValue := func(value Value) {
+	//		switch value.(type) {
+	//		case *FuncValue:
+	//		case *VarValue:
+	//		case *SelfValue:
+	//		default:
+	//			panic("Internal Err")
+	//		}
+	//	}
+	//
+	//	handleKind := func(kind *KindRef) {
+	//
+	//	}
+	//
+	//outer:
+	//	for i := len(memberIdStack) - 1; i >= 0; i-- {
+	//		item := memberIdStack[i]
+	//
+	//		switch item.Node.(type) {
+	//		case *ast.IdentifierLiteral:
+	//			node := item.Node.(*ast.IdentifierLiteral)
+	//			if m := module.scopes.findModule(node.Name, false); m != nil {
+	//				module = m
+	//				continue outer
+	//			} else if v := module.scopes.findValue(node.Name, false); v != nil {
+	//				handleValue(v)
+	//			} else if k := module.scopes.findIdentifierKind(node.Name, false); k != nil {
+	//				handleKind(k)
+	//			}
+	//
+	//		}
+	//		node := item.Node.(*ast.IdentifierLiteral)
+	//
+	//		if i > 0 {
+	//			found := module.scopes.findModule(node.Name, false)
+	//			if found == nil {
+	//				break
+	//			}
+	//			module = found
+	//		} else {
+	//			kind = module.scopes.findIdentifierKind(node.Name, false)
+	//		}
+	//	}
+	//
+	//	if kind == nil {
+	//		if isPanic {
+	//			s.module.unexpectedPos(expr.Start, " is not found")
+	//		}
+	//	}
+
 	return nil
 }
 
@@ -223,14 +299,14 @@ outer:
 		builder.WriteString(node.Name.Name)
 
 		if i > 0 {
-			found := module.scopes.findModule(node.Name, isPanic)
+			found := module.scopes.findModule(node.Name, false)
 			if found == nil {
 				break
 			}
 			module = found
 			builder.WriteByte('.')
 		} else {
-			kind = module.scopes.findIdentifierKind(node.Name, isPanic)
+			kind = module.scopes.findIdentifierKind(node.Name, false)
 		}
 	}
 
@@ -252,7 +328,7 @@ func (s *ScopeStack) findSelfKind(kindExpr *ast.KindExpr, isPanic bool) *KindRef
 	kind, err := s.findKind("self")
 
 	if err != nil && isPanic {
-		s.module.unexpectedPos(kindExpr.Start, "cannot use self here")
+		s.module.unexpectedPos(kindExpr.Start, "`self` is not allowed here")
 	}
 
 	return kind

@@ -72,23 +72,23 @@ func (m *Module) compileFuncKind(kindExpr *ast.KindExpr) *KindRef {
 	node := kindExpr.Node.(*ast.TFuncKind)
 
 	kind := newKindRef(m, -1)
-	rest := false
-	params := make([]*KindRef, 0, helper.DefaultCap)
+	hasRest := false
+	arguments := make([]*KindRef, 0, helper.DefaultCap)
 
-	for i, param := range node.Params {
-		if param.Rest {
-			if i < len(node.Params)-1 {
-				m.unexpectedPos(param.Start, "the rest parameter should be placed last")
+	for i, arg := range node.Arguments {
+		if arg.Rest {
+			if i < len(node.Arguments)-1 {
+				m.unexpectedPos(arg.Start, "the rest argument should be placed last")
 			}
-			rest = true
+			hasRest = true
 		}
-		params = append(params, m.compileKindExpr(param.Kind))
+		arguments = append(arguments, m.compileKindExpr(arg.Kind))
 	}
 
 	kind.current = &TFunc{
-		Params:    params,
+		Arguments: arguments,
 		Return:    m.compileKindExpr(node.Return),
-		RestParam: rest,
+		HasRest:   hasRest,
 		Impl:      newImpl(),
 	}
 	return kind
@@ -148,7 +148,7 @@ func (m *Module) inferKind(expr *ast.Expr) (*KindRef, error) {
 	case *ast.CallExpr:
 		return m.inferCallExprKind(expr.Node.(*ast.CallExpr))
 	case *ast.MemberExpr:
-		return m.inferMemberExprKind(expr.Node.(*ast.MemberExpr))
+		return m.inferMemberExprKind(expr)
 	case *ast.BinaryExpr:
 		return m.inferBinaryExprKind(expr.Node.(*ast.BinaryExpr))
 	case *ast.BinaryTypeExpr:
@@ -188,7 +188,7 @@ func (m *Module) inferCallExprKind(expr *ast.CallExpr) (kind *KindRef, err error
 		value := m.scopes.findValue(callee.(*ast.IdentifierLiteral).Name, true)
 		kind, err = m.getValueKind(value)
 	case *ast.MemberExpr:
-		value := m.scopes.findMemberValue(callee.(*ast.MemberExpr), true)
+		value := m.scopes.findMemberValue(expr.Callee, true)
 		kind, err = m.getValueKind(value)
 	case *ast.FuncExpr:
 		kind = m.compileKindExpr(callee.(*ast.FuncExpr).FuncKind)
@@ -232,7 +232,7 @@ func (m *Module) inferIdentifierLiteralKind(expr *ast.IdentifierLiteral) (*KindR
 	return kind, nil
 }
 
-func (m *Module) inferMemberExprKind(expr *ast.MemberExpr) (*KindRef, error) {
+func (m *Module) inferMemberExprKind(expr *ast.Expr) (*KindRef, error) {
 	value := m.scopes.findMemberValue(expr, false)
 	if value != nil {
 		return m.getValueKind(value)

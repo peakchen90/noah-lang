@@ -57,12 +57,12 @@ func matchKind(expected *KindRef, received *KindRef, isLooseStruct bool) bool {
 		}
 		e := expected.current.(*TFunc)
 
-		if e.RestParam != r.RestParam || len(e.Params) != len(r.Params) {
+		if e.HasRest != r.HasRest || len(e.Arguments) != len(r.Arguments) {
 			return false
 		}
 
-		for i, param := range e.Params {
-			if !matchKind(param, r.Params[i], isLooseStruct) {
+		for i, arg := range e.Arguments {
+			if !matchKind(arg, r.Arguments[i], isLooseStruct) {
 				return false
 			}
 		}
@@ -157,16 +157,16 @@ func getKindExprString(expr *ast.KindExpr) string {
 	case *ast.TFuncKind:
 		node := expr.Node.(*ast.TFuncKind)
 		builder.WriteString("fn(")
-		for i, param := range node.Params {
-			builder.WriteString(param.Name.Name)
+		for i, arg := range node.Arguments {
+			builder.WriteString(arg.Name.Name)
 			builder.WriteString(": ")
-			builder.WriteString(getKindExprString(param.Kind))
-			if i < len(node.Params)-1 {
+			builder.WriteString(getKindExprString(arg.Kind))
+			if i < len(node.Arguments)-1 {
 				builder.WriteString(", ")
 			}
 		}
 		builder.WriteString(")")
-		if len(node.Params) > 0 {
+		if len(node.Arguments) > 0 {
 			builder.WriteString(" -> ")
 			builder.WriteString(getKindExprString(node.Return))
 		}
